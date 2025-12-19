@@ -410,6 +410,9 @@ FodyWeavers.xsd
 # Built Visual Studio Code Extensions
 *.vsix
 
+# MudBlazor.Mcp - cloned repository data
+**/data/mudblazor-repo/
+
 # Windows Installer files from build outputs
 *.cab
 *.msi
