@@ -1,5 +1,5 @@
-// Copyright (c) 2024 MudBlazor.Mcp Contributors
-// Licensed under the MIT License.
+// Copyright (c) 2025 MudBlazor.Mcp Contributors
+// Licensed under the GNU General Public License v2.0. See LICENSE file in the project root for full license information.
 
 using MudBlazor.Mcp.Models;
 
