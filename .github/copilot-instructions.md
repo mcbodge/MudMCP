@@ -178,7 +178,7 @@ All models in [Models/ComponentInfo.cs](../src/MudBlazor.Mcp/Models/ComponentInf
 Add a new file in `src/MudBlazor.Mcp/Tools/`:
 
 ```csharp
-// Copyright (c) 2025 MudBlazor.Mcp Contributors
+// Copyright (c) 2025 Mud MCP Contributors
 // Licensed under the GNU General Public License v2.0.
 
 using System.ComponentModel;
@@ -310,6 +310,6 @@ public async Task GetComponentDetailAsync_WithInvalidComponent_ThrowsMcpExceptio
 
 GPL-2.0 - Include copyright header in all source files:
 ```csharp
-// Copyright (c) 2025 MudBlazor.Mcp Contributors
+// Copyright (c) 2025 Mud MCP Contributors
 // Licensed under the GNU General Public License v2.0.
 ```
