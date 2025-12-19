@@ -54,7 +54,7 @@ MudBlazor.Mcp bridges the gap between AI assistants and MudBlazor component docu
 
 ### Prerequisites
 
-- [.NET 10 SDK](https://dotnet.microsoft.com/download) (Preview)
+- [.NET 10 SDK](https://dotnet.microsoft.com/download)
 - [Git](https://git-scm.com/)
 
 ### 1. Clone and Build
