@@ -1,6 +1,6 @@
 # Troubleshooting Guide
 
-Solutions for common issues when running MudBlazor.Mcp.
+Solutions for common issues when running Mud MCP.
 
 ## Table of Contents
 

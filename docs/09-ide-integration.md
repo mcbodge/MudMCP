@@ -1,6 +1,6 @@
 # IDE Integration
 
-Configure MudBlazor.Mcp for use with VS Code, Claude Desktop, and other AI assistants.
+Configure Mud MCP for use with VS Code, Claude Desktop, and other AI assistants.
 
 ## Table of Contents
 
@@ -16,7 +16,7 @@ Configure MudBlazor.Mcp for use with VS Code, Claude Desktop, and other AI assis
 
 ## Overview
 
-MudBlazor.Mcp supports two transport mechanisms:
+Mud MCP supports two transport mechanisms:
 
 | Transport | Use Case | Endpoint |
 |-----------|----------|----------|

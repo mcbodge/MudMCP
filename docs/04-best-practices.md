@@ -1,6 +1,6 @@
 # Best Practices
 
-This document details the best practices implemented in the MudBlazor.Mcp server, providing guidance for understanding, maintaining, and extending the codebase.
+This document details the best practices implemented in the Mud MCP server, providing guidance for understanding, maintaining, and extending the codebase.
 
 ## Table of Contents
 

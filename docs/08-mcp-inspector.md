@@ -1,6 +1,6 @@
 # Testing with MCP Inspector
 
-Step-by-step guide to testing MudBlazor.Mcp using the official MCP Inspector tool.
+Step-by-step guide to testing Mud MCP using the official MCP Inspector tool.
 
 ## Table of Contents
 

@@ -1,6 +1,6 @@
 # Architecture
 
-This document provides a deep technical dive into the MudBlazor.Mcp architecture, including component design, data flow, and implementation details.
+This document provides a deep technical dive into the Mud MCP architecture, including component design, data flow, and implementation details.
 
 ## Table of Contents
 
@@ -30,7 +30,7 @@ This document provides a deep technical dive into the MudBlazor.Mcp architecture
                 │ JSON-RPC over HTTP/stdio            │
                 ▼                                     ▼
 ┌─────────────────────────────────────────────────────────────────────────┐
-│                         MudBlazor.Mcp Server                             │
+│                            Mud MCP Server                                │
 │  ┌─────────────────────────────────────────────────────────────────┐   │
 │  │                    Transport Layer                                │   │
 │  │              HTTP Transport │ stdio Transport                     │   │

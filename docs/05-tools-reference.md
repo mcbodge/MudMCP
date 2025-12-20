@@ -1,6 +1,6 @@
 # Tools Reference
 
-Complete reference documentation for all 12 MCP tools provided by MudBlazor.Mcp.
+Complete reference documentation for all 12 MCP tools provided by Mud MCP.
 
 ## Table of Contents
 
@@ -29,7 +29,7 @@ Complete reference documentation for all 12 MCP tools provided by MudBlazor.Mcp.
 
 ## Overview
 
-MudBlazor.Mcp exposes 12 tools organized into functional categories:
+Mud MCP exposes 12 tools organized into functional categories:
 
 | Category | Tools | Purpose |
 |----------|-------|---------|

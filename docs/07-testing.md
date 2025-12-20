@@ -1,6 +1,6 @@
 # Testing Guide
 
-Comprehensive guide to testing the MudBlazor.Mcp server.
+Comprehensive guide to testing the Mud MCP server.
 
 ## Table of Contents
 
@@ -19,7 +19,7 @@ Comprehensive guide to testing the MudBlazor.Mcp server.
 
 ## Testing Philosophy
 
-MudBlazor.Mcp follows these testing principles:
+Mud MCP follows these testing principles:
 
 1. **Isolated Unit Tests**: Each test validates a single behavior
 2. **Mocking Dependencies**: Use Moq to isolate components

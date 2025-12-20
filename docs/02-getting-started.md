@@ -1,6 +1,6 @@
 # Getting Started
 
-This guide walks you through installing, configuring, and running the MudBlazor.Mcp server for the first time.
+This guide walks you through installing, configuring, and running the Mud MCP server for the first time.
 
 ## Table of Contents
 
@@ -139,7 +139,7 @@ dotnet run
 ```
 
 This starts:
-- The MudBlazor.Mcp server
+- The Mud MCP server
 - Aspire dashboard for monitoring (typically `http://localhost:15000`)
 
 ---
@@ -303,7 +303,7 @@ dotnet run --urls "http://localhost:8080"
    }
    ```
 
-2. **Start the MudBlazor.Mcp server** (if not already running)
+2. **Start the Mud MCP server** (if not already running)
 
 3. **Ask Copilot about MudBlazor**
 

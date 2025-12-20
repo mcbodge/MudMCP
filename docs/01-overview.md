@@ -1,11 +1,11 @@
 # Overview
 
-This document provides a high-level overview of the MudBlazor.Mcp server, its purpose, architecture, and design principles.
+This document provides a high-level overview of the Mud MCP server, its purpose, architecture, and design principles.
 
 ## Table of Contents
 
-- [What is MudBlazor.Mcp?](#what-is-mudblazoremcp)
-- [Why MudBlazor.Mcp?](#why-mudblazormcp)
+- [What is Mud MCP?](#what-is-mud-mcp)
+- [Why Mud MCP?](#why-mud-mcp)
 - [Target Audience](#target-audience)
 - [Key Features](#key-features)
 - [Architecture Overview](#architecture-overview)
@@ -15,15 +15,15 @@ This document provides a high-level overview of the MudBlazor.Mcp server, its pu
 
 ---
 
-## What is MudBlazor.Mcp?
+## What is Mud MCP?
 
-MudBlazor.Mcp is a **Model Context Protocol (MCP) server** that provides AI assistants with structured, real-time access to MudBlazor component documentation. It acts as a bridge between AI coding assistants (like GitHub Copilot, Claude, and other MCP-compatible clients) and the comprehensive MudBlazor component library documentation.
+Mud MCP is a **Model Context Protocol (MCP) server** that provides AI assistants with structured, real-time access to MudBlazor component documentation. It acts as a bridge between AI coding assistants (like GitHub Copilot, Claude, and other MCP-compatible clients) and the comprehensive MudBlazor component library documentation.
 
 ### How It Works
 
 ```
 ┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
-│   AI Assistant  │────▶│  MudBlazor.Mcp  │────▶│ MudBlazor Repo  │
+│   AI Assistant  │────▶│     Mud MCP     │────▶│ MudBlazor Repo  │
 │  (Copilot/Claude)│◀────│   MCP Server    │◀────│  (GitHub Clone) │
 └─────────────────┘     └─────────────────┘     └─────────────────┘
 ```
@@ -36,7 +36,7 @@ The server:
 
 ---
 
-## Why MudBlazor.Mcp?
+## Why Mud MCP?
 
 ### The Problem
 
@@ -48,7 +48,7 @@ AI assistants have general knowledge about MudBlazor but lack:
 
 ### The Solution
 
-MudBlazor.Mcp provides AI assistants with:
+Mud MCP provides AI assistants with:
 
 | Capability | Description |
 |------------|-------------|
@@ -60,11 +60,11 @@ MudBlazor.Mcp provides AI assistants with:
 
 ### Example Interaction
 
-**Without MudBlazor.Mcp:**
+**Without Mud MCP:**
 > *User: "What parameters does MudButton support?"*  
 > *AI: "MudButton supports Color, Variant, Size..." (potentially incomplete/outdated)*
 
-**With MudBlazor.Mcp:**
+**With Mud MCP:**
 > *User: "What parameters does MudButton support?"*  
 > *AI: [Calls `get_component_parameters`]*  
 > *AI: "MudButton has 23 parameters including Color (Color enum), Variant (Variant enum), Size (Size enum), Disabled (bool, default: false), DisableElevation (bool), DisableRipple (bool)..." (complete, accurate list)*
@@ -128,7 +128,7 @@ MudBlazor.Mcp provides AI assistants with:
 
 ## Architecture Overview
 
-MudBlazor.Mcp follows a clean, layered architecture:
+Mud MCP follows a clean, layered architecture:
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐

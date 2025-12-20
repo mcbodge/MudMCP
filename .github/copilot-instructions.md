@@ -1,8 +1,8 @@
-# MudBlazor.Mcp - AI Coding Agent Instructions
+# Mud MCP - AI Coding Agent Instructions
 
 ## Project Overview
 
-MudBlazor.Mcp is an MCP (Model Context Protocol) server that provides AI assistants with access to MudBlazor component documentation. It clones the MudBlazor repository, parses source files using Roslyn, and exposes an indexed API via MCP tools.
+Mud MCP is an MCP (Model Context Protocol) server that provides AI assistants with access to MudBlazor component documentation. It clones the MudBlazor repository, parses source files using Roslyn, and exposes an indexed API via MCP tools.
 
 **Tech Stack:** .NET 10, ASP.NET Core, Roslyn, LibGit2Sharp, Aspire 13.1, xUnit + Moq
 
@@ -178,7 +178,7 @@ All models in [Models/ComponentInfo.cs](../src/MudBlazor.Mcp/Models/ComponentInf
 Add a new file in `src/MudBlazor.Mcp/Tools/`:
 
 ```csharp
-// Copyright (c) 2025 MudBlazor.Mcp Contributors
+// Copyright (c) 2025 Mud MCP Contributors
 // Licensed under the GNU General Public License v2.0.
 
 using System.ComponentModel;
@@ -310,6 +310,6 @@ public async Task GetComponentDetailAsync_WithInvalidComponent_ThrowsMcpExceptio
 
 GPL-2.0 - Include copyright header in all source files:
 ```csharp
-// Copyright (c) 2025 MudBlazor.Mcp Contributors
+// Copyright (c) 2025 Mud MCP Contributors
 // Licensed under the GNU General Public License v2.0.
 ```

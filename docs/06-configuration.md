@@ -1,6 +1,6 @@
 # Configuration
 
-Complete guide to configuring the MudBlazor.Mcp server.
+Complete guide to configuring the Mud MCP server.
 
 ## Table of Contents
 
@@ -18,7 +18,7 @@ Complete guide to configuring the MudBlazor.Mcp server.
 
 ## Configuration Sources
 
-MudBlazor.Mcp follows the standard .NET configuration hierarchy (highest priority first):
+Mud MCP follows the standard .NET configuration hierarchy (highest priority first):
 
 1. **Command-line arguments**
 2. **Environment variables**
