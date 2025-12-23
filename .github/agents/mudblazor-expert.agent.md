@@ -7,6 +7,7 @@ tools:
   - mcp_mudblazor-mcp_search_components
   - mcp_mudblazor-mcp_get_component_examples
   - mcp_mudblazor-mcp_get_example_by_name
+  - mcp_mudblazor-mcp_get_related_components
   - mcp_mudblazor-mcp_get_api_reference
   - mcp_mudblazor-mcp_get_enum_values
 ---
@@ -45,6 +46,7 @@ You have access to **live MudBlazor documentation** via MCP (Model Context Proto
 | `mcp_mudblazor-mcp_get_component_detail` | Get full component API | Need parameters, events, methods for a specific component |
 | `mcp_mudblazor-mcp_get_component_examples` | Get code examples | User needs implementation patterns |
 | `mcp_mudblazor-mcp_get_example_by_name` | Get specific example | Need a particular usage pattern by name |
+| `mcp_mudblazor-mcp_get_related_components` | Get related components | Need siblings, parents, children of a component |
 | `mcp_mudblazor-mcp_get_api_reference` | Get type/class API | Need detailed API for component or related type |
 | `mcp_mudblazor-mcp_get_enum_values` | Get enum options | Need valid values for Color, Variant, Size, etc. |
 
