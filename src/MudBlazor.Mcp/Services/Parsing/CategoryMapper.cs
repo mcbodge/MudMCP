@@ -1,4 +1,4 @@
-// Copyright (c) 2025 Mud MCP Contributors
+// Copyright (c) 2026 Mud MCP Contributors
 // Licensed under the GNU General Public License v2.0. See LICENSE file in the project root for full license information.
 
 using Microsoft.Extensions.Logging;
@@ -59,16 +59,19 @@ public sealed class CategoryMapper
         AddCategory("Navigation", "Navigation", "Components for navigation and routing",
             "MudNavMenu", "MudNavGroup", "MudNavLink", "MudBreadcrumbs",
             "MudDrawer", "MudAppBar", "MudTabs", "MudTabPanel", "MudLink",
-            "MudMenu", "MudMenuItem", "MudMenuList");
+            "MudMenu", "MudMenuItem", "MudMenuList", "MudPagination", "MudToolBar");
 
         AddCategory("Layout", "Layout", "Components for page structure and layout",
             "MudContainer", "MudGrid", "MudItem", "MudHidden", "MudBreakpointProvider",
-            "MudSpacer", "MudStack", "MudDivider", "MudExpansionPanels", "MudExpansionPanel");
+            "MudSpacer", "MudStack", "MudDivider", "MudExpansionPanels", "MudExpansionPanel",
+            "MudCollapse", "MudSplitPanel", "MudMain", "MudMainContent", "MudLayout",
+            "MudDrawerContainer", "MudDrawerHeader");
 
         AddCategory("Data Display", "Data Display", "Components for displaying data and content",
             "MudTable", "MudSimpleTable", "MudDataGrid", "MudTreeView", "MudTreeViewItem",
             "MudList", "MudListItem", "MudListSubheader", "MudVirtualize",
-            "MudChip", "MudChipSet", "MudBadge", "MudHighlighter");
+            "MudChip", "MudChipSet", "MudBadge", "MudHighlighter",
+            "MudTimeline", "MudTimelineItem", "MudStepper", "MudStep");
 
         AddCategory("Feedback", "Feedback", "Components for user feedback and notifications",
             "MudAlert", "MudSnackbar", "MudProgressLinear", "MudProgressCircular",
@@ -94,6 +97,9 @@ public sealed class CategoryMapper
 
         AddCategory("Media", "Media", "Media display components",
             "MudImage", "MudCarousel", "MudCarouselItem");
+
+        AddCategory("Drag & Drop", "Drag & Drop", "Drag and drop components for reordering and transferring items",
+            "MudDropContainer", "MudDropZone", "MudDynamicDropItem");
 
         AddCategory("Utilities", "Utilities", "Utility components and helpers",
             "MudElement", "MudRender", "MudRTLProvider", "MudPopoverProvider",
@@ -187,16 +193,18 @@ public sealed class CategoryMapper
             var n when n.Contains("input") || n.Contains("field") || n.Contains("select") ||
                        n.Contains("checkbox") || n.Contains("switch") || n.Contains("radio") ||
                        n.Contains("slider") || n.Contains("rating") || n.Contains("autocomplete") ||
-                       n.Contains("form") || n.Contains("mask") => "Form Inputs & Controls",
+                       n.Contains("form") || n.Contains("mask") || n.Contains("fileupload") => "Form Inputs & Controls",
             var n when n.Contains("nav") || n.Contains("drawer") || n.Contains("appbar") ||
                        n.Contains("tab") || n.Contains("menu") || n.Contains("breadcrumb") ||
-                       n.Contains("link") => "Navigation",
+                       n.Contains("link") || n.Contains("pagination") || n.Contains("toolbar") => "Navigation",
             var n when n.Contains("grid") || n.Contains("container") || n.Contains("stack") ||
                        n.Contains("spacer") || n.Contains("divider") || n.Contains("expansion") ||
-                       n.Contains("hidden") => "Layout",
+                       n.Contains("hidden") || n.Contains("collapse") || n.Contains("split") ||
+                       n.Contains("layout") || n.Contains("main") => "Layout",
             var n when n.Contains("table") || n.Contains("list") || n.Contains("tree") ||
                        n.Contains("chip") || n.Contains("badge") || n.Contains("virtualize") ||
-                       n.Contains("highlight") => "Data Display",
+                       n.Contains("highlight") || n.Contains("timeline") || n.Contains("stepper") ||
+                       n.Contains("step") => "Data Display",
             var n when n.Contains("alert") || n.Contains("snackbar") || n.Contains("progress") ||
                        n.Contains("skeleton") || n.Contains("overlay") || n.Contains("dialog") ||
                        n.Contains("tooltip") || n.Contains("popover") || n.Contains("message") => "Feedback",
@@ -206,6 +214,7 @@ public sealed class CategoryMapper
             var n when n.Contains("text") && !n.Contains("field") => "Typography",
             var n when n.Contains("icon") || n.Contains("avatar") => "Icons",
             var n when n.Contains("image") || n.Contains("carousel") => "Media",
+            var n when n.Contains("drop") || n.Contains("drag") => "Drag & Drop",
             _ => "Utilities"
         };
     }
