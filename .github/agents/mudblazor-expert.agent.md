@@ -528,6 +528,8 @@ get_enum_values("Size")    → Size.Small, Size.Medium, Size.Large
 
 ## MudBlazor Best Practices (General Knowledge)
 
+> ⚠️ **Note**: These are general patterns; always verify with MCP tools for accurate parameter names, types, and current API signatures.
+
 ### Dialog Best Practices
 - Inject `IDialogService` and call `DialogService.ShowAsync<DialogComponent>()`
 - Return data from dialog using `DialogResult.Ok(data)`
@@ -620,38 +622,36 @@ dotnet-coverage collect -f cobertura -o coverage.cobertura.xml dotnet test
 ### Testing Container Components
 
 ```csharp
-[TestClass]
 public class UserProfilePageTests
 {
-    private Mock<IUserService> userServiceMock = null!;
-    private UserProfilePage component = null!;
+    private readonly Mock<IUserService> _userServiceMock;
+    private readonly UserProfilePage _component;
     
-    [TestInitialize]
-    public void Setup()
+    public UserProfilePageTests()
     {
-        userServiceMock = new Mock<IUserService>();
-        component = new UserProfilePage 
+        _userServiceMock = new Mock<IUserService>();
+        _component = new UserProfilePage 
         { 
-            UserService = userServiceMock.Object,
+            UserService = _userServiceMock.Object,
             UserId = 42
         };
     }
     
-    [TestMethod]
+    [Fact]
     public async Task OnInitializedAsync_WhenCalled_LoadsUserFromService()
     {
         // Arrange
         var expectedUser = new UserDto { Id = 42, Name = "John Doe" };
-        userServiceMock
+        _userServiceMock
             .Setup(s => s.GetUserAsync(42))
             .ReturnsAsync(expectedUser);
         
         // Act
-        await component.SetParametersAsync(
+        await _component.SetParametersAsync(
             ParameterView.FromDictionary(new Dictionary<string, object?> { { "UserId", 42 } }));
         
         // Assert
-        userServiceMock.Verify(s => s.GetUserAsync(42), Times.Once);
+        _userServiceMock.Verify(s => s.GetUserAsync(42), Times.Once);
     }
 }
 ```
@@ -659,10 +659,9 @@ public class UserProfilePageTests
 ### Testing Presentation Components
 
 ```csharp
-[TestClass]
 public class UserProfileDisplayTests
 {
-    [TestMethod]
+    [Fact]
     public async Task OnUpdateClicked_WhenCalled_InvokesOnUpdateCallback()
     {
         // Arrange
@@ -681,7 +680,7 @@ public class UserProfileDisplayTests
         // Simulate button click (implementation depends on test framework)
         
         // Assert
-        Assert.IsTrue(callbackInvoked);
+        Assert.True(callbackInvoked);
     }
 }
 ```
@@ -689,20 +688,18 @@ public class UserProfileDisplayTests
 ## Integration Tests
 
 ```csharp
-[TestClass]
-public class ProductPageIntegrationTests
+public class ProductPageIntegrationTests : IDisposable
 {
-    private HttpClient httpClient = null!;
-    private WebApplicationFactory<Program> factory = null!;
+    private readonly HttpClient _httpClient;
+    private readonly WebApplicationFactory<Program> _factory;
     
-    [TestInitialize]
-    public void Setup()
+    public ProductPageIntegrationTests()
     {
-        factory = new WebApplicationFactory<Program>();
-        httpClient = factory.CreateClient();
+        _factory = new WebApplicationFactory<Program>();
+        _httpClient = _factory.CreateClient();
     }
     
-    [TestMethod]
+    [Fact]
     public async Task GetProducts_WhenCalled_ReturnsSuccessfulResponse()
     {
         // Arrange
@@ -712,17 +709,16 @@ public class ProductPageIntegrationTests
         };
         
         // Act
-        var response = await httpClient.GetAsync("/api/products");
+        var response = await _httpClient.GetAsync("/api/products");
         
         // Assert
-        Assert.AreEqual(System.Net.HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal(System.Net.HttpStatusCode.OK, response.StatusCode);
     }
     
-    [TestCleanup]
-    public void Cleanup()
+    public void Dispose()
     {
-        httpClient?.Dispose();
-        factory?.Dispose();
+        _httpClient?.Dispose();
+        _factory?.Dispose();
     }
 }
 ```
@@ -871,29 +867,29 @@ using var contentStream = await response.Content.ReadAsStreamAsync();
 var items = await JsonSerializer.DeserializeAsync<List<Item>>(contentStream);
 ```
 
-### Use CssBuilder for Dynamic Styles
+### Use Clean Class Building for Dynamic Styles
 
 Instead of concatenating class strings:
 
 ```csharp
-// ❌ Bad
-string className = "btn" + (isActive ? " btn-active" : "") + (isLarge ? " btn-large" : "");
-<button class="@className">Click</button>
+// ❌ Bad: String concatenation is error-prone
+string className = "mud-button" + (isActive ? " active" : "") + (isLarge ? " mud-button-large" : "");
+<MudButton Class="@className">Click</MudButton>
 
-// ✅ Good: Use CssBuilder from Blazorise
-@using Blazorise.Utilities
-
+// ✅ Good: Use a helper method or string interpolation
 @code {
-    private string GetButtonClass()
-    {
-        var builder = new CssBuilder("btn");
-        builder.AddClass("btn-active", isActive);
-        builder.AddClass("btn-large", isLarge);
-        return builder.Build();
-    }
+    private string GetButtonClass() => string.Join(" ", 
+        new[] { "mud-button", isActive ? "active" : null, isLarge ? "mud-button-large" : null }
+        .Where(c => c is not null));
 }
 
-<FluentButton class="@GetButtonClass()">Click</FluentButton>
+<MudButton Class="@GetButtonClass()">Click</MudButton>
+
+// ✅ Better: Use MudBlazor's built-in styling parameters instead of custom classes
+<MudButton Color="@(isActive ? Color.Primary : Color.Default)" 
+           Size="@(isLarge ? Size.Large : Size.Medium)">
+    Click
+</MudButton>
 ```
 
 ---
