@@ -750,7 +750,7 @@ public class CounterTests : TestContext
     public void Counter_InitiallyShowsZero()
     {
         var cut = RenderComponent<Counter>();
-        cut.Find("p").TextContent.Should().Contain("0");
+        Assert.Contains("0", cut.Find("p").TextContent);
     }
 
     [Fact]
@@ -758,7 +758,7 @@ public class CounterTests : TestContext
     {
         var cut = RenderComponent<Counter>();
         cut.Find("button").Click();
-        cut.Find("p").TextContent.Should().Contain("1");
+        Assert.Contains("1", cut.Find("p").TextContent);
     }
 }
 ```
@@ -781,7 +781,7 @@ public async Task ProductList_LoadsProducts_FromService()
     
     // Assert
     cut.WaitForElement(".product-item");
-    cut.FindAll(".product-item").Should().HaveCount(1);
+    Assert.Single(cut.FindAll(".product-item"));
 }
 ```
 
