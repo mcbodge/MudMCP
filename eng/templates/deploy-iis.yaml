@@ -1,0 +1,311 @@
+# IIS Deployment Template for MudBlazor MCP Server
+# Reusable template for deploying to IIS on Windows VMs
+
+parameters:
+  - name: artifactName
+    type: string
+    displayName: 'Artifact name to deploy'
+  - name: websiteName
+    type: string
+    displayName: 'IIS Website name'
+  - name: appPoolName
+    type: string
+    displayName: 'IIS Application Pool name'
+  - name: physicalPath
+    type: string
+    displayName: 'Physical path on the server'
+  - name: environment
+    type: string
+    displayName: 'ASP.NET Core environment'
+    default: 'Production'
+  - name: port
+    type: number
+    displayName: 'HTTP port for the website'
+    default: 5180
+
+steps:
+  # Download artifact
+  - download: current
+    displayName: 'Download artifact'
+    artifact: ${{ parameters.artifactName }}
+
+  # Stop IIS App Pool
+  - task: PowerShell@2
+    displayName: 'Stop IIS Application Pool'
+    inputs:
+      targetType: 'inline'
+      script: |
+        Import-Module WebAdministration -ErrorAction SilentlyContinue
+        
+        $appPoolName = "${{ parameters.appPoolName }}"
+        
+        if (Get-IISAppPool -Name $appPoolName -ErrorAction SilentlyContinue) {
+          $appPool = Get-IISAppPool -Name $appPoolName
+          if ($appPool.State -eq 'Started') {
+            Write-Host "Stopping application pool: $appPoolName"
+            Stop-WebAppPool -Name $appPoolName
+            
+            # Wait for pool to stop
+            $timeout = 30
+            $elapsed = 0
+            while ((Get-IISAppPool -Name $appPoolName).State -ne 'Stopped' -and $elapsed -lt $timeout) {
+              Start-Sleep -Seconds 1
+              $elapsed++
+            }
+            Write-Host "Application pool stopped."
+          } else {
+            Write-Host "Application pool is already stopped."
+          }
+        } else {
+          Write-Host "Application pool does not exist. Will be created during deployment."
+        }
+      errorActionPreference: 'continue'
+
+  # Backup current deployment
+  - task: PowerShell@2
+    displayName: 'Backup current deployment'
+    inputs:
+      targetType: 'inline'
+      script: |
+        $physicalPath = "${{ parameters.physicalPath }}"
+        $backupPath = "${{ parameters.physicalPath }}_backup_$(Get-Date -Format 'yyyyMMdd_HHmmss')"
+        
+        if (Test-Path $physicalPath) {
+          Write-Host "Creating backup at: $backupPath"
+          Copy-Item -Path $physicalPath -Destination $backupPath -Recurse -Force
+          Write-Host "Backup created successfully."
+          
+          # Keep only last 3 backups
+          $backups = Get-ChildItem -Path (Split-Path $physicalPath) -Directory | 
+                     Where-Object { $_.Name -like "*_backup_*" } | 
+                     Sort-Object CreationTime -Descending | 
+                     Select-Object -Skip 3
+          foreach ($backup in $backups) {
+            Write-Host "Removing old backup: $($backup.FullName)"
+            Remove-Item -Path $backup.FullName -Recurse -Force
+          }
+        } else {
+          Write-Host "No existing deployment to backup."
+        }
+      errorActionPreference: 'continue'
+
+  # Deploy application files
+  - task: PowerShell@2
+    displayName: 'Deploy application files'
+    inputs:
+      targetType: 'inline'
+      script: |
+        $sourcePath = "$(Pipeline.Workspace)/${{ parameters.artifactName }}"
+        $destPath = "${{ parameters.physicalPath }}"
+        
+        Write-Host "Deploying from: $sourcePath"
+        Write-Host "Deploying to: $destPath"
+        
+        # Ensure destination directory exists
+        if (-not (Test-Path $destPath)) {
+          New-Item -ItemType Directory -Path $destPath -Force
+          Write-Host "Created destination directory."
+        }
+        
+        # Clear existing files (except logs and data)
+        Get-ChildItem -Path $destPath -Exclude 'logs', 'data', 'appsettings.Production.json' | 
+        ForEach-Object {
+          Remove-Item -Path $_.FullName -Recurse -Force
+          Write-Host "Removed: $($_.Name)"
+        }
+        
+        # Copy new files
+        Copy-Item -Path "$sourcePath\*" -Destination $destPath -Recurse -Force
+        Write-Host "Application files deployed successfully."
+
+  # Configure IIS
+  - task: PowerShell@2
+    displayName: 'Configure IIS Website and App Pool'
+    inputs:
+      targetType: 'inline'
+      script: |
+        Import-Module WebAdministration -ErrorAction SilentlyContinue
+        Import-Module IISAdministration -ErrorAction SilentlyContinue
+        
+        $websiteName = "${{ parameters.websiteName }}"
+        $appPoolName = "${{ parameters.appPoolName }}"
+        $physicalPath = "${{ parameters.physicalPath }}"
+        $port = ${{ parameters.port }}
+        $environment = "${{ parameters.environment }}"
+        
+        # Create Application Pool if it doesn't exist
+        if (-not (Get-IISAppPool -Name $appPoolName -ErrorAction SilentlyContinue)) {
+          Write-Host "Creating application pool: $appPoolName"
+          New-WebAppPool -Name $appPoolName
+        }
+        
+        # Configure Application Pool
+        Write-Host "Configuring application pool..."
+        $appPool = Get-Item "IIS:\AppPools\$appPoolName"
+        $appPool.managedRuntimeVersion = ""  # No managed code (use .NET Core hosting)
+        $appPool.startMode = "AlwaysRunning"
+        $appPool.processModel.idleTimeout = [TimeSpan]::FromMinutes(0)
+        $appPool | Set-Item
+        
+        # Create Website if it doesn't exist
+        if (-not (Get-Website -Name $websiteName -ErrorAction SilentlyContinue)) {
+          Write-Host "Creating website: $websiteName"
+          New-Website -Name $websiteName `
+                      -PhysicalPath $physicalPath `
+                      -ApplicationPool $appPoolName `
+                      -Port $port
+        } else {
+          # Update existing website
+          Write-Host "Updating website: $websiteName"
+          Set-ItemProperty "IIS:\Sites\$websiteName" -Name physicalPath -Value $physicalPath
+          Set-ItemProperty "IIS:\Sites\$websiteName" -Name applicationPool -Value $appPoolName
+        }
+        
+        # Set environment variable
+        $configPath = "IIS:\Sites\$websiteName"
+        
+        Write-Host "IIS configuration completed."
+
+  # Update environment-specific settings
+  - task: PowerShell@2
+    displayName: 'Update environment settings'
+    inputs:
+      targetType: 'inline'
+      script: |
+        $physicalPath = "${{ parameters.physicalPath }}"
+        $environment = "${{ parameters.environment }}"
+        $webConfigPath = Join-Path $physicalPath "web.config"
+        
+        if (Test-Path $webConfigPath) {
+          Write-Host "Updating web.config for environment: $environment"
+          
+          [xml]$webConfig = Get-Content $webConfigPath
+          
+          # Find or create environmentVariables section
+          $aspNetCore = $webConfig.configuration.location.'system.webServer'.aspNetCore
+          if ($aspNetCore) {
+            $envVars = $aspNetCore.environmentVariables
+            if (-not $envVars) {
+              $envVars = $webConfig.CreateElement("environmentVariables")
+              $aspNetCore.AppendChild($envVars) | Out-Null
+            }
+            
+            # Update or add ASPNETCORE_ENVIRONMENT
+            $envVar = $envVars.SelectSingleNode("environmentVariable[@name='ASPNETCORE_ENVIRONMENT']")
+            if ($envVar) {
+              $envVar.SetAttribute("value", $environment)
+            } else {
+              $newEnvVar = $webConfig.CreateElement("environmentVariable")
+              $newEnvVar.SetAttribute("name", "ASPNETCORE_ENVIRONMENT")
+              $newEnvVar.SetAttribute("value", $environment)
+              $envVars.AppendChild($newEnvVar) | Out-Null
+            }
+            
+            $webConfig.Save($webConfigPath)
+            Write-Host "web.config updated successfully."
+          }
+        }
+
+  # Set folder permissions
+  - task: PowerShell@2
+    displayName: 'Set folder permissions'
+    inputs:
+      targetType: 'inline'
+      script: |
+        $physicalPath = "${{ parameters.physicalPath }}"
+        $appPoolName = "${{ parameters.appPoolName }}"
+        
+        # Grant IIS_IUSRS and app pool identity permissions
+        $acl = Get-Acl $physicalPath
+        
+        # App Pool identity
+        $appPoolIdentity = "IIS AppPool\$appPoolName"
+        $accessRule = New-Object System.Security.AccessControl.FileSystemAccessRule(
+          $appPoolIdentity,
+          "ReadAndExecute,Write",
+          "ContainerInherit,ObjectInherit",
+          "None",
+          "Allow"
+        )
+        $acl.SetAccessRule($accessRule)
+        
+        # IIS_IUSRS
+        $iisUsers = "BUILTIN\IIS_IUSRS"
+        $accessRule = New-Object System.Security.AccessControl.FileSystemAccessRule(
+          $iisUsers,
+          "ReadAndExecute",
+          "ContainerInherit,ObjectInherit",
+          "None",
+          "Allow"
+        )
+        $acl.SetAccessRule($accessRule)
+        
+        Set-Acl -Path $physicalPath -AclObject $acl
+        Write-Host "Folder permissions set successfully."
+
+  # Start IIS App Pool
+  - task: PowerShell@2
+    displayName: 'Start IIS Application Pool'
+    inputs:
+      targetType: 'inline'
+      script: |
+        Import-Module WebAdministration -ErrorAction SilentlyContinue
+        
+        $appPoolName = "${{ parameters.appPoolName }}"
+        $websiteName = "${{ parameters.websiteName }}"
+        
+        # Start App Pool
+        Write-Host "Starting application pool: $appPoolName"
+        Start-WebAppPool -Name $appPoolName
+        
+        # Wait for pool to start
+        $timeout = 30
+        $elapsed = 0
+        while ((Get-IISAppPool -Name $appPoolName).State -ne 'Started' -and $elapsed -lt $timeout) {
+          Start-Sleep -Seconds 1
+          $elapsed++
+        }
+        
+        # Start Website
+        Write-Host "Starting website: $websiteName"
+        Start-Website -Name $websiteName
+        
+        Write-Host "IIS Application Pool and Website started successfully."
+
+  # Verify deployment
+  - task: PowerShell@2
+    displayName: 'Verify deployment'
+    inputs:
+      targetType: 'inline'
+      script: |
+        $port = ${{ parameters.port }}
+        $healthUrl = "http://localhost:$port/health"
+        
+        Write-Host "Waiting for application to start..."
+        Start-Sleep -Seconds 5
+        
+        $maxRetries = 6
+        $retryCount = 0
+        
+        while ($retryCount -lt $maxRetries) {
+          try {
+            Write-Host "Health check attempt $($retryCount + 1)..."
+            $response = Invoke-WebRequest -Uri $healthUrl -UseBasicParsing -TimeoutSec 10
+            
+            if ($response.StatusCode -eq 200) {
+              Write-Host "##vso[task.complete result=Succeeded;]Deployment verified successfully!"
+              Write-Host "Health check response: $($response.Content)"
+              exit 0
+            }
+          } catch {
+            Write-Host "Attempt failed: $($_.Exception.Message)"
+          }
+          
+          $retryCount++
+          if ($retryCount -lt $maxRetries) {
+            Write-Host "Retrying in 10 seconds..."
+            Start-Sleep -Seconds 10
+          }
+        }
+        
+        Write-Host "##vso[task.logissue type=warning]Health check did not pass after $maxRetries attempts. Please verify manually."

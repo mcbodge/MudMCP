@@ -1,0 +1,271 @@
+# Azure DevOps Pipeline for MudBlazor MCP Server
+# Builds, tests, and deploys to IIS on a VM environment
+
+trigger:
+  branches:
+    include:
+      - main
+      - develop
+  paths:
+    exclude:
+      - docs/*
+      - README.md
+      - '**/*.md'
+      - .github/**
+
+pr:
+  branches:
+    include:
+      - main
+      - develop
+  paths:
+    exclude:
+      - docs/*
+      - README.md
+
+variables:
+  - name: buildConfiguration
+    value: 'Release'
+  - name: dotnetVersion
+    value: '10.x'
+  - name: projectPath
+    value: 'src/MudBlazor.Mcp/MudBlazor.Mcp.csproj'
+  - name: testProjectPath
+    value: 'tests/MudBlazor.Mcp.Tests/MudBlazor.Mcp.Tests.csproj'
+  - name: publishPath
+    value: '$(Build.ArtifactStagingDirectory)/publish'
+  - name: artifactName
+    value: 'mudblazor-mcp-server'
+  # IIS Configuration
+  - name: iisWebsiteName
+    value: 'MudBlazorMcp'
+  - name: iisAppPoolName
+    value: 'MudBlazorMcpPool'
+  - name: iisPhysicalPath
+    value: 'C:\inetpub\wwwroot\MudBlazorMcp'
+
+stages:
+  # ============================================
+  # Stage: Build and Test
+  # ============================================
+  - stage: Build
+    displayName: 'Build and Test'
+    jobs:
+      - job: BuildAndTest
+        displayName: 'Build, Test, and Publish'
+        pool:
+          vmImage: 'windows-latest'
+        
+        steps:
+          # Checkout with full history for versioning
+          - checkout: self
+            displayName: 'Checkout repository'
+            fetchDepth: 0
+
+          # Install .NET SDK
+          - task: UseDotNet@2
+            displayName: 'Install .NET $(dotnetVersion) SDK'
+            inputs:
+              version: '$(dotnetVersion)'
+              includePreviewVersions: true
+
+          # Cache NuGet packages
+          - task: Cache@2
+            displayName: 'Cache NuGet packages'
+            inputs:
+              key: 'nuget | "$(Agent.OS)" | **/packages.lock.json'
+              restoreKeys: |
+                nuget | "$(Agent.OS)"
+              path: $(NUGET_PACKAGES)
+
+          # Restore dependencies
+          - task: DotNetCoreCLI@2
+            displayName: 'Restore dependencies'
+            inputs:
+              command: 'restore'
+              projects: '**/*.csproj'
+              feedsToUse: 'config'
+              nugetConfigPath: 'nuget.config'
+
+          # Build solution
+          - task: DotNetCoreCLI@2
+            displayName: 'Build solution'
+            inputs:
+              command: 'build'
+              projects: '**/*.csproj'
+              arguments: '--configuration $(buildConfiguration) --no-restore'
+
+          # Run unit tests
+          - task: DotNetCoreCLI@2
+            displayName: 'Run unit tests'
+            inputs:
+              command: 'test'
+              projects: '$(testProjectPath)'
+              arguments: '--configuration $(buildConfiguration) --no-build --collect:"XPlat Code Coverage" --results-directory $(Agent.TempDirectory)/TestResults'
+              publishTestResults: true
+
+          # Publish code coverage
+          - task: PublishCodeCoverageResults@2
+            displayName: 'Publish code coverage'
+            inputs:
+              summaryFileLocation: '$(Agent.TempDirectory)/TestResults/**/coverage.cobertura.xml'
+              failIfCoverageEmpty: false
+
+          # Publish application
+          - task: DotNetCoreCLI@2
+            displayName: 'Publish application'
+            inputs:
+              command: 'publish'
+              projects: '$(projectPath)'
+              arguments: '--configuration $(buildConfiguration) --output $(publishPath) --no-build'
+              publishWebProjects: false
+              zipAfterPublish: false
+
+          # Copy web.config for IIS hosting
+          - task: PowerShell@2
+            displayName: 'Prepare IIS configuration'
+            inputs:
+              targetType: 'inline'
+              script: |
+                # Create web.config if it doesn't exist in publish output
+                $webConfigPath = "$(publishPath)/web.config"
+                if (-not (Test-Path $webConfigPath)) {
+                  $webConfig = @"
+                <?xml version="1.0" encoding="utf-8"?>
+                <configuration>
+                  <location path="." inheritInChildApplications="false">
+                    <system.webServer>
+                      <handlers>
+                        <add name="aspNetCore" path="*" verb="*" modules="AspNetCoreModuleV2" resourceType="Unspecified" />
+                      </handlers>
+                      <aspNetCore processPath="dotnet" arguments=".\MudBlazor.Mcp.dll" stdoutLogEnabled="true" stdoutLogFile=".\logs\stdout" hostingModel="InProcess">
+                        <environmentVariables>
+                          <environmentVariable name="ASPNETCORE_ENVIRONMENT" value="Production" />
+                        </environmentVariables>
+                      </aspNetCore>
+                    </system.webServer>
+                  </location>
+                </configuration>
+                "@
+                  $webConfig | Out-File -FilePath $webConfigPath -Encoding UTF8
+                  Write-Host "Created web.config for IIS hosting"
+                }
+                
+                # Create logs directory
+                $logsPath = "$(publishPath)/logs"
+                if (-not (Test-Path $logsPath)) {
+                  New-Item -ItemType Directory -Path $logsPath -Force
+                  Write-Host "Created logs directory"
+                }
+
+          # Publish build artifact
+          - task: PublishBuildArtifacts@1
+            displayName: 'Publish artifact'
+            inputs:
+              PathtoPublish: '$(publishPath)'
+              ArtifactName: '$(artifactName)'
+              publishLocation: 'Container'
+
+  # ============================================
+  # Stage: Deploy to Development
+  # ============================================
+  - stage: DeployDev
+    displayName: 'Deploy to Development'
+    dependsOn: Build
+    condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/develop'))
+    variables:
+      - name: environmentName
+        value: 'Development'
+      - name: aspnetCoreEnvironment
+        value: 'Development'
+    jobs:
+      - deployment: DeployToDevVM
+        displayName: 'Deploy to Dev IIS Server'
+        environment: 'mudblazor-mcp-dev'
+        pool:
+          vmImage: 'windows-latest'
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - template: templates/deploy-iis.yaml
+                  parameters:
+                    artifactName: '$(artifactName)'
+                    websiteName: '$(iisWebsiteName)'
+                    appPoolName: '$(iisAppPoolName)'
+                    physicalPath: '$(iisPhysicalPath)'
+                    environment: '$(aspnetCoreEnvironment)'
+
+  # ============================================
+  # Stage: Deploy to Production
+  # ============================================
+  - stage: DeployProd
+    displayName: 'Deploy to Production'
+    dependsOn: Build
+    condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+    variables:
+      - name: environmentName
+        value: 'Production'
+      - name: aspnetCoreEnvironment
+        value: 'Production'
+    jobs:
+      - deployment: DeployToProdVM
+        displayName: 'Deploy to Production IIS Server'
+        environment: 'mudblazor-mcp-prod'
+        pool:
+          vmImage: 'windows-latest'
+        strategy:
+          runOnce:
+            preDeploy:
+              steps:
+                - script: echo "Preparing production deployment..."
+                  displayName: 'Pre-deployment checks'
+            deploy:
+              steps:
+                - template: templates/deploy-iis.yaml
+                  parameters:
+                    artifactName: '$(artifactName)'
+                    websiteName: '$(iisWebsiteName)'
+                    appPoolName: '$(iisAppPoolName)'
+                    physicalPath: '$(iisPhysicalPath)'
+                    environment: '$(aspnetCoreEnvironment)'
+            routeTraffic:
+              steps:
+                - script: echo "Routing traffic to new deployment..."
+                  displayName: 'Route traffic'
+            postRouteTraffic:
+              steps:
+                - task: PowerShell@2
+                  displayName: 'Health check'
+                  inputs:
+                    targetType: 'inline'
+                    script: |
+                      $maxRetries = 5
+                      $retryCount = 0
+                      $healthUrl = "http://localhost:5180/health"
+                      
+                      while ($retryCount -lt $maxRetries) {
+                        try {
+                          $response = Invoke-WebRequest -Uri $healthUrl -UseBasicParsing -TimeoutSec 10
+                          if ($response.StatusCode -eq 200) {
+                            Write-Host "Health check passed!"
+                            exit 0
+                          }
+                        } catch {
+                          Write-Host "Health check attempt $($retryCount + 1) failed: $_"
+                        }
+                        $retryCount++
+                        Start-Sleep -Seconds 10
+                      }
+                      
+                      Write-Host "##vso[task.logissue type=error]Health check failed after $maxRetries attempts"
+                      exit 1
+            on:
+              failure:
+                steps:
+                  - script: echo "Deployment failed. Consider rollback."
+                    displayName: 'Failure notification'
+              success:
+                steps:
+                  - script: echo "Production deployment successful!"
+                    displayName: 'Success notification'
