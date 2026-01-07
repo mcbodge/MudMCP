@@ -127,7 +127,7 @@ stages:
           - task: PublishCodeCoverageResults@2
             displayName: 'Publish code coverage'
             inputs:
-              summaryFileLocation: '$(Agent.TempDirectory)/**/coverage.cobertura.xml'
+              summaryFileLocation: '$(Agent.TempDirectory)/*/coverage.cobertura.xml'
               failIfCoverageEmpty: false
 
           # Publish application
@@ -200,8 +200,9 @@ stages:
     jobs:
       - deployment: DeployToDevVM
         displayName: 'Deploy to Dev IIS Server'
-        environment: 'mudblazor-mcp-dev'
-        # Note: Pool is omitted - deployment runs on agents registered in the environment
+        environment:
+          name: 'mudblazor-mcp-dev'
+          resourceType: VirtualMachine
         strategy:
           runOnce:
             deploy:
@@ -229,8 +230,9 @@ stages:
     jobs:
       - deployment: DeployToProdVM
         displayName: 'Deploy to Production IIS Server'
-        environment: 'mudblazor-mcp-prod'
-        # Note: Pool is omitted - deployment runs on agents registered in the environment
+        environment:
+          name: 'mudblazor-mcp-prod'
+          resourceType: VirtualMachine
         strategy:
           runOnce:
             preDeploy:

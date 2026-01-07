@@ -27,9 +27,12 @@ parameters:
     default: 5180
 
 steps:
-  - download: current
+  - task: DownloadPipelineArtifact@2
     displayName: 'Download build artifact'
-    artifact: ${{ parameters.artifactName }}
+    inputs:
+      buildType: 'current'
+      artifactName: '${{ parameters.artifactName }}'
+      targetPath: '$(Pipeline.Workspace)/${{ parameters.artifactName }}'
 
   - task: PowerShell@2
     displayName: 'Stop IIS Application Pool'
