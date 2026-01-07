@@ -310,6 +310,6 @@ public async Task GetComponentDetailAsync_WithInvalidComponent_ThrowsMcpExceptio
 
 GPL-2.0 - Include copyright header in all source files:
 ```csharp
-// Copyright (c) 2025 Mud MCP Contributors
+// Copyright (c) 2026 Mud MCP Contributors
 // Licensed under the GNU General Public License v2.0.
 ```
