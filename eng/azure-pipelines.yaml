@@ -127,7 +127,7 @@ stages:
           - task: PublishCodeCoverageResults@2
             displayName: 'Publish code coverage'
             inputs:
-              summaryFileLocation: '$(Agent.TempDirectory)/**/coverage.cobertura.xml'
+              summaryFileLocation: '$(Agent.TempDirectory)/*/coverage.cobertura.xml'
               failIfCoverageEmpty: false
 
           # Publish application
