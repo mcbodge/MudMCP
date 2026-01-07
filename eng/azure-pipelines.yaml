@@ -108,19 +108,20 @@ stages:
               projects: '**/*.csproj'
               arguments: '--configuration $(buildConfiguration) --no-restore'
 
-          # Run unit tests
+          # Run unit tests with code coverage
           - task: DotNetCoreCLI@2
             displayName: 'Run unit tests'
             inputs:
               command: 'test'
               projects: '$(testProjectPath)'
-              arguments: '--configuration $(buildConfiguration) --no-build --collect:"XPlat Code Coverage" --results-directory $(Build.SourcesDirectory)/TestResults'
+              arguments: '--configuration $(buildConfiguration) --no-build --collect:"XPlat Code Coverage" --logger trx'
               publishTestResults: true
+              testRunTitle: 'MudBlazor.Mcp Unit Tests'
 
           - task: PublishCodeCoverageResults@2
             displayName: 'Publish code coverage'
             inputs:
-              summaryFileLocation: '$(Build.SourcesDirectory)/TestResults/**/coverage.cobertura.xml'
+              summaryFileLocation: '$(Agent.TempDirectory)/**/coverage.cobertura.xml'
               failIfCoverageEmpty: false
 
           # Publish application
