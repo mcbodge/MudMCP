@@ -1,3 +1,6 @@
+# Copyright (c) 2026 Mud MCP Contributors
+# Licensed under the GNU General Public License v2.0. See LICENSE file in the project root for full license information.
+
 # IIS Deployment Template for MudBlazor MCP Server
 # Reusable template for deploying to IIS on Windows VMs
 
@@ -24,12 +27,10 @@ parameters:
     default: 5180
 
 steps:
-  # Download artifact
   - download: current
-    displayName: 'Download artifact'
+    displayName: 'Download build artifact'
     artifact: ${{ parameters.artifactName }}
 
-  # Stop IIS App Pool
   - task: PowerShell@2
     displayName: 'Stop IIS Application Pool'
     inputs:
@@ -41,12 +42,23 @@ steps:
         
         if (Get-IISAppPool -Name $appPoolName -ErrorAction SilentlyContinue) {
           $appPool = Get-IISAppPool -Name $appPoolName
+          
+          # Wait for pool to reach stable state first
+          $stableStates = @('Started', 'Stopped')
+          $timeout = 30
+          $elapsed = 0
+          while ($appPool.State -notin $stableStates -and $elapsed -lt $timeout) {
+            Write-Host "Waiting for app pool to reach stable state (current: $($appPool.State))..."
+            Start-Sleep -Seconds 1
+            $appPool = Get-IISAppPool -Name $appPoolName
+            $elapsed++
+          }
+          
           if ($appPool.State -eq 'Started') {
             Write-Host "Stopping application pool: $appPoolName"
             Stop-WebAppPool -Name $appPoolName
             
             # Wait for pool to stop
-            $timeout = 30
             $elapsed = 0
             while ((Get-IISAppPool -Name $appPoolName).State -ne 'Stopped' -and $elapsed -lt $timeout) {
               Start-Sleep -Seconds 1
@@ -61,7 +73,6 @@ steps:
         }
       errorActionPreference: 'continue'
 
-  # Backup current deployment
   - task: PowerShell@2
     displayName: 'Backup current deployment'
     inputs:
@@ -80,16 +91,17 @@ steps:
                      Where-Object { $_.Name -like "*_backup_*" } | 
                      Sort-Object CreationTime -Descending | 
                      Select-Object -Skip 3
-          foreach ($backup in $backups) {
-            Write-Host "Removing old backup: $($backup.FullName)"
-            Remove-Item -Path $backup.FullName -Recurse -Force
+          if ($backups) {
+            foreach ($backup in $backups) {
+              Write-Host "Removing old backup: $($backup.FullName)"
+              Remove-Item -Path $backup.FullName -Recurse -Force
+            }
           }
         } else {
           Write-Host "No existing deployment to backup."
         }
       errorActionPreference: 'continue'
 
-  # Deploy application files
   - task: PowerShell@2
     displayName: 'Deploy application files'
     inputs:
@@ -107,7 +119,9 @@ steps:
           Write-Host "Created destination directory."
         }
         
-        # Clear existing files (except logs and data)
+        # Clear existing files (except logs, data, and server-managed config)
+        # Note: appsettings.Production.json is excluded to preserve server-specific settings.
+        # This file should be manually managed on the server and not included in the artifact.
         Get-ChildItem -Path $destPath -Exclude 'logs', 'data', 'appsettings.Production.json' | 
         ForEach-Object {
           Remove-Item -Path $_.FullName -Recurse -Force
@@ -118,9 +132,8 @@ steps:
         Copy-Item -Path "$sourcePath\*" -Destination $destPath -Recurse -Force
         Write-Host "Application files deployed successfully."
 
-  # Configure IIS
   - task: PowerShell@2
-    displayName: 'Configure IIS Website and App Pool'
+    displayName: 'Configure IIS Website and Application Pool'
     inputs:
       targetType: 'inline'
       script: |
@@ -166,7 +179,6 @@ steps:
         
         Write-Host "IIS configuration completed."
 
-  # Update environment-specific settings
   - task: PowerShell@2
     displayName: 'Update environment settings'
     inputs:
@@ -206,7 +218,6 @@ steps:
           }
         }
 
-  # Set folder permissions
   - task: PowerShell@2
     displayName: 'Set folder permissions'
     inputs:
@@ -214,38 +225,55 @@ steps:
       script: |
         $physicalPath = "${{ parameters.physicalPath }}"
         $appPoolName = "${{ parameters.appPoolName }}"
-        
-        # Grant IIS_IUSRS and app pool identity permissions
-        $acl = Get-Acl $physicalPath
-        
-        # App Pool identity
         $appPoolIdentity = "IIS AppPool\$appPoolName"
-        $accessRule = New-Object System.Security.AccessControl.FileSystemAccessRule(
+        $iisUsers = "BUILTIN\IIS_IUSRS"
+        
+        # Grant Read/Execute on the site root (binaries, configs)
+        $acl = Get-Acl $physicalPath
+        $readRule = New-Object System.Security.AccessControl.FileSystemAccessRule(
           $appPoolIdentity,
-          "ReadAndExecute,Write",
+          "ReadAndExecute,Synchronize",
           "ContainerInherit,ObjectInherit",
           "None",
           "Allow"
         )
-        $acl.SetAccessRule($accessRule)
+        $acl.SetAccessRule($readRule)
         
-        # IIS_IUSRS
-        $iisUsers = "BUILTIN\IIS_IUSRS"
-        $accessRule = New-Object System.Security.AccessControl.FileSystemAccessRule(
+        # IIS_IUSRS read access
+        $iisRule = New-Object System.Security.AccessControl.FileSystemAccessRule(
           $iisUsers,
           "ReadAndExecute",
           "ContainerInherit,ObjectInherit",
           "None",
           "Allow"
         )
-        $acl.SetAccessRule($accessRule)
-        
+        $acl.SetAccessRule($iisRule)
         Set-Acl -Path $physicalPath -AclObject $acl
-        Write-Host "Folder permissions set successfully."
+        Write-Host "Set Read/Execute permissions on site root."
+        
+        # Grant Modify access only for logs and data directories
+        foreach ($dir in @("logs", "data")) {
+          $subPath = Join-Path $physicalPath $dir
+          if (-not (Test-Path $subPath)) {
+            New-Item -ItemType Directory -Path $subPath -Force | Out-Null
+          }
+          $subAcl = Get-Acl $subPath
+          $writeRule = New-Object System.Security.AccessControl.FileSystemAccessRule(
+            $appPoolIdentity,
+            "Modify,Synchronize",
+            "ContainerInherit,ObjectInherit",
+            "None",
+            "Allow"
+          )
+          $subAcl.SetAccessRule($writeRule)
+          Set-Acl -Path $subPath -AclObject $subAcl
+          Write-Host "Set Modify permissions on $dir directory."
+        }
+        
+        Write-Host "Folder permissions configured successfully."
 
-  # Start IIS App Pool
   - task: PowerShell@2
-    displayName: 'Start IIS Application Pool'
+    displayName: 'Start IIS Application Pool and Website'
     inputs:
       targetType: 'inline'
       script: |
@@ -272,9 +300,8 @@ steps:
         
         Write-Host "IIS Application Pool and Website started successfully."
 
-  # Verify deployment
   - task: PowerShell@2
-    displayName: 'Verify deployment'
+    displayName: 'Verify deployment health'
     inputs:
       targetType: 'inline'
       script: |
@@ -308,4 +335,6 @@ steps:
           }
         }
         
-        Write-Host "##vso[task.logissue type=warning]Health check did not pass after $maxRetries attempts. Please verify manually."
+        Write-Host "##vso[task.logissue type=error]Health check did not pass after $maxRetries attempts."
+        Write-Host "##vso[task.complete result=Failed;]Deployment verification failed!"
+        exit 1

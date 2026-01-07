@@ -1,3 +1,6 @@
+# Copyright (c) 2026 Mud MCP Contributors
+# Licensed under the GNU General Public License v2.0. See LICENSE file in the project root for full license information.
+
 # Azure DevOps Pipeline for MudBlazor MCP Server
 # Builds, tests, and deploys to IIS on a VM environment
 
@@ -111,14 +114,13 @@ stages:
             inputs:
               command: 'test'
               projects: '$(testProjectPath)'
-              arguments: '--configuration $(buildConfiguration) --no-build --collect:"XPlat Code Coverage"'
+              arguments: '--configuration $(buildConfiguration) --no-build --collect:"XPlat Code Coverage" --results-directory $(Build.SourcesDirectory)/TestResults'
               publishTestResults: true
 
-          # Publish code coverage
           - task: PublishCodeCoverageResults@2
             displayName: 'Publish code coverage'
             inputs:
-              summaryFileLocation: '$(Agent.TempDirectory)/**/coverage.cobertura.xml'
+              summaryFileLocation: '$(Build.SourcesDirectory)/TestResults/**/coverage.cobertura.xml'
               failIfCoverageEmpty: false
 
           # Publish application
@@ -192,8 +194,7 @@ stages:
       - deployment: DeployToDevVM
         displayName: 'Deploy to Dev IIS Server'
         environment: 'mudblazor-mcp-dev'
-        pool:
-          vmImage: 'windows-latest'
+        # Note: Pool is omitted - deployment runs on agents registered in the environment
         strategy:
           runOnce:
             deploy:
@@ -222,14 +223,13 @@ stages:
       - deployment: DeployToProdVM
         displayName: 'Deploy to Production IIS Server'
         environment: 'mudblazor-mcp-prod'
-        pool:
-          vmImage: 'windows-latest'
+        # Note: Pool is omitted - deployment runs on agents registered in the environment
         strategy:
           runOnce:
             preDeploy:
               steps:
                 - script: echo "Preparing production deployment..."
-                  displayName: 'Pre-deployment checks'
+                  displayName: 'Run pre-deployment checks'
             deploy:
               steps:
                 - template: templates/deploy-iis.yaml
@@ -246,7 +246,7 @@ stages:
             postRouteTraffic:
               steps:
                 - task: PowerShell@2
-                  displayName: 'Health check'
+                  displayName: 'Verify deployment health'
                   inputs:
                     targetType: 'inline'
                     script: |
@@ -258,7 +258,7 @@ stages:
                         try {
                           $response = Invoke-WebRequest -Uri $healthUrl -UseBasicParsing -TimeoutSec 10
                           if ($response.StatusCode -eq 200) {
-                            Write-Host "Health check passed!"
+                            Write-Host "##vso[task.complete result=Succeeded;]Health check passed!"
                             exit 0
                           }
                         } catch {
@@ -269,13 +269,14 @@ stages:
                       }
                       
                       Write-Host "##vso[task.logissue type=error]Health check failed after $maxRetries attempts"
+                      Write-Host "##vso[task.complete result=Failed;]Deployment verification failed!"
                       exit 1
             on:
               failure:
                 steps:
                   - script: echo "Deployment failed. Consider rollback."
-                    displayName: 'Failure notification'
+                    displayName: 'Handle deployment failure'
               success:
                 steps:
                   - script: echo "Production deployment successful!"
-                    displayName: 'Success notification'
+                    displayName: 'Log deployment success'

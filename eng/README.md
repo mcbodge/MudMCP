@@ -45,6 +45,8 @@ The pipeline consists of three stages:
 2. **Register VM as Deployment Target**:
    - In each environment, click "Add resource" → "Virtual machines"
    - Follow the registration script for your Windows VM
+   - **Important**: The agent pool name used during VM registration must match your environment configuration
+   - Deployment jobs use environment-registered agents (no explicit pool specified in YAML)
    - Ensure the VM has:
      - IIS installed with ASP.NET Core Hosting Bundle
      - .NET 10 Runtime
@@ -136,12 +138,27 @@ Get-Content "C:\inetpub\wwwroot\MudBlazorMcp\logs\stdout*.log" -Tail 50
 
 **Permission issues**:
 ```powershell
-# Grant permissions manually
-$acl = Get-Acl "C:\inetpub\wwwroot\MudBlazorMcp"
+# Grant minimal required permissions
+$sitePath = "C:\inetpub\wwwroot\MudBlazorMcp"
+$appPoolIdentity = "IIS AppPool\MudBlazorMcpPool"
+
+# Read/Execute on site root
+$acl = Get-Acl $sitePath
 $rule = New-Object System.Security.AccessControl.FileSystemAccessRule(
-    "IIS AppPool\MudBlazorMcpPool", "FullControl", "ContainerInherit,ObjectInherit", "None", "Allow")
+    $appPoolIdentity, "ReadAndExecute,Synchronize", "ContainerInherit,ObjectInherit", "None", "Allow")
 $acl.SetAccessRule($rule)
-Set-Acl "C:\inetpub\wwwroot\MudBlazorMcp" $acl
+Set-Acl $sitePath $acl
+
+# Modify on logs and data directories only
+foreach ($dir in @("logs", "data")) {
+    $subPath = Join-Path $sitePath $dir
+    if (-not (Test-Path $subPath)) { New-Item -ItemType Directory -Path $subPath -Force }
+    $subAcl = Get-Acl $subPath
+    $writeRule = New-Object System.Security.AccessControl.FileSystemAccessRule(
+        $appPoolIdentity, "Modify,Synchronize", "ContainerInherit,ObjectInherit", "None", "Allow")
+    $subAcl.SetAccessRule($writeRule)
+    Set-Acl -Path $subPath -AclObject $subAcl
+}
 ```
 
 ## Security Considerations
