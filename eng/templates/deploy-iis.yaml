@@ -47,9 +47,10 @@ steps:
         
         $appPoolName = "${{ parameters.appPoolName }}"
         
-        # SECURITY: Validate app pool name to prevent injection
-        if ([string]::IsNullOrWhiteSpace($appPoolName) -or $appPoolName -match '[<>:"|?*]') {
-          throw "Invalid application pool name: contains illegal characters or is empty"
+        # SECURITY: Validate app pool name - only allow safe characters
+        # IIS app pool names should contain only alphanumeric, underscore, hyphen, and space
+        if ([string]::IsNullOrWhiteSpace($appPoolName) -or $appPoolName -notmatch '^[a-zA-Z0-9_\-\s]+$') {
+          throw "Invalid application pool name: must contain only letters, numbers, underscore, hyphen, or space"
         }
         
         if (Get-IISAppPool -Name $appPoolName -ErrorAction SilentlyContinue) {
@@ -220,14 +221,15 @@ steps:
         $environment = "${{ parameters.environment }}"
         
         # SECURITY: Validate inputs to prevent injection
-        if ([string]::IsNullOrWhiteSpace($websiteName) -or $websiteName -match '[<>:"|?*]') {
-          throw "Invalid website name"
+        # Website and app pool names should contain only safe characters
+        if ([string]::IsNullOrWhiteSpace($websiteName) -or $websiteName -notmatch '^[a-zA-Z0-9_\-\s]+$') {
+          throw "Invalid website name: must contain only letters, numbers, underscore, hyphen, or space"
         }
-        if ([string]::IsNullOrWhiteSpace($appPoolName) -or $appPoolName -match '[<>:"|?*]') {
-          throw "Invalid app pool name"
+        if ([string]::IsNullOrWhiteSpace($appPoolName) -or $appPoolName -notmatch '^[a-zA-Z0-9_\-\s]+$') {
+          throw "Invalid app pool name: must contain only letters, numbers, underscore, hyphen, or space"
         }
         if ($port -lt 1 -or $port -gt 65535) {
-          throw "Invalid port number"
+          throw "Invalid port number: must be between 1 and 65535"
         }
         
         # Create Application Pool if it doesn't exist
