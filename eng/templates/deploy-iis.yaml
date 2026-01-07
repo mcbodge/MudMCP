@@ -116,7 +116,7 @@ steps:
         # Find the actual source - could be directly in artifact or in a subfolder
         # Look for the main DLL to determine correct source path (limit recursion depth for performance)
         $mainDll = Get-ChildItem -Path $artifactPath -Filter "MudBlazor.Mcp.dll" -Recurse -Depth 3 | Select-Object -First 1
-        if ($mainDll) {
+        if ($mainDll -and $mainDll.DirectoryName) {
           $sourcePath = $mainDll.DirectoryName
         } else {
           # Fallback to artifact root
@@ -401,9 +401,7 @@ steps:
         Write-Host ""
         Write-Host "--- IIS ASP.NET Core Module Event Log (last 10 entries) ---"
         try {
-          Get-EventLog -LogName Application -Newest 100 -ErrorAction SilentlyContinue |
-            Where-Object { $_.Source -like "IIS AspNetCore Module*" } |
-            Select-Object -First 10 |
+          Get-EventLog -LogName Application -Source "IIS AspNetCore Module*" -Newest 10 -ErrorAction SilentlyContinue |
             ForEach-Object { Write-Host "[$($_.TimeGenerated)] $($_.EntryType): $($_.Message)" }
         } catch {
           Write-Host "Could not retrieve event log entries: $_"
