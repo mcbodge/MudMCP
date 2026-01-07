@@ -110,8 +110,18 @@ steps:
     inputs:
       targetType: 'inline'
       script: |
-        $sourcePath = "$(Pipeline.Workspace)/${{ parameters.artifactName }}"
+        $artifactPath = "$(Pipeline.Workspace)/${{ parameters.artifactName }}"
         $destPath = "${{ parameters.physicalPath }}"
+        
+        # Find the actual source - could be directly in artifact or in a subfolder
+        # Look for the main DLL to determine correct source path
+        $mainDll = Get-ChildItem -Path $artifactPath -Filter "MudBlazor.Mcp.dll" -Recurse | Select-Object -First 1
+        if ($mainDll) {
+          $sourcePath = $mainDll.DirectoryName
+        } else {
+          # Fallback to artifact root
+          $sourcePath = $artifactPath
+        }
         
         Write-Host "Deploying from: $sourcePath"
         Write-Host "Deploying to: $destPath"
