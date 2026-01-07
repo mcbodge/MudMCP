@@ -111,7 +111,10 @@ stages:
               arguments: '--configuration $(buildConfiguration) --no-restore'
 
           # Run unit tests with code coverage
-          # Note: publishTestResults automatically adds --logger trx and --results-directory
+          # IMPORTANT: Do NOT add --logger or --results-directory arguments manually.
+          # The DotNetCoreCLI@2 task with publishTestResults: true automatically adds:
+          #   --logger trx --results-directory $(Agent.TempDirectory)
+          # Adding these manually causes "expects a single argument but 2 were provided" errors.
           - task: DotNetCoreCLI@2
             displayName: 'Run unit tests'
             inputs:
