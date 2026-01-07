@@ -111,14 +111,14 @@ stages:
             inputs:
               command: 'test'
               projects: '$(testProjectPath)'
-              arguments: '--configuration $(buildConfiguration) --no-build --collect:"XPlat Code Coverage" --results-directory $(Agent.TempDirectory)/TestResults'
+              arguments: '--configuration $(buildConfiguration) --no-build --collect:"XPlat Code Coverage"'
               publishTestResults: true
 
           # Publish code coverage
           - task: PublishCodeCoverageResults@2
             displayName: 'Publish code coverage'
             inputs:
-              summaryFileLocation: '$(Agent.TempDirectory)/TestResults/**/coverage.cobertura.xml'
+              summaryFileLocation: '$(Agent.TempDirectory)/**/coverage.cobertura.xml'
               failIfCoverageEmpty: false
 
           # Publish application
