@@ -1,443 +1,53 @@
-# Copyright (c) 2026 Mud MCP Contributors
-# Licensed under the GNU General Public License v2.0. See LICENSE file in the project root for full license information.
-
-# IIS Deployment Template for MudBlazor MCP Server
-# Reusable template for deploying to IIS on Windows VMs
+# Template: Deploy IIS
+# NOTE: Inline scripts were moved to eng/scripts for easier review and CODEOWNERS protection.
 
 parameters:
-  - name: artifactName
+  - name: siteName
     type: string
-    displayName: 'Artifact name to deploy'
-  - name: websiteName
-    type: string
-    displayName: 'IIS Website name'
+    default: 'Default Web Site'
   - name: appPoolName
     type: string
-    displayName: 'IIS Application Pool name'
+    default: 'DefaultAppPool'
   - name: physicalPath
     type: string
-    displayName: 'Physical path on the server'
-  - name: environment
+    default: '$(System.DefaultWorkingDirectory)'
+  - name: artifactPath
     type: string
-    displayName: 'ASP.NET Core environment'
-    default: 'Production'
-  - name: port
-    type: number
-    displayName: 'HTTP port for the website'
-    default: 5180
+    default: ''
+  - name: environmentName
+    type: string
+    default: ''
 
 steps:
-  - task: DownloadPipelineArtifact@2
-    displayName: 'Download MudBlazor.Mcp build artifact'
-    inputs:
-      buildType: 'current'
-      artifactName: '${{ parameters.artifactName }}'
-      targetPath: '$(Pipeline.Workspace)/${{ parameters.artifactName }}'
-
+  # Stop IIS site + app pool (best-effort)
   - task: PowerShell@2
-    displayName: 'Stop IIS Application Pool'
+    displayName: 'Stop IIS site and app pool'
     inputs:
-      targetType: 'inline'
-      script: |
-        Import-Module WebAdministration -ErrorAction SilentlyContinue
-        
-        $appPoolName = "${{ parameters.appPoolName }}"
-        
-        if (Get-IISAppPool -Name $appPoolName -ErrorAction SilentlyContinue) {
-          $appPool = Get-IISAppPool -Name $appPoolName
-          
-          # Wait for pool to reach stable state first
-          $stableStates = @('Started', 'Stopped')
-          $timeout = 30
-          $elapsed = 0
-          while ($appPool.State -notin $stableStates -and $elapsed -lt $timeout) {
-            Write-Host "Waiting for app pool to reach stable state (current: $($appPool.State))..."
-            Start-Sleep -Seconds 1
-            $appPool = Get-IISAppPool -Name $appPoolName
-            $elapsed++
-          }
-          
-          if ($appPool.State -eq 'Started') {
-            Write-Host "Stopping application pool: $appPoolName"
-            Stop-WebAppPool -Name $appPoolName
-            
-            # Wait for pool to stop
-            $elapsed = 0
-            while ((Get-IISAppPool -Name $appPoolName).State -ne 'Stopped' -and $elapsed -lt $timeout) {
-              Start-Sleep -Seconds 1
-              $elapsed++
-            }
-            Write-Host "Application pool stopped."
-          } else {
-            Write-Host "Application pool is already stopped."
-          }
-        } else {
-          Write-Host "Application pool does not exist. Will be created during deployment."
-        }
-      errorActionPreference: 'continue'
+      targetType: 'filePath'
+      filePath: '$(System.DefaultWorkingDirectory)/eng/scripts/Stop-IisSiteAndAppPool.ps1'
+      arguments: >
+        -SiteName "${{ parameters.siteName }}"
+        -AppPoolName "${{ parameters.appPoolName }}"
+      pwsh: true
 
+  # Deploy content
   - task: PowerShell@2
-    displayName: 'Backup current deployment'
+    displayName: 'Deploy content to IIS physical path'
     inputs:
-      targetType: 'inline'
-      script: |
-        $physicalPath = "${{ parameters.physicalPath }}"
-        $backupPath = "${{ parameters.physicalPath }}_backup_$(Get-Date -Format 'yyyyMMdd_HHmmss')"
-        
-        if (Test-Path $physicalPath) {
-          Write-Host "Creating backup at: $backupPath"
-          Copy-Item -Path $physicalPath -Destination $backupPath -Recurse -Force
-          Write-Host "Backup created successfully."
-          
-          # Keep only last 3 backups
-          $backups = Get-ChildItem -Path (Split-Path $physicalPath) -Directory | 
-                     Where-Object { $_.Name -like "*_backup_*" } | 
-                     Sort-Object CreationTime -Descending | 
-                     Select-Object -Skip 3
-          if ($backups) {
-            foreach ($backup in $backups) {
-              Write-Host "Removing old backup: $($backup.FullName)"
-              Remove-Item -Path $backup.FullName -Recurse -Force
-            }
-          }
-        } else {
-          Write-Host "No existing deployment to backup."
-        }
-      errorActionPreference: 'continue'
+      targetType: 'filePath'
+      filePath: '$(System.DefaultWorkingDirectory)/eng/scripts/Deploy-IisContent.ps1'
+      arguments: >
+        -PhysicalPath "${{ parameters.physicalPath }}"
+        -ArtifactPath "${{ parameters.artifactPath }}"
+      pwsh: true
 
+  # Start IIS site + app pool
   - task: PowerShell@2
-    displayName: 'Deploy application files'
+    displayName: 'Start IIS site and app pool'
     inputs:
-      targetType: 'inline'
-      script: |
-        $artifactPath = "$(Pipeline.Workspace)/${{ parameters.artifactName }}"
-        $destPath = "${{ parameters.physicalPath }}"
-        
-        # Find the actual source - could be directly in artifact or in a subfolder
-        # Look for the main DLL to determine correct source path (limit recursion depth for performance)
-        $mainDll = Get-ChildItem -Path $artifactPath -Filter "MudBlazor.Mcp.dll" -Recurse -Depth 3 | Select-Object -First 1
-        if ($mainDll -and $mainDll.DirectoryName) {
-          $sourcePath = $mainDll.DirectoryName
-        } else {
-          # Fallback to artifact root
-          Write-Host "##vso[task.logissue type=warning]Could not locate MudBlazor.Mcp.dll, falling back to artifact root."
-          $sourcePath = $artifactPath
-        }
-        
-        Write-Host "Deploying from: $sourcePath"
-        Write-Host "Deploying to: $destPath"
-        
-        # Ensure destination directory exists
-        if (-not (Test-Path $destPath)) {
-          New-Item -ItemType Directory -Path $destPath -Force
-          Write-Host "Created destination directory."
-        }
-        
-        # Clear existing files (except logs, data, and server-managed config)
-        # Note: appsettings.Production.json is excluded to preserve server-specific settings.
-        # This file should be manually managed on the server and not included in the artifact.
-        Get-ChildItem -Path $destPath -Exclude 'logs', 'data', 'appsettings.Production.json' | 
-        ForEach-Object {
-          Remove-Item -Path $_.FullName -Recurse -Force
-          Write-Host "Removed: $($_.Name)"
-        }
-        
-        # Copy new files
-        Copy-Item -Path "$sourcePath\*" -Destination $destPath -Recurse -Force
-        Write-Host "Application files deployed successfully."
-
-  - task: PowerShell@2
-    displayName: 'Configure IIS Website and Application Pool'
-    inputs:
-      targetType: 'inline'
-      script: |
-        Import-Module WebAdministration -ErrorAction SilentlyContinue
-        Import-Module IISAdministration -ErrorAction SilentlyContinue
-        
-        $websiteName = "${{ parameters.websiteName }}"
-        $appPoolName = "${{ parameters.appPoolName }}"
-        $physicalPath = "${{ parameters.physicalPath }}"
-        $port = ${{ parameters.port }}
-        $environment = "${{ parameters.environment }}"
-        
-        # Create Application Pool if it doesn't exist
-        if (-not (Get-IISAppPool -Name $appPoolName -ErrorAction SilentlyContinue)) {
-          Write-Host "Creating application pool: $appPoolName"
-          New-WebAppPool -Name $appPoolName
-        }
-        
-        # Configure Application Pool
-        Write-Host "Configuring application pool..."
-        $appPool = Get-Item "IIS:\AppPools\$appPoolName"
-        $appPool.managedRuntimeVersion = ""  # No managed code (use .NET Core hosting)
-        $appPool.startMode = "AlwaysRunning"
-        $appPool.processModel.idleTimeout = [TimeSpan]::FromMinutes(0)
-        $appPool | Set-Item
-        
-        # Create Website if it doesn't exist
-        if (-not (Get-Website -Name $websiteName -ErrorAction SilentlyContinue)) {
-          Write-Host "Creating website: $websiteName"
-          New-Website -Name $websiteName `
-                      -PhysicalPath $physicalPath `
-                      -ApplicationPool $appPoolName `
-                      -Port $port
-        } else {
-          # Update existing website
-          Write-Host "Updating website: $websiteName"
-          Set-ItemProperty "IIS:\Sites\$websiteName" -Name physicalPath -Value $physicalPath
-          Set-ItemProperty "IIS:\Sites\$websiteName" -Name applicationPool -Value $appPoolName
-        }
-        
-        # Set environment variable
-        $configPath = "IIS:\Sites\$websiteName"
-        
-        Write-Host "IIS configuration completed."
-
-  - task: PowerShell@2
-    displayName: 'Update environment settings'
-    inputs:
-      targetType: 'inline'
-      script: |
-        $physicalPath = "${{ parameters.physicalPath }}"
-        $environment = "${{ parameters.environment }}"
-        $webConfigPath = Join-Path $physicalPath "web.config"
-        
-        if (Test-Path $webConfigPath) {
-          Write-Host "Updating web.config for environment: $environment"
-          
-          [xml]$webConfig = Get-Content $webConfigPath
-          
-          # Find or create environmentVariables section
-          $aspNetCore = $webConfig.configuration.location.'system.webServer'.aspNetCore
-          if ($aspNetCore) {
-            $envVars = $aspNetCore.environmentVariables
-            if (-not $envVars) {
-              $envVars = $webConfig.CreateElement("environmentVariables")
-              $aspNetCore.AppendChild($envVars) | Out-Null
-            }
-            
-            # Update or add ASPNETCORE_ENVIRONMENT
-            $envVar = $envVars.SelectSingleNode("environmentVariable[@name='ASPNETCORE_ENVIRONMENT']")
-            if ($envVar) {
-              $envVar.SetAttribute("value", $environment)
-            } else {
-              $newEnvVar = $webConfig.CreateElement("environmentVariable")
-              $newEnvVar.SetAttribute("name", "ASPNETCORE_ENVIRONMENT")
-              $newEnvVar.SetAttribute("value", $environment)
-              $envVars.AppendChild($newEnvVar) | Out-Null
-            }
-            
-            $webConfig.Save($webConfigPath)
-            Write-Host "web.config updated successfully."
-          }
-        }
-
-  - task: PowerShell@2
-    displayName: 'Set folder permissions'
-    inputs:
-      targetType: 'inline'
-      script: |
-        $physicalPath = "${{ parameters.physicalPath }}"
-        $appPoolName = "${{ parameters.appPoolName }}"
-        $appPoolIdentity = "IIS AppPool\$appPoolName"
-        $iisUsers = "BUILTIN\IIS_IUSRS"
-        
-        # Grant Read/Execute on the site root (binaries, configs)
-        $acl = Get-Acl $physicalPath
-        $readRule = New-Object System.Security.AccessControl.FileSystemAccessRule(
-          $appPoolIdentity,
-          "ReadAndExecute,Synchronize",
-          "ContainerInherit,ObjectInherit",
-          "None",
-          "Allow"
-        )
-        $acl.SetAccessRule($readRule)
-        
-        # IIS_IUSRS read access
-        $iisRule = New-Object System.Security.AccessControl.FileSystemAccessRule(
-          $iisUsers,
-          "ReadAndExecute",
-          "ContainerInherit,ObjectInherit",
-          "None",
-          "Allow"
-        )
-        $acl.SetAccessRule($iisRule)
-        Set-Acl -Path $physicalPath -AclObject $acl
-        Write-Host "Set Read/Execute permissions on site root."
-        
-        # Grant Modify access only for logs and data directories
-        foreach ($dir in @("logs", "data")) {
-          $subPath = Join-Path $physicalPath $dir
-          if (-not (Test-Path $subPath)) {
-            New-Item -ItemType Directory -Path $subPath -Force | Out-Null
-          }
-          $subAcl = Get-Acl $subPath
-          $writeRule = New-Object System.Security.AccessControl.FileSystemAccessRule(
-            $appPoolIdentity,
-            "Modify,Synchronize",
-            "ContainerInherit,ObjectInherit",
-            "None",
-            "Allow"
-          )
-          $subAcl.SetAccessRule($writeRule)
-          Set-Acl -Path $subPath -AclObject $subAcl
-          Write-Host "Set Modify permissions on $dir directory."
-        }
-        
-        Write-Host "Folder permissions configured successfully."
-
-  - task: PowerShell@2
-    displayName: 'Start IIS Application Pool and Website'
-    inputs:
-      targetType: 'inline'
-      script: |
-        Import-Module WebAdministration -ErrorAction SilentlyContinue
-        
-        $appPoolName = "${{ parameters.appPoolName }}"
-        $websiteName = "${{ parameters.websiteName }}"
-        
-        # Start App Pool
-        Write-Host "Starting application pool: $appPoolName"
-        Start-WebAppPool -Name $appPoolName
-        
-        # Wait for pool to start
-        $timeout = 30
-        $elapsed = 0
-        while ((Get-IISAppPool -Name $appPoolName).State -ne 'Started' -and $elapsed -lt $timeout) {
-          Start-Sleep -Seconds 1
-          $elapsed++
-        }
-        
-        # Start Website
-        Write-Host "Starting website: $websiteName"
-        Start-Website -Name $websiteName
-        
-        Write-Host "IIS Application Pool and Website started successfully."
-
-  - task: PowerShell@2
-    displayName: 'Verify deployment health'
-    inputs:
-      targetType: 'inline'
-      script: |
-        $port = ${{ parameters.port }}
-        $healthUrl = "http://localhost:$port/health"
-        $appPoolName = "${{ parameters.appPoolName }}"
-        $physicalPath = "${{ parameters.physicalPath }}"
-        
-        Write-Host "Waiting for application to start..."
-        Start-Sleep -Seconds 5
-        
-        $maxRetries = 6
-        $retryCount = 0
-        $lastError = $null
-        
-        while ($retryCount -lt $maxRetries) {
-          try {
-            Write-Host "Health check attempt $($retryCount + 1)..."
-            $response = Invoke-WebRequest -Uri $healthUrl -UseBasicParsing -TimeoutSec 10
-            
-            if ($response.StatusCode -eq 200) {
-              Write-Host "##vso[task.complete result=Succeeded;]Deployment verified successfully!"
-              Write-Host "Health check response: $($response.Content)"
-              exit 0
-            }
-          } catch {
-            $lastError = $_
-            Write-Host "Attempt failed: $($_.Exception.Message)"
-          }
-          
-          $retryCount++
-          if ($retryCount -lt $maxRetries) {
-            Write-Host "Retrying in 10 seconds..."
-            Start-Sleep -Seconds 10
-          }
-        }
-        
-        # Health check failed - collect diagnostic information
-        Write-Host ""
-        Write-Host "##[error]Health check did not pass after $maxRetries attempts."
-        Write-Host ""
-        Write-Host "========== DIAGNOSTIC INFORMATION =========="
-        
-        # App Pool Status
-        Write-Host ""
-        Write-Host "--- App Pool Status ---"
-        try {
-          Import-Module WebAdministration -ErrorAction SilentlyContinue
-          $pool = Get-IISAppPool -Name $appPoolName -ErrorAction SilentlyContinue
-          if ($pool) {
-            Write-Host "App Pool '$appPoolName': $($pool.State)"
-          } else {
-            Write-Host "App Pool '$appPoolName' not found!"
-          }
-        } catch {
-          Write-Host "Could not retrieve app pool status: $_"
-        }
-        
-        # Deployed Files Check
-        Write-Host ""
-        Write-Host "--- Deployed Files Check ---"
-        $mainDll = Join-Path $physicalPath "MudBlazor.Mcp.dll"
-        if (Test-Path $mainDll) {
-          Write-Host "Main DLL exists: $mainDll"
-        } else {
-          Write-Host "##[error]Main DLL NOT FOUND: $mainDll"
-          Write-Host "Contents of ${physicalPath}:"
-          Get-ChildItem -Path $physicalPath -ErrorAction SilentlyContinue | ForEach-Object { Write-Host "  $($_.Name)" }
-        }
-        
-        # stdout Logs
-        Write-Host ""
-        Write-Host "--- Application stdout Logs (last 50 lines) ---"
-        $logsPath = Join-Path $physicalPath "logs"
-        $stdoutLogs = Get-ChildItem -Path $logsPath -Filter "stdout*.log" -ErrorAction SilentlyContinue | Sort-Object LastWriteTime -Descending | Select-Object -First 1
-        if ($stdoutLogs) {
-          Get-Content $stdoutLogs.FullName -Tail 50 -ErrorAction SilentlyContinue
-        } else {
-          Write-Host "No stdout log files found in $logsPath"
-        }
-        
-        # Windows Event Log
-        # NOTE: We filter by LogName in FilterHashtable, then filter by ProviderName with Where-Object.
-        # Using ProviderName directly in FilterHashtable doesn't support wildcards and would require
-        # an exact match like 'IIS AspNetCore Module V2'. The two-step approach captures events from
-        # any module version (V1, V2, future V3) at the cost of retrieving more events initially.
-        Write-Host ""
-        Write-Host "--- IIS ASP.NET Core Module Event Log (last 10 entries) ---"
-        try {
-          Get-WinEvent -FilterHashtable @{ LogName = 'Application' } -MaxEvents 100 -ErrorAction SilentlyContinue |
-            Where-Object { $_.ProviderName -like 'IIS AspNetCore Module*' } |
-            Select-Object -First 10 |
-            ForEach-Object { Write-Host "[$($_.TimeCreated)] $($_.LevelDisplayName): $($_.Message)" }
-        } catch {
-          Write-Host "Could not retrieve event log entries: $_"
-        }
-        
-        # HTTP Response Details
-        Write-Host ""
-        Write-Host "--- Last HTTP Error Details ---"
-        if ($lastError) {
-          Write-Host "Exception: $($lastError.Exception.Message)"
-          if ($lastError.Exception.Response) {
-            Write-Host "Status Code: $($lastError.Exception.Response.StatusCode)"
-            try {
-              $stream = $lastError.Exception.Response.GetResponseStream()
-              if ($stream) {
-                $reader = [System.IO.StreamReader]::new($stream)
-                try {
-                  $responseBody = $reader.ReadToEnd()
-                  Write-Host "Response Body: $responseBody"
-                } finally {
-                  $reader.Dispose()
-                }
-              }
-            } catch {
-              Write-Host "Could not read response body"
-            }
-          }
-        }
-        
-        Write-Host ""
-        Write-Host "============================================="
-        Write-Host "##vso[task.complete result=Failed;]Deployment verification failed!"
-        exit 1
+      targetType: 'filePath'
+      filePath: '$(System.DefaultWorkingDirectory)/eng/scripts/Start-IisSiteAndAppPool.ps1'
+      arguments: >
+        -SiteName "${{ parameters.siteName }}"
+        -AppPoolName "${{ parameters.appPoolName }}"
+      pwsh: true

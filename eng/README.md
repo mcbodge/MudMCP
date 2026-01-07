@@ -163,6 +163,114 @@ foreach ($dir in @("logs", "data")) {
 
 ## Security Considerations
 
+### Public Repository Security
+
+This repository is public. The following security controls are in place:
+
+#### Pipeline Security Features
+
+1. **PR Build Protection**: 
+   - Deploy stages have explicit conditions that prevent PR validation builds from deploying
+   - Only non-PR builds on `main` and `develop` branches can trigger deployments
+   - See `condition:` blocks in `azure-pipelines.yaml` for implementation
+
+2. **Emergency Deployment Control**:
+   - Variable `deployEnabled` (default: `true`) provides a kill switch
+   - Set to `false` in pipeline variables to disable all deployments immediately
+
+3. **PowerShell Hardening**:
+   - Strict mode enabled (`Set-StrictMode -Version Latest`)
+   - Input validation on all file paths and configuration parameters
+   - Path traversal protection on deployment directories
+   - Reduced logging of sensitive data (paths, credentials, response bodies)
+
+#### Required Azure DevOps Configuration
+
+To maintain security in a public repository environment:
+
+1. **Disable or Restrict Fork PR Builds**:
+   - Go to Project Settings → Pipelines → Settings
+   - Set "Build fork pull requests" to require approval
+   - Or disable fork builds entirely if not needed
+   - **Critical**: Prevents untrusted code from running in your pipeline
+
+2. **Protect Secrets from PR Validation**:
+   - Go to Pipelines → Library → Variable Groups
+   - Ensure secret variables are NOT available to pull request validation builds
+   - Use "Let user override" sparingly and only for non-secret variables
+   - **Critical**: Prevents secret exfiltration via PR builds
+
+3. **Environment Deployment Permissions**:
+   - Go to Pipelines → Environments → Select environment → "..." → Security
+   - Restrict "User permissions" to trusted maintainers only
+   - Enable "Approvals and checks" for production environment
+   - Add approvers who can review and approve deployments
+   - **Critical**: Prevents unauthorized deployments
+
+4. **Branch Policies and Protected Branches**:
+   - Go to Repos → Branches → Select `main` branch → Branch policies
+   - Require minimum number of reviewers (recommend 2 for production)
+   - Require build validation (link your pipeline)
+   - Disable "Allow requestors to approve their own changes"
+   - Reset votes when new commits are pushed
+   - **Critical**: Ensures code review before merge to deployment branches
+
+5. **Use Azure Key Vault or Pipeline Secret Variables**:
+   - Store connection strings, API keys, and credentials in Azure Key Vault
+   - Reference via service connection in pipeline
+   - Or use Pipeline Secret Variables (encrypted at rest)
+   - **Never** commit secrets to source code or logs
+   - **Critical**: Prevents credential exposure
+
+6. **Restrict Pipeline Permissions**:
+   - Go to Project Settings → Pipelines → Settings
+   - Limit "Access token" scope to minimum required
+   - Disable "Let scripts access OAuth token" unless specifically needed
+   - Review service connection permissions regularly
+
+7. **Enable Audit Logging**:
+   - Monitor pipeline runs, approvals, and configuration changes
+   - Review Azure DevOps audit logs regularly
+   - Set up alerts for suspicious activity
+
+### Security Checklist for Maintainers
+
+Before enabling the pipeline on a new repository or Azure DevOps project:
+
+- [ ] Fork PR builds disabled or require manual approval
+- [ ] Secret variables NOT available to PR validation
+- [ ] Environment deployment restricted to trusted users
+- [ ] Approval gates configured for production environment
+- [ ] Branch policies enabled on `main` and `develop`
+- [ ] All secrets stored in Key Vault or secret variables
+- [ ] Pipeline token scope limited to minimum required
+- [ ] Deployment VM access restricted to service accounts
+- [ ] IIS request logging enabled for audit trails
+- [ ] HTTPS configured in production with valid certificates
+
+### Threat Model
+
+**Attack Vectors in Public Repositories**:
+
+1. **Malicious PR Submission**: Attacker submits PR with code that exfiltrates secrets or deploys malicious code
+   - **Mitigation**: PR builds cannot deploy (pipeline conditions), secrets not available to PR builds
+
+2. **Compromised Contributor Account**: Attacker gains access to maintainer account
+   - **Mitigation**: Require 2FA, multiple approvers for production, audit logging
+
+3. **Pipeline Configuration Tampering**: Attacker modifies pipeline YAML to bypass controls
+   - **Mitigation**: Branch policies require review, environment approvals as second gate
+
+4. **Deployment VM Compromise**: Attacker gains access to deployment target
+   - **Mitigation**: Least-privilege permissions, network isolation, regular patching
+
+5. **Secret Leakage via Logs**: Secrets accidentally logged to build output
+   - **Mitigation**: Reduced logging in scripts, secret variables masked automatically, log review
+
+For detailed CI/CD security guidance, see [SECURITY.md](/SECURITY.md).
+
+## Security Considerations (Legacy)
+
 - Use Azure Key Vault for sensitive configuration
 - Configure approval gates for production deployments
 - Restrict VM access to deployment service accounts
