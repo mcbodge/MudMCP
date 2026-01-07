@@ -401,7 +401,9 @@ steps:
         Write-Host ""
         Write-Host "--- IIS ASP.NET Core Module Event Log (last 10 entries) ---"
         try {
-          Get-WinEvent -FilterHashtable @{ LogName = 'Application'; ProviderName = 'IIS AspNetCore Module*' } -MaxEvents 10 -ErrorAction SilentlyContinue |
+          Get-WinEvent -FilterHashtable @{ LogName = 'Application' } -MaxEvents 100 -ErrorAction SilentlyContinue |
+            Where-Object { $_.ProviderName -like 'IIS AspNetCore Module*' } |
+            Select-Object -First 10 |
             ForEach-Object { Write-Host "[$($_.TimeCreated)] $($_.LevelDisplayName): $($_.Message)" }
         } catch {
           Write-Host "Could not retrieve event log entries: $_"
