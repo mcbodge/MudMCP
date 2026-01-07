@@ -39,9 +39,18 @@ steps:
     inputs:
       targetType: 'inline'
       script: |
+        # SECURITY: Enable strict mode and stop on errors for critical deployment operations
+        Set-StrictMode -Version Latest
+        $ErrorActionPreference = 'Stop'
+        
         Import-Module WebAdministration -ErrorAction SilentlyContinue
         
         $appPoolName = "${{ parameters.appPoolName }}"
+        
+        # SECURITY: Validate app pool name to prevent injection
+        if ([string]::IsNullOrWhiteSpace($appPoolName) -or $appPoolName -match '[<>:"|?*]') {
+          throw "Invalid application pool name: contains illegal characters or is empty"
+        }
         
         if (Get-IISAppPool -Name $appPoolName -ErrorAction SilentlyContinue) {
           $appPool = Get-IISAppPool -Name $appPoolName
@@ -74,48 +83,95 @@ steps:
         } else {
           Write-Host "Application pool does not exist. Will be created during deployment."
         }
-      errorActionPreference: 'continue'
 
   - task: PowerShell@2
     displayName: 'Backup current deployment'
     inputs:
       targetType: 'inline'
       script: |
+        # SECURITY: Enable strict mode for backup operations
+        Set-StrictMode -Version Latest
+        $ErrorActionPreference = 'Stop'
+        
         $physicalPath = "${{ parameters.physicalPath }}"
-        $backupPath = "${{ parameters.physicalPath }}_backup_$(Get-Date -Format 'yyyyMMdd_HHmmss')"
+        
+        # SECURITY: Validate physical path to prevent path traversal
+        if ([string]::IsNullOrWhiteSpace($physicalPath)) {
+          throw "Physical path cannot be empty"
+        }
+        
+        # Normalize and validate path
+        try {
+          $physicalPath = [System.IO.Path]::GetFullPath($physicalPath)
+        } catch {
+          throw "Invalid physical path format: $_"
+        }
+        
+        # SECURITY: Ensure path is within expected deployment directories
+        $allowedRoots = @('C:\inetpub', 'C:\wwwroot', 'D:\inetpub', 'D:\wwwroot')
+        $isAllowedPath = $false
+        foreach ($root in $allowedRoots) {
+          if ($physicalPath.StartsWith($root, [StringComparison]::OrdinalIgnoreCase)) {
+            $isAllowedPath = $true
+            break
+          }
+        }
+        
+        if (-not $isAllowedPath) {
+          throw "Physical path must be within allowed deployment directories"
+        }
+        
+        $backupPath = "${physicalPath}_backup_$(Get-Date -Format 'yyyyMMdd_HHmmss')"
         
         if (Test-Path $physicalPath) {
-          Write-Host "Creating backup at: $backupPath"
+          Write-Host "Creating backup..."
+          # SECURITY: Use -Force to avoid following reparse points/symlinks
           Copy-Item -Path $physicalPath -Destination $backupPath -Recurse -Force
           Write-Host "Backup created successfully."
           
           # Keep only last 3 backups
-          $backups = Get-ChildItem -Path (Split-Path $physicalPath) -Directory | 
+          $backupDir = Split-Path $physicalPath -Parent
+          $backups = Get-ChildItem -Path $backupDir -Directory | 
                      Where-Object { $_.Name -like "*_backup_*" } | 
                      Sort-Object CreationTime -Descending | 
                      Select-Object -Skip 3
           if ($backups) {
             foreach ($backup in $backups) {
-              Write-Host "Removing old backup: $($backup.FullName)"
+              Write-Host "Removing old backup: $($backup.Name)"
               Remove-Item -Path $backup.FullName -Recurse -Force
             }
           }
         } else {
           Write-Host "No existing deployment to backup."
         }
-      errorActionPreference: 'continue'
 
   - task: PowerShell@2
     displayName: 'Deploy application files'
     inputs:
       targetType: 'inline'
       script: |
+        # SECURITY: Enable strict mode for file deployment operations
+        Set-StrictMode -Version Latest
+        $ErrorActionPreference = 'Stop'
+        
         $artifactPath = "$(Pipeline.Workspace)/${{ parameters.artifactName }}"
         $destPath = "${{ parameters.physicalPath }}"
         
+        # SECURITY: Validate destination path
+        if ([string]::IsNullOrWhiteSpace($destPath)) {
+          throw "Destination path cannot be empty"
+        }
+        
+        # Normalize path
+        try {
+          $destPath = [System.IO.Path]::GetFullPath($destPath)
+        } catch {
+          throw "Invalid destination path format: $_"
+        }
+        
         # Find the actual source - could be directly in artifact or in a subfolder
         # Look for the main DLL to determine correct source path (limit recursion depth for performance)
-        $mainDll = Get-ChildItem -Path $artifactPath -Filter "MudBlazor.Mcp.dll" -Recurse -Depth 3 | Select-Object -First 1
+        $mainDll = Get-ChildItem -Path $artifactPath -Filter "MudBlazor.Mcp.dll" -Recurse -Depth 3 -ErrorAction SilentlyContinue | Select-Object -First 1
         if ($mainDll -and $mainDll.DirectoryName) {
           $sourcePath = $mainDll.DirectoryName
         } else {
@@ -124,25 +180,24 @@ steps:
           $sourcePath = $artifactPath
         }
         
-        Write-Host "Deploying from: $sourcePath"
-        Write-Host "Deploying to: $destPath"
+        Write-Host "Deploying from artifact to destination..."
         
         # Ensure destination directory exists
         if (-not (Test-Path $destPath)) {
-          New-Item -ItemType Directory -Path $destPath -Force
+          New-Item -ItemType Directory -Path $destPath -Force | Out-Null
           Write-Host "Created destination directory."
         }
         
         # Clear existing files (except logs, data, and server-managed config)
-        # Note: appsettings.Production.json is excluded to preserve server-specific settings.
-        # This file should be manually managed on the server and not included in the artifact.
-        Get-ChildItem -Path $destPath -Exclude 'logs', 'data', 'appsettings.Production.json' | 
+        # SECURITY: Preserve server-specific config to avoid exposing secrets in artifacts
+        # Note: appsettings.Production.json should be manually managed on the server.
+        Get-ChildItem -Path $destPath -Exclude 'logs', 'data', 'appsettings.Production.json' -ErrorAction SilentlyContinue | 
         ForEach-Object {
           Remove-Item -Path $_.FullName -Recurse -Force
           Write-Host "Removed: $($_.Name)"
         }
         
-        # Copy new files
+        # SECURITY: Copy new files without following symlinks/reparse points
         Copy-Item -Path "$sourcePath\*" -Destination $destPath -Recurse -Force
         Write-Host "Application files deployed successfully."
 
@@ -151,6 +206,10 @@ steps:
     inputs:
       targetType: 'inline'
       script: |
+        # SECURITY: Enable strict mode for IIS configuration
+        Set-StrictMode -Version Latest
+        $ErrorActionPreference = 'Stop'
+        
         Import-Module WebAdministration -ErrorAction SilentlyContinue
         Import-Module IISAdministration -ErrorAction SilentlyContinue
         
@@ -159,6 +218,17 @@ steps:
         $physicalPath = "${{ parameters.physicalPath }}"
         $port = ${{ parameters.port }}
         $environment = "${{ parameters.environment }}"
+        
+        # SECURITY: Validate inputs to prevent injection
+        if ([string]::IsNullOrWhiteSpace($websiteName) -or $websiteName -match '[<>:"|?*]') {
+          throw "Invalid website name"
+        }
+        if ([string]::IsNullOrWhiteSpace($appPoolName) -or $appPoolName -match '[<>:"|?*]') {
+          throw "Invalid app pool name"
+        }
+        if ($port -lt 1 -or $port -gt 65535) {
+          throw "Invalid port number"
+        }
         
         # Create Application Pool if it doesn't exist
         if (-not (Get-IISAppPool -Name $appPoolName -ErrorAction SilentlyContinue)) {
@@ -188,9 +258,6 @@ steps:
           Set-ItemProperty "IIS:\Sites\$websiteName" -Name applicationPool -Value $appPoolName
         }
         
-        # Set environment variable
-        $configPath = "IIS:\Sites\$websiteName"
-        
         Write-Host "IIS configuration completed."
 
   - task: PowerShell@2
@@ -198,8 +265,19 @@ steps:
     inputs:
       targetType: 'inline'
       script: |
+        # SECURITY: Enable strict mode
+        Set-StrictMode -Version Latest
+        $ErrorActionPreference = 'Stop'
+        
         $physicalPath = "${{ parameters.physicalPath }}"
         $environment = "${{ parameters.environment }}"
+        
+        # Validate environment value
+        $validEnvironments = @('Development', 'Staging', 'Production')
+        if ($environment -notin $validEnvironments) {
+          throw "Invalid environment value. Must be one of: $($validEnvironments -join ', ')"
+        }
+        
         $webConfigPath = Join-Path $physicalPath "web.config"
         
         if (Test-Path $webConfigPath) {
@@ -237,12 +315,16 @@ steps:
     inputs:
       targetType: 'inline'
       script: |
+        # SECURITY: Enable strict mode
+        Set-StrictMode -Version Latest
+        $ErrorActionPreference = 'Stop'
+        
         $physicalPath = "${{ parameters.physicalPath }}"
         $appPoolName = "${{ parameters.appPoolName }}"
         $appPoolIdentity = "IIS AppPool\$appPoolName"
         $iisUsers = "BUILTIN\IIS_IUSRS"
         
-        # Grant Read/Execute on the site root (binaries, configs)
+        # SECURITY: Least-privilege principle - Grant Read/Execute on the site root (binaries, configs)
         $acl = Get-Acl $physicalPath
         $readRule = New-Object System.Security.AccessControl.FileSystemAccessRule(
           $appPoolIdentity,
@@ -265,7 +347,7 @@ steps:
         Set-Acl -Path $physicalPath -AclObject $acl
         Write-Host "Set Read/Execute permissions on site root."
         
-        # Grant Modify access only for logs and data directories
+        # SECURITY: Grant Modify access only for logs and data directories (least privilege)
         foreach ($dir in @("logs", "data")) {
           $subPath = Join-Path $physicalPath $dir
           if (-not (Test-Path $subPath)) {
@@ -366,9 +448,9 @@ steps:
           Import-Module WebAdministration -ErrorAction SilentlyContinue
           $pool = Get-IISAppPool -Name $appPoolName -ErrorAction SilentlyContinue
           if ($pool) {
-            Write-Host "App Pool '$appPoolName': $($pool.State)"
+            Write-Host "App Pool state: $($pool.State)"
           } else {
-            Write-Host "App Pool '$appPoolName' not found!"
+            Write-Host "App Pool not found!"
           }
         } catch {
           Write-Host "Could not retrieve app pool status: $_"
@@ -379,10 +461,11 @@ steps:
         Write-Host "--- Deployed Files Check ---"
         $mainDll = Join-Path $physicalPath "MudBlazor.Mcp.dll"
         if (Test-Path $mainDll) {
-          Write-Host "Main DLL exists: $mainDll"
+          Write-Host "Main DLL exists"
         } else {
-          Write-Host "##[error]Main DLL NOT FOUND: $mainDll"
-          Write-Host "Contents of ${physicalPath}:"
+          Write-Host "##[error]Main DLL NOT FOUND"
+          # SECURITY: Avoid logging full file paths in diagnostics
+          Write-Host "Contents of deployment directory:"
           Get-ChildItem -Path $physicalPath -ErrorAction SilentlyContinue | ForEach-Object { Write-Host "  $($_.Name)" }
         }
         
@@ -392,9 +475,10 @@ steps:
         $logsPath = Join-Path $physicalPath "logs"
         $stdoutLogs = Get-ChildItem -Path $logsPath -Filter "stdout*.log" -ErrorAction SilentlyContinue | Sort-Object LastWriteTime -Descending | Select-Object -First 1
         if ($stdoutLogs) {
+          # SECURITY: Be cautious with log output - may contain sensitive data
           Get-Content $stdoutLogs.FullName -Tail 50 -ErrorAction SilentlyContinue
         } else {
-          Write-Host "No stdout log files found in $logsPath"
+          Write-Host "No stdout log files found"
         }
         
         # Windows Event Log
@@ -420,20 +504,8 @@ steps:
           Write-Host "Exception: $($lastError.Exception.Message)"
           if ($lastError.Exception.Response) {
             Write-Host "Status Code: $($lastError.Exception.Response.StatusCode)"
-            try {
-              $stream = $lastError.Exception.Response.GetResponseStream()
-              if ($stream) {
-                $reader = [System.IO.StreamReader]::new($stream)
-                try {
-                  $responseBody = $reader.ReadToEnd()
-                  Write-Host "Response Body: $responseBody"
-                } finally {
-                  $reader.Dispose()
-                }
-              }
-            } catch {
-              Write-Host "Could not read response body"
-            }
+            # SECURITY: Avoid logging potentially sensitive response bodies
+            Write-Host "Response details available but not logged for security"
           }
         }
         

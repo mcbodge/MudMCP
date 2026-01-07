@@ -36,6 +36,7 @@ pr:
       - '*.sln*'
 
 variables:
+  # Build Configuration
   - name: buildConfiguration
     value: 'Release'
   - name: dotnetVersion
@@ -57,6 +58,10 @@ variables:
     value: 'MudBlazorMcpPool'
   - name: iisPhysicalPath
     value: 'C:\inetpub\wwwroot\MudBlazorMcp'
+  # Security: Deployment Control
+  # Set to 'false' to disable all deployments (emergency kill switch)
+  - name: deployEnabled
+    value: 'true'
 
 stages:
   # ============================================
@@ -188,10 +193,20 @@ stages:
   # ============================================
   # Stage: Deploy to Development
   # ============================================
+  # SECURITY: This stage only runs for non-PR builds on the 'develop' branch.
+  # - Build.Reason 'PullRequest' blocks PR validation builds from deploying
+  # - deployEnabled variable provides emergency kill switch
+  # - Branch restriction ensures only develop branch deploys to dev environment
   - stage: DeployDev
     displayName: 'Deploy to Development'
     dependsOn: Build
-    condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/develop'))
+    condition: |
+      and(
+        succeeded(),
+        eq(variables['deployEnabled'], 'true'),
+        ne(variables['Build.Reason'], 'PullRequest'),
+        eq(variables['Build.SourceBranch'], 'refs/heads/develop')
+      )
     variables:
       - name: environmentName
         value: 'Development'
@@ -218,10 +233,21 @@ stages:
   # ============================================
   # Stage: Deploy to Production
   # ============================================
+  # SECURITY: This stage only runs for non-PR builds on the 'main' branch.
+  # - Build.Reason 'PullRequest' blocks PR validation builds from deploying
+  # - deployEnabled variable provides emergency kill switch
+  # - Branch restriction ensures only main branch deploys to production
+  # - Environment approval gates provide additional manual review step
   - stage: DeployProd
     displayName: 'Deploy to Production'
     dependsOn: Build
-    condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+    condition: |
+      and(
+        succeeded(),
+        eq(variables['deployEnabled'], 'true'),
+        ne(variables['Build.Reason'], 'PullRequest'),
+        eq(variables['Build.SourceBranch'], 'refs/heads/main')
+      )
     variables:
       - name: environmentName
         value: 'Production'
