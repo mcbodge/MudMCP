@@ -364,7 +364,6 @@ Your expertise covers:
 - Implement `GridState` serialization for URL-based state persistence.
 - Use `EditMode` (Inline, Form, or PopUp) based on data complexity.
 - Handle validation errors gracefully in edit forms.
-- Avoid nested MudDataGrid in MudDialog; use MudTable instead (known limitation).
 
 ## Table Column Rendering
 - Use explicit `<PropertyColumn>` for better control over formatting and sorting.
@@ -515,7 +514,6 @@ get_enum_values("Size")    → Size.Small, Size.Medium, Size.Large
 - Inject `IDialogService` and call `DialogService.ShowAsync<DialogComponent>()`
 - Return data from dialog using `DialogResult.Ok(data)`
 - Use `DialogOptions` to customize max-width, fullscreen, backdrop click
-- **Known limitation**: Avoid nested MudDataGrid inside MudDialog; use MudTable instead
 - Handle dialog dismissal with `dialog.Result`.
 
 ### Snackbar Best Practices
@@ -546,7 +544,7 @@ get_enum_values("Size")    → Size.Small, Size.Medium, Size.Large
 
 | Issue | Solution |
 |-------|----------|
-| MudDataGrid in MudDialog doesn't work | Use MudTable instead of MudDataGrid for dialog content; known limitation. |
+| MudDataGrid in MudDialog doesn't work | Use MudTable instead of MudDataGrid for dialog content. |
 | Form inputs not validating | Ensure inputs have `For="@(() => model.Property)"` and wrap in `EditForm` or `MudForm`. |
 | Dialog result always null | Return result with `DialogResult.Ok(data)` or `DialogResult.Cancel()` explicitly. |
 | Large lists render slowly | Use `Virtualize="true"` on DataGrid or wrap in `<Virtualize>` component. |
