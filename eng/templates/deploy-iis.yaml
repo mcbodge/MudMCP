@@ -398,6 +398,10 @@ steps:
         }
         
         # Windows Event Log
+        # NOTE: We filter by LogName in FilterHashtable, then filter by ProviderName with Where-Object.
+        # Using ProviderName directly in FilterHashtable doesn't support wildcards and would require
+        # an exact match like 'IIS AspNetCore Module V2'. The two-step approach captures events from
+        # any module version (V1, V2, future V3) at the cost of retrieving more events initially.
         Write-Host ""
         Write-Host "--- IIS ASP.NET Core Module Event Log (last 10 entries) ---"
         try {
