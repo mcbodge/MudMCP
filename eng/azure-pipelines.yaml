@@ -111,19 +111,20 @@ stages:
               arguments: '--configuration $(buildConfiguration) --no-restore'
 
           # Run unit tests with code coverage
+          # Note: publishTestResults automatically adds --logger trx and --results-directory
           - task: DotNetCoreCLI@2
             displayName: 'Run unit tests'
             inputs:
               command: 'test'
               projects: '$(testProjectPath)'
-              arguments: '--configuration $(buildConfiguration) --no-build --collect:"XPlat Code Coverage" --results-directory $(Agent.TempDirectory)/TestResults'
+              arguments: '--configuration $(buildConfiguration) --no-build --collect:"XPlat Code Coverage"'
               publishTestResults: true
               testRunTitle: 'MudBlazor.Mcp Unit Tests'
 
           - task: PublishCodeCoverageResults@2
             displayName: 'Publish code coverage'
             inputs:
-              summaryFileLocation: '$(Agent.TempDirectory)/TestResults/**/coverage.cobertura.xml'
+              summaryFileLocation: '$(Agent.TempDirectory)/**/coverage.cobertura.xml'
               failIfCoverageEmpty: false
 
           # Publish application
