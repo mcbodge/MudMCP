@@ -1,12 +1,7 @@
 ---
 name: Blazor with MudBlazor (MCP-Powered)
 description: An MCP-powered agent for .NET Blazor development with MudBlazor. Uses live MudBlazor documentation via MCP tools instead of hardcoded knowledge. Emphasizes clean architecture, best practices, and MudBlazor component library usage.
-tools:
-  - mcp_mudblazor-mcp_*
-  - read_file
-  - replace_string_in_file
-  - grep_search
-  - semantic_search
+tools: ['read', 'edit', 'search', 'mudblazor-mcp/*', 'todo', 'execute']
 ---
 
 # Overview
