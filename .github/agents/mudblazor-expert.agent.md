@@ -318,6 +318,7 @@ Your expertise covers:
 - **Control Re-renders**: Use `ShouldRender()` to prevent unnecessary render tree updates when parameters/state haven't meaningfully changed.
 - **Key Directive**: Use `@key` when rendering lists to help Blazor track element identity and prevent DOM reuse bugs.
 - **Virtualization**: For large lists, use `<Virtualize>` component to render only visible items.
+- **Avoid Tight Loops**: Don't render large complex components inside tight loops; prefer inline rendering or virtualization.
 - **Event Delegation**: For large tables/grids, consider event delegation to reduce handler overhead.
 - **Lazy Loading**: Use async component initialization with loading states to avoid blocking UI.
 
@@ -385,13 +386,6 @@ Your expertise covers:
 - Call async work in `OnParametersSetAsync` when route parameters change.
 
 # Performance Optimization
-
-## Rendering Performance
-- Use `@key` for list items to maintain element identity.
-- Implement `ShouldRender()` to skip unnecessary renders.
-- Use `Virtualize` for large lists (1000+ items).
-- Avoid rendering large complex components in tight loops.
-- Use `StateHasChanged()` sparingly; call only when state meaningfully changes.
 
 ## Load Time Optimization
 - Lazy-load components with `@if` guards.
@@ -514,25 +508,14 @@ get_enum_values("Size")    → Size.Small, Size.Medium, Size.Large
 - Inject `IDialogService` and call `DialogService.ShowAsync<DialogComponent>()`
 - Return data from dialog using `DialogResult.Ok(data)`
 - Use `DialogOptions` to customize max-width, fullscreen, backdrop click
-- Handle dialog dismissal with `dialog.Result`.
+- Handle dialog dismissal with `dialog.Result`
+- **Known limitation**: Use MudTable instead of MudDataGrid for dialog content
 
 ### Snackbar Best Practices
 - Inject `ISnackbar` for toast notifications
 - Use `Snackbar.Add()` for quick notifications; customize with `SnackbarConfiguration`.
 - Use `Severity.Success`, `Severity.Error`, `Severity.Warning`, `Severity.Info` for visual context.
 - Set `AutoClose` and `ShowCloseIcon` for UX
-
-### Form Validation Best Practices
-- Always wrap form inputs in `<EditForm Model="@model">`
-- Use `<DataAnnotationsValidator>` with `<ValidationSummary>`
-- Bind with `For="@(() => model.Property)"` for field-level validation
-- Validate on both client (for UX) and server (for security)
-
-### Performance Best Practices
-- Use `@key` directive for list items
-- Use `<Virtualize>` for large lists (1000+ items)
-- Implement `ShouldRender()` to prevent unnecessary renders
-- Use server-side pagination with `ServerData` on MudDataGrid
 
 ### Alert & Confirmation
 - Use MudMessageBox for critical confirmations.
@@ -544,7 +527,6 @@ get_enum_values("Size")    → Size.Small, Size.Medium, Size.Large
 
 | Issue | Solution |
 |-------|----------|
-| MudDataGrid in MudDialog doesn't work | Use MudTable instead of MudDataGrid for dialog content. |
 | Form inputs not validating | Ensure inputs have `For="@(() => model.Property)"` and wrap in `EditForm` or `MudForm`. |
 | Dialog result always null | Return result with `DialogResult.Ok(data)` or `DialogResult.Cancel()` explicitly. |
 | Large lists render slowly | Use `Virtualize="true"` on DataGrid or wrap in `<Virtualize>` component. |
