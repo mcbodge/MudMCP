@@ -27,6 +27,12 @@ parameters:
     default: 5180
 
 steps:
+  # Checkout source to get deployment scripts
+  # Deployment jobs don't automatically have source code - only artifacts are downloaded
+  - checkout: self
+    displayName: 'Checkout deployment scripts'
+    fetchDepth: 1
+
   - task: DownloadPipelineArtifact@2
     displayName: 'Download MudBlazor.Mcp build artifact'
     inputs:
