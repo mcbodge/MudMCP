@@ -52,11 +52,34 @@ Start-WebAppPool -Name $AppPoolName
 # Wait for pool to start
 $timeout = 30
 $elapsed = 0
-while ((Get-IISAppPool -Name $AppPoolName).State -ne 'Started' -and $elapsed -lt $timeout) {
+$appPool = $null
+
+while ($elapsed -lt $timeout) {
+    try {
+        $appPool = Get-IISAppPool -Name $AppPoolName -ErrorAction Stop
+    }
+    catch {
+        Write-Error "Failed to retrieve IIS application pool '$AppPoolName': $_"
+        exit 1
+    }
+
+    if ($null -eq $appPool) {
+        Write-Error "IIS application pool '$AppPoolName' was not found while waiting for it to start."
+        exit 1
+    }
+
+    if ($appPool.State -eq 'Started') {
+        break
+    }
+
     Start-Sleep -Seconds 1
     $elapsed++
 }
 
+if ($null -eq $appPool -or $appPool.State -ne 'Started') {
+    Write-Error "IIS application pool '$AppPoolName' did not reach the 'Started' state within $timeout seconds."
+    exit 1
+}
 # Start Website
 Write-Host "Starting website: $WebsiteName"
 Start-Website -Name $WebsiteName
