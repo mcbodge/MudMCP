@@ -71,7 +71,7 @@ while ($elapsed -lt $timeout) {
     $elapsed++
 }
 
-if ($null -eq $appPool -or $appPool.State -ne 'Started') {
+if ($appPool.State -ne 'Started') {
     Write-Error "IIS application pool '$AppPoolName' did not reach the 'Started' state within $timeout seconds."
     exit 1
 }
