@@ -41,29 +41,12 @@ if ($PublishPath -match '\.\.' -or $PublishPath -match '[<>"|?*]') {
     exit 1
 }
 
-# Resolve to full path and validate against allowed IIS roots
-$fullPublishPath = [System.IO.Path]::GetFullPath($PublishPath)
-$allowedRoots = @(
-    'C:\inetpub',
-    'C:\WWW',
-    'D:\WWW'
-)
-
-$pathIsAllowed = $false
-foreach ($root in $allowedRoots) {
-    if ($fullPublishPath.StartsWith($root, [System.StringComparison]::OrdinalIgnoreCase)) {
-        $pathIsAllowed = $true
-        break
-    }
-}
-
-if (-not $pathIsAllowed) {
-    Write-Error "Publish path '$fullPublishPath' is not under an allowed root. Allowed roots: $($allowedRoots -join ', ')"
-    exit 1
-}
-
-# Use the validated full path for subsequent operations
-$PublishPath = $fullPublishPath
+# Resolve to full path for subsequent operations
+# Note: This script is called during the build stage to prepare the artifact with web.config.
+# Path restriction to IIS roots is NOT enforced here because:
+# 1. During build, we're creating web.config in the artifact staging directory (e.g., D:\a\1\a\publish)
+# 2. Deployment scripts (Deploy-IisContent.ps1) enforce path restrictions when copying to IIS
+$PublishPath = [System.IO.Path]::GetFullPath($PublishPath)
 # Create web.config if it doesn't exist in publish output
 $webConfigPath = Join-Path $PublishPath "web.config"
 if (-not (Test-Path $webConfigPath)) {
