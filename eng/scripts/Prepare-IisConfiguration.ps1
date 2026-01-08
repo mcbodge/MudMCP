@@ -35,7 +35,6 @@ if (-not (Test-Path $PublishPath)) {
 }
 
 # Ensure path doesn't contain directory traversal or invalid characters
-# Ensure path doesn't contain directory traversal or invalid characters
 # Note: Colon (:) is excluded from validation as it's valid for Windows drive letters (e.g., C:\)
 if ($PublishPath -match '\.\.' -or $PublishPath -match '[<>"|?*]') {
     Write-Error "Invalid characters or directory traversal detected in path."
