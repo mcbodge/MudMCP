@@ -55,20 +55,24 @@ $elapsed = 0
 $appPool = $null
 
 while ($elapsed -lt $timeout) {
-    try {
-        $appPool = Get-IISAppPool -Name $AppPoolName -ErrorAction Stop
-    }
-    catch {
-        Write-Error "Failed to retrieve IIS application pool '$AppPoolName': $_"
-        exit 1
-    }
-
-    if ($appPool.State -eq 'Started') {
+    $appPool = Get-IISAppPool -Name $AppPoolName -ErrorAction SilentlyContinue
+    
+    if ($null -eq $appPool) {
+        Write-Host "Waiting for app pool to be available..."
+    } elseif ($appPool.State -eq 'Started') {
+        Write-Host "Application pool started successfully."
         break
+    } else {
+        Write-Host "Waiting for app pool to start (current state: $($appPool.State))..."
     }
-
+    
     Start-Sleep -Seconds 1
     $elapsed++
+}
+
+if ($null -eq $appPool) {
+    Write-Error "IIS application pool '$AppPoolName' was not found after $timeout seconds."
+    exit 1
 }
 
 if ($appPool.State -ne 'Started') {

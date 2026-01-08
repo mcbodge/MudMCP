@@ -63,6 +63,12 @@ if ($AppPoolName -notmatch '^[a-zA-Z0-9_-]+$') {
 # Normalize and validate physical path
 $PhysicalPath = $PhysicalPath.TrimEnd('\')
 
+# Ensure path doesn't contain directory traversal or invalid characters
+if ($PhysicalPath -match '\.\.' -or $PhysicalPath -match '[<>"|?*:]') {
+    Write-Error "Invalid characters or directory traversal detected in path."
+    exit 1
+}
+
 $allowedRoots = @('C:\inetpub', 'C:\WWW', 'D:\WWW')
 $isAllowedPath = $false
 foreach ($root in $allowedRoots) {

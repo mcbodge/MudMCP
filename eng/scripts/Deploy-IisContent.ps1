@@ -37,6 +37,12 @@ $ErrorActionPreference = 'Stop'
 $ArtifactPath = $ArtifactPath.TrimEnd('\')
 $PhysicalPath = $PhysicalPath.TrimEnd('\')
 
+# Validate artifact path against path traversal and invalid characters
+if ($ArtifactPath -match '\.\.' -or $ArtifactPath -match '[<>"|?*]') {
+    Write-Error "Invalid characters or directory traversal detected in artifact path."
+    exit 1
+}
+
 # Validate artifact path exists
 if (-not (Test-Path $ArtifactPath)) {
     Write-Error "Artifact path does not exist: $ArtifactPath"
