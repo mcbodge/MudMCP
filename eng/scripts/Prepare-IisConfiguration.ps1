@@ -35,7 +35,7 @@ if (-not (Test-Path $PublishPath)) {
 }
 
 # Ensure path doesn't contain directory traversal
-if ($PublishPath -match '\.\.' -or $PublishPath -match '[<>"|?*]') {
+if ($PublishPath -match '\.\.' -or $PublishPath -match '[<>"|?*:]') {
     Write-Error "Invalid characters or directory traversal detected in path."
     exit 1
 }
