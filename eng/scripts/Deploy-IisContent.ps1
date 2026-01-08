@@ -43,6 +43,30 @@ if ($ArtifactPath -match '\.\.' -or $ArtifactPath -match '[<>"|?*]') {
     exit 1
 }
 
+# Validate artifact path is under expected CI roots when available
+$allowedArtifactRoots = @()
+if ($env:PIPELINE_WORKSPACE) {
+    $allowedArtifactRoots += $env:PIPELINE_WORKSPACE.TrimEnd('\')
+}
+if ($env:BUILD_ARTIFACTSTAGINGDIRECTORY) {
+    $allowedArtifactRoots += $env:BUILD_ARTIFACTSTAGINGDIRECTORY.TrimEnd('\')
+}
+
+if ($allowedArtifactRoots.Count -gt 0) {
+    $isArtifactPathAllowed = $false
+    foreach ($root in $allowedArtifactRoots) {
+        if ($ArtifactPath -like "$root\*" -or $ArtifactPath -eq $root) {
+            $isArtifactPathAllowed = $true
+            break
+        }
+    }
+
+    if (-not $isArtifactPathAllowed) {
+        Write-Error "Artifact path must be under one of the allowed roots: $($allowedArtifactRoots -join ', ')"
+        exit 1
+    }
+}
+
 # Validate artifact path exists
 if (-not (Test-Path $ArtifactPath)) {
     Write-Error "Artifact path does not exist: $ArtifactPath"
@@ -65,7 +89,7 @@ if (-not $isAllowedPath) {
 }
 
 # Ensure path doesn't contain directory traversal
-if ($PhysicalPath -match '\.\.' -or $PhysicalPath -match '[<>"|?*:]') {
+if ($PhysicalPath -match '\.\.' -or $PhysicalPath -match '[<>"|?*]') {
     Write-Error "Invalid characters or directory traversal detected in path."
     exit 1
 }
