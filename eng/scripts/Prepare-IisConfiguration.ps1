@@ -43,7 +43,13 @@ if (-not (Test-Path $PublishPath)) {
 # Path restriction to IIS roots is NOT enforced here because:
 # 1. During build, we're creating web.config in the artifact staging directory (e.g., D:\a\1\a\publish)
 # 2. Deployment scripts (Deploy-IisContent.ps1) enforce path restrictions when copying to IIS
-$PublishPath = [System.IO.Path]::GetFullPath($PublishPath).TrimEnd('\')
+try {
+    $PublishPath = [System.IO.Path]::GetFullPath($PublishPath).TrimEnd('\')
+}
+catch {
+    Write-Error ("Failed to normalize PublishPath. The provided value is not a valid path: '{0}'. Error: {1}" -f $PublishPath, $_.Exception.Message)
+    exit 1
+}
 
 # Create web.config if it doesn't exist in publish output
 $webConfigPath = Join-Path $PublishPath "web.config"
