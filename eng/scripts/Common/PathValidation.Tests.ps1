@@ -138,6 +138,18 @@ Describe 'Test-AllowedRoot' {
         It 'Should not throw for path under D:\WWW' {
             { Test-AllowedRoot -Path 'D:\WWW\sites\MyApp' -ParameterName 'TestPath' } | Should -Not -Throw
         }
+
+        It 'Should not throw for path under D:\inetpub' {
+            { Test-AllowedRoot -Path 'D:\inetpub\wwwroot\MyApp' -ParameterName 'TestPath' } | Should -Not -Throw
+        }
+
+        It 'Should not throw for path under C:\wwwroot' {
+            { Test-AllowedRoot -Path 'C:\wwwroot\MyApp' -ParameterName 'TestPath' } | Should -Not -Throw
+        }
+
+        It 'Should not throw for path under D:\wwwroot' {
+            { Test-AllowedRoot -Path 'D:\wwwroot\sites\MyApp' -ParameterName 'TestPath' } | Should -Not -Throw
+        }
     }
 
     Context 'When path is not under allowed root' {
