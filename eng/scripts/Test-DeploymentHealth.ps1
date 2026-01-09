@@ -54,8 +54,9 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Continue'
 
-# Load shared validation functions
+# Load shared utilities
 . "$PSScriptRoot\Common\PathValidation.ps1"
+. "$PSScriptRoot\Common\LoggingUtility.ps1"
 
 # Validate app pool name
 Test-IisResourceName -Name $AppPoolName -ResourceType 'app pool'
@@ -78,7 +79,7 @@ while ($retryCount -lt $MaxRetries) {
         
         if ($response.StatusCode -eq 200) {
             Write-Host "##vso[task.complete result=Succeeded;]Deployment verified successfully!"
-            Write-Host "Health check response: $($response.Content)"
+            Write-InfoLog "Health check passed (HTTP 200)"
             exit 0
         }
     } catch {
@@ -119,10 +120,10 @@ Write-Host ""
 Write-Host "--- Deployed Files Check ---"
 $mainDll = Join-Path $PhysicalPath "MudBlazor.Mcp.dll"
 if (Test-Path $mainDll) {
-    Write-Host "Main DLL exists: $mainDll"
+    Write-Host "Main DLL exists: OK"
 } else {
-    Write-Host "##[error]Main DLL NOT FOUND: $mainDll"
-    Write-Host "Contents of ${PhysicalPath}:"
+    Write-Host "##[error]Main DLL NOT FOUND"
+    Write-Host "Contents of deployment directory:"
     Get-ChildItem -Path $PhysicalPath -ErrorAction SilentlyContinue | ForEach-Object { Write-Host "  $($_.Name)" }
 }
 
@@ -132,9 +133,10 @@ Write-Host "--- Application stdout Logs (last 50 lines) ---"
 $logsPath = Join-Path $PhysicalPath "logs"
 $stdoutLogs = Get-ChildItem -Path $logsPath -Filter "stdout*.log" -ErrorAction SilentlyContinue | Sort-Object LastWriteTime -Descending | Select-Object -First 1
 if ($stdoutLogs) {
-    Get-Content $stdoutLogs.FullName -Tail 50 -ErrorAction SilentlyContinue
+    # Redact paths in log content
+    Get-Content $stdoutLogs.FullName -Tail 50 -ErrorAction SilentlyContinue | ForEach-Object { Write-Host (Get-RedactedMessage -Message $_) }
 } else {
-    Write-Host "No stdout log files found in $logsPath"
+    Write-Host "No stdout log files found"
 }
 
 # Windows Event Log
@@ -160,20 +162,8 @@ if ($lastError) {
     Write-Host "Exception: $($lastError.Exception.Message)"
     if ($lastError.Exception.Response) {
         Write-Host "Status Code: $($lastError.Exception.Response.StatusCode)"
-        try {
-            $stream = $lastError.Exception.Response.GetResponseStream()
-            if ($stream) {
-                $reader = [System.IO.StreamReader]::new($stream)
-                try {
-                    $responseBody = $reader.ReadToEnd()
-                    Write-Host "Response Body: $responseBody"
-                } finally {
-                    $reader.Dispose()
-                }
-            }
-        } catch {
-            Write-Host "Could not read response body"
-        }
+        # Response body intentionally not logged - may contain sensitive information
+        Write-Host "Response body: [REDACTED - see application logs for details]"
     }
 }
 

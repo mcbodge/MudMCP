@@ -1,0 +1,8 @@
+{
+    "chat.tools.terminal.autoApprove": {
+        "Invoke-Pester": true,
+        "Install-Module": true,
+        "Import-Module": true,
+        ".": true
+    }
+}
