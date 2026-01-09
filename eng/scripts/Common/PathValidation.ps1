@@ -61,7 +61,8 @@ function Test-PathSecurity {
     # Note: Colon (:) is intentionally excluded from the invalid character check because:
     # 1. It's required for Windows drive letters (e.g., C:\)
     # 2. Colons after the drive letter (e.g., C:\path:stream) would fail in GetFullPath anyway
-    # 3. The IsPathRooted and bare drive root checks above ensure the colon is only at position 1
+    # 3. The IsPathRooted check ensures colons are used correctly for drive letters, and any misplaced colons
+    #    (e.g., alternate data stream syntax like 'C:\path:stream') will fail during GetFullPath normalization
     if ($Path -match '\.\.' -or $Path -match '[<>"|?*]') {
         throw "Invalid characters or directory traversal detected in $ParameterName."
     }
