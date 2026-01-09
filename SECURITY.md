@@ -120,11 +120,11 @@ Merge to main → Build + Test + Deploy to Production (with Approval Gate)
   - Only log necessary information for troubleshooting
 
 #### 6. Least-Privilege Permissions
-- **Location**: `eng/templates/deploy-iis.yaml` permission step
-- **Controls**:
-  - App pool identity has Read/Execute on application root
-  - App pool identity has Modify only on `logs` and `data` directories
-  - Prevents application from modifying its own binaries or configuration
+- **Location**: IIS deployment pipeline (YAML template and/or external deployment scripts)
+- **Controls** (requirements):
+  - Deployment scripts MUST ensure the app pool identity has Read/Execute on the application root only
+  - Deployment scripts MUST grant Modify permissions to the app pool identity only on `logs` and `data` directories
+  - Deployment scripts MUST prevent the application from modifying its own binaries or configuration files
 
 ## Azure DevOps Configuration Requirements
 
