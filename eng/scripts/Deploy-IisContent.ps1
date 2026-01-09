@@ -47,6 +47,15 @@ if (-not [System.IO.Path]::IsPathRooted($PhysicalPath)) {
     exit 1
 }
 
+# Reject bare drive roots like "C:" which would resolve against the current directory on that drive
+if ($ArtifactPath -match '^[a-zA-Z]:$') {
+    Write-Error "ArtifactPath must include at least one directory beyond the drive root (e.g. 'C:\\path\\to\\artifact')."
+    exit 1
+}
+if ($PhysicalPath -match '^[a-zA-Z]:$') {
+    Write-Error "PhysicalPath must include at least one directory beyond the drive root (e.g. 'C:\\inetpub\\wwwroot\\MudBlazorMcp')."
+    exit 1
+}
 # Validate against path traversal and invalid characters BEFORE calling GetFullPath
 # This prevents bypass attacks where ".." sequences would be resolved away before validation
 if ($ArtifactPath -match '\.\.' -or $ArtifactPath -match '[<>"|?*]') {
