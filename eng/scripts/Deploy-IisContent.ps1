@@ -33,39 +33,63 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
+<#
+.SYNOPSIS
+    Validates a path for security issues before processing.
+
+.DESCRIPTION
+    Performs comprehensive security validation including:
+    - Ensures the path is absolute (not relative)
+    - Rejects bare drive roots (e.g., "C:")
+    - Checks for path traversal attacks (..)
+    - Validates against invalid file system characters
+
+.PARAMETER Path
+    The path to validate.
+
+.PARAMETER ParameterName
+    The name of the parameter (for error messages).
+
+.EXAMPLE
+    Test-PathSecurity -Path $ArtifactPath -ParameterName "ArtifactPath"
+#>
+function Test-PathSecurity {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory=$true)]
+        [string]$Path,
+        
+        [Parameter(Mandatory=$true)]
+        [string]$ParameterName
+    )
+    
+    # Reject relative paths - must be absolute to avoid resolving against unpredictable CWD in CI/CD
+    if (-not [System.IO.Path]::IsPathRooted($Path)) {
+        Write-Error "$ParameterName must be an absolute path. Relative paths are not supported."
+        exit 1
+    }
+    
+    # Reject bare drive roots like "C:" which would resolve against the current directory on that drive
+    if ($Path -match '^[a-zA-Z]:$') {
+        Write-Error "$ParameterName must include at least one directory beyond the drive root (e.g. 'C:\\path\\to\\directory')."
+        exit 1
+    }
+    
+    # Validate against path traversal and invalid characters BEFORE calling GetFullPath
+    # This prevents bypass attacks where ".." sequences would be resolved away before validation
+    if ($Path -match '\.\.' -or $Path -match '[<>"|?*]') {
+        Write-Error "Invalid characters or directory traversal detected in $ParameterName."
+        exit 1
+    }
+}
+
 # Normalize path separators first (convert forward slashes to backslashes)
 $ArtifactPath = $ArtifactPath.Replace('/', '\')
 $PhysicalPath = $PhysicalPath.Replace('/', '\')
 
-# Reject relative paths - must be absolute to avoid resolving against unpredictable CWD in CI/CD
-if (-not [System.IO.Path]::IsPathRooted($ArtifactPath)) {
-    Write-Error "ArtifactPath must be an absolute path. Relative paths are not supported."
-    exit 1
-}
-if (-not [System.IO.Path]::IsPathRooted($PhysicalPath)) {
-    Write-Error "PhysicalPath must be an absolute path. Relative paths are not supported."
-    exit 1
-}
-
-# Reject bare drive roots like "C:" which would resolve against the current directory on that drive
-if ($ArtifactPath -match '^[a-zA-Z]:$') {
-    Write-Error "ArtifactPath must include at least one directory beyond the drive root (e.g. 'C:\\path\\to\\artifact')."
-    exit 1
-}
-if ($PhysicalPath -match '^[a-zA-Z]:$') {
-    Write-Error "PhysicalPath must include at least one directory beyond the drive root (e.g. 'C:\\inetpub\\wwwroot\\MudBlazorMcp')."
-    exit 1
-}
-# Validate against path traversal and invalid characters BEFORE calling GetFullPath
-# This prevents bypass attacks where ".." sequences would be resolved away before validation
-if ($ArtifactPath -match '\.\.' -or $ArtifactPath -match '[<>"|?*]') {
-    Write-Error "Invalid characters or directory traversal detected in artifact path."
-    exit 1
-}
-if ($PhysicalPath -match '\.\.' -or $PhysicalPath -match '[<>"|?*]') {
-    Write-Error "Invalid characters or directory traversal detected in physical path."
-    exit 1
-}
+# Validate both paths for security issues
+Test-PathSecurity -Path $ArtifactPath -ParameterName "ArtifactPath"
+Test-PathSecurity -Path $PhysicalPath -ParameterName "PhysicalPath"
 
 # Now safe to resolve to canonical full paths for consistent comparisons
 $ArtifactPath = [System.IO.Path]::GetFullPath($ArtifactPath).TrimEnd('\')
