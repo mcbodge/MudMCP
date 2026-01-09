@@ -10,7 +10,6 @@ parameters:
     default: 'DefaultAppPool'
   - name: physicalPath
     type: string
-    default: '$(System.DefaultWorkingDirectory)'
   - name: artifactPath
     type: string
     default: ''
