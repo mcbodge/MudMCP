@@ -66,7 +66,8 @@ if (Test-Path $webConfigPath) {
     # Find or create environmentVariables section
     $aspNetCore = $webConfig.configuration.location.'system.webServer'.aspNetCore
     if ($aspNetCore) {
-        $envVars = $aspNetCore.environmentVariables
+        # Use SelectSingleNode to safely check for environmentVariables (avoids strict mode errors)
+        $envVars = $aspNetCore.SelectSingleNode("environmentVariables")
         if (-not $envVars) {
             $envVars = $webConfig.CreateElement("environmentVariables")
             $aspNetCore.AppendChild($envVars) | Out-Null
