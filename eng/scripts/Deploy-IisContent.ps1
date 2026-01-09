@@ -43,7 +43,13 @@ Test-PathSecurity -Path $ArtifactPath -ParameterName 'ArtifactPath'
 $PhysicalPath = Get-ValidatedPath -Path $PhysicalPath -ParameterName 'PhysicalPath'
 
 # Normalize ArtifactPath to canonical full path
-$ArtifactPath = [System.IO.Path]::GetFullPath($ArtifactPath).TrimEnd('\')
+try {
+    $ArtifactPath = [System.IO.Path]::GetFullPath($ArtifactPath).TrimEnd('\')
+}
+catch {
+    Write-Error "Failed to normalize 'ArtifactPath' path '$ArtifactPath': $_"
+    exit 1
+}
 
 # Validate artifact path is under expected CI roots when available
 $allowedArtifactRoots = @()
