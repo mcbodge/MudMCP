@@ -33,8 +33,9 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
-# Load shared validation functions
+# Load shared utilities
 . "$PSScriptRoot\Common\PathValidation.ps1"
+. "$PSScriptRoot\Common\LoggingUtility.ps1"
 
 # Validate app pool name
 Test-IisResourceName -Name $AppPoolName -ResourceType 'app pool'
@@ -66,7 +67,7 @@ $iisRule = New-Object System.Security.AccessControl.FileSystemAccessRule(
 )
 $acl.SetAccessRule($iisRule)
 Set-Acl -Path $PhysicalPath -AclObject $acl
-Write-Host "Set Read/Execute permissions on site root."
+Write-InfoLog "Set Read/Execute permissions on site root."
 
 # Grant Modify access only for logs and data directories
 foreach ($dir in @("logs", "data")) {
@@ -84,8 +85,8 @@ foreach ($dir in @("logs", "data")) {
     )
     $subAcl.SetAccessRule($writeRule)
     Set-Acl -Path $subPath -AclObject $subAcl
-    Write-Host "Set Modify permissions on $dir directory."
+    Write-InfoLog "Set Modify permissions on $dir directory."
 }
 
-Write-Host "Folder permissions configured successfully."
+Write-InfoLog "Folder permissions configured successfully."
 exit 0

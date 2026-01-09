@@ -33,8 +33,9 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Continue'
 
-# Load shared validation functions
+# Load shared utilities
 . "$PSScriptRoot\Common\PathValidation.ps1"
+. "$PSScriptRoot\Common\LoggingUtility.ps1"
 
 # Validate and normalize the physical path
 $PhysicalPath = Get-ValidatedPath -Path $PhysicalPath -ParameterName 'PhysicalPath'
@@ -42,9 +43,9 @@ $PhysicalPath = Get-ValidatedPath -Path $PhysicalPath -ParameterName 'PhysicalPa
 $backupPath = "${PhysicalPath}_backup_$(Get-Date -Format 'yyyyMMdd_HHmmss')"
 
 if (Test-Path $PhysicalPath) {
-    Write-Host "Creating backup at: $backupPath"
+    Write-InfoLog "Creating backup..."
     Copy-Item -Path $PhysicalPath -Destination $backupPath -Recurse -Force
-    Write-Host "Backup created successfully."
+    Write-InfoLog "Backup created successfully."
     
     # Keep only last N backups
     $parentPath = Split-Path $PhysicalPath
@@ -56,12 +57,12 @@ if (Test-Path $PhysicalPath) {
     
     if ($backups) {
         foreach ($backup in $backups) {
-            Write-Host "Removing old backup: $($backup.FullName)"
+            Write-InfoLog "Removing old backup: $($backup.Name)"
             Remove-Item -Path $backup.FullName -Recurse -Force
         }
     }
 } else {
-    Write-Host "No existing deployment to backup."
+    Write-InfoLog "No existing deployment to backup."
 }
 
 exit 0

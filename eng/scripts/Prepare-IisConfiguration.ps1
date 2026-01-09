@@ -25,8 +25,9 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
-# Load shared validation functions
+# Load shared utilities
 . "$PSScriptRoot\Common\PathValidation.ps1"
+. "$PSScriptRoot\Common\LoggingUtility.ps1"
 
 # Validate path security (but NOT IIS root restriction - see note below)
 Test-PathSecurity -Path $PublishPath -ParameterName 'PublishPath'
@@ -72,18 +73,18 @@ if (-not (Test-Path $webConfigPath)) {
 </configuration>
 "@
     $webConfig | Out-File -FilePath $webConfigPath -Encoding UTF8
-    Write-Host "Created web.config for IIS hosting"
+    Write-InfoLog "Created web.config for IIS hosting"
 } else {
-    Write-Host "web.config already exists"
+    Write-InfoLog "web.config already exists"
 }
 
 # Create logs directory
 $logsPath = Join-Path $PublishPath "logs"
 if (-not (Test-Path $logsPath)) {
     New-Item -ItemType Directory -Path $logsPath -Force | Out-Null
-    Write-Host "Created logs directory"
+    Write-InfoLog "Created logs directory"
 } else {
-    Write-Host "Logs directory already exists"
+    Write-InfoLog "Logs directory already exists"
 }
 
 exit 0

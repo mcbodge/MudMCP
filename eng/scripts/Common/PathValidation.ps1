@@ -20,10 +20,22 @@
     When the calling script has $ErrorActionPreference = 'Stop' (recommended), thrown
     exceptions will terminate the script. This is intentional for security-critical
     validation - we want to fail fast and prevent any further execution with invalid paths.
+    
+    SECURITY:
+    This module is critical for preventing path traversal attacks and unauthorized
+    file system access during IIS deployments. See SECURITY.md for threat model.
 #>
 
 # Default allowed IIS roots - can be overridden by scripts if needed
-$script:DefaultAllowedRoots = @('C:\inetpub', 'C:\WWW', 'D:\WWW')
+# SECURITY: Restrict deployment paths to standard IIS directories only
+$script:DefaultAllowedRoots = @(
+    'C:\inetpub',
+    'D:\inetpub',
+    'C:\wwwroot',
+    'D:\wwwroot',
+    'C:\WWW',
+    'D:\WWW'
+)
 
 <#
 .SYNOPSIS
