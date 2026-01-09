@@ -33,30 +33,11 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Continue'
 
+# Load shared validation functions
+. "$PSScriptRoot\Common\PathValidation.ps1"
+
 # Validate and normalize the physical path
-$PhysicalPath = $PhysicalPath.TrimEnd('\')
-
-# Validate path is an allowed root (prevent arbitrary filesystem access)
-$allowedRoots = @('C:\inetpub', 'C:\WWW', 'D:\WWW')
-$isAllowedPath = $false
-foreach ($root in $allowedRoots) {
-    if ($PhysicalPath -like "$root\*" -or $PhysicalPath -eq $root) {
-        $isAllowedPath = $true
-        break
-    }
-}
-
-if (-not $isAllowedPath) {
-    Write-Error "Physical path must be under one of the allowed roots: $($allowedRoots -join ', ')"
-    exit 1
-}
-
-# Ensure path doesn't contain directory traversal attempts
-# Note: Colon (:) is excluded from validation as it's valid for Windows drive letters (e.g., C:\)
-if ($PhysicalPath -match '\.\.' -or $PhysicalPath -match '[<>"|?*]') {
-    Write-Error "Invalid characters or directory traversal detected in path."
-    exit 1
-}
+$PhysicalPath = Get-ValidatedPath -Path $PhysicalPath -ParameterName 'PhysicalPath'
 
 $backupPath = "${PhysicalPath}_backup_$(Get-Date -Format 'yyyyMMdd_HHmmss')"
 

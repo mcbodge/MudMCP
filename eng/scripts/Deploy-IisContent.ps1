@@ -33,32 +33,8 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
-# Helper function to validate path security
-function Test-PathSecurity {
-    param(
-        [Parameter(Mandatory=$true)]
-        [string]$Path,
-        [Parameter(Mandatory=$true)]
-        [string]$ParameterName
-    )
-    
-    # Reject relative paths - must be absolute to avoid resolving against unpredictable CWD in CI/CD
-    if (-not [System.IO.Path]::IsPathRooted($Path)) {
-        throw "$ParameterName must be an absolute path. Relative paths are not supported."
-    }
-    
-    # Reject bare drive roots like "C:" which would resolve against the current directory on that drive
-    if ($Path -match '^[a-zA-Z]:$') {
-        throw "$ParameterName must include at least one directory beyond the drive root (e.g. 'C:\path\to\folder')."
-    }
-    
-    # Validate against path traversal and invalid characters BEFORE calling GetFullPath
-    # This prevents bypass attacks where ".." sequences would be resolved away before validation
-    if ($Path -match '\.\.' -or $Path -match '[<>"|?*]') {
-        throw "Invalid characters or directory traversal detected in $ParameterName."
-    }
-}
-}
+# Load shared validation functions
+. "$PSScriptRoot\Common\PathValidation.ps1"
 
 # Validate both paths before any normalization
 Test-PathSecurity -Path $ArtifactPath -ParameterName 'ArtifactPath'

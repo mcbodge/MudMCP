@@ -32,29 +32,11 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
-# Normalize and validate physical path
-$PhysicalPath = $PhysicalPath.TrimEnd('\')
+# Load shared validation functions
+. "$PSScriptRoot\Common\PathValidation.ps1"
 
-$allowedRoots = @('C:\inetpub', 'C:\WWW', 'D:\WWW')
-$isAllowedPath = $false
-foreach ($root in $allowedRoots) {
-    if ($PhysicalPath -like "$root\*" -or $PhysicalPath -eq $root) {
-        $isAllowedPath = $true
-        break
-    }
-}
-
-if (-not $isAllowedPath) {
-    Write-Error "Physical path must be under one of the allowed roots: $($allowedRoots -join ', ')"
-    exit 1
-}
-
-# Ensure path doesn't contain directory traversal or invalid characters
-# Note: Colon (:) is excluded from validation as it's valid for Windows drive letters (e.g., C:\)
-if ($PhysicalPath -match '\.\.' -or $PhysicalPath -match '[<>"|?*]') {
-    Write-Error "Invalid characters or directory traversal detected in path."
-    exit 1
-}
+# Validate and normalize physical path
+$PhysicalPath = Get-ValidatedPath -Path $PhysicalPath -ParameterName 'PhysicalPath'
 
 $webConfigPath = Join-Path $PhysicalPath "web.config"
 

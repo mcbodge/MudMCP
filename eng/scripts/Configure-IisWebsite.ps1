@@ -47,40 +47,15 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
-# Validate names (alphanumeric, underscores, hyphens only)
-if ($WebsiteName -notmatch '^[a-zA-Z0-9_-]+$') {
-    Write-Error "Invalid website name. Only alphanumeric characters, underscores, and hyphens are allowed."
-    exit 1
-}
+# Load shared validation functions
+. "$PSScriptRoot\Common\PathValidation.ps1"
 
-if ($AppPoolName -notmatch '^[a-zA-Z0-9_-]+$') {
-    Write-Error "Invalid app pool name. Only alphanumeric characters, underscores, and hyphens are allowed."
-    exit 1
-}
+# Validate names
+Test-IisResourceName -Name $WebsiteName -ResourceType 'website'
+Test-IisResourceName -Name $AppPoolName -ResourceType 'app pool'
 
-# Normalize and validate physical path
-$PhysicalPath = $PhysicalPath.TrimEnd('\')
-
-$allowedRoots = @('C:\inetpub', 'C:\WWW', 'D:\WWW')
-$isAllowedPath = $false
-foreach ($root in $allowedRoots) {
-    if ($PhysicalPath -like "$root\*" -or $PhysicalPath -eq $root) {
-        $isAllowedPath = $true
-        break
-    }
-}
-
-if (-not $isAllowedPath) {
-    Write-Error "Physical path must be under one of the allowed roots: $($allowedRoots -join ', ')"
-    exit 1
-}
-
-# Ensure path doesn't contain directory traversal or invalid characters
-# Note: Colon (:) is excluded from validation as it's valid for Windows drive letters (e.g., C:\)
-if ($PhysicalPath -match '\.\.' -or $PhysicalPath -match '[<>"|?*]') {
-    Write-Error "Invalid characters or directory traversal detected in path."
-    exit 1
-}
+# Validate and normalize physical path
+$PhysicalPath = Get-ValidatedPath -Path $PhysicalPath -ParameterName 'PhysicalPath'
 
 Import-Module WebAdministration -ErrorAction SilentlyContinue
 Import-Module IISAdministration -ErrorAction SilentlyContinue
