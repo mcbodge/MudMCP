@@ -100,9 +100,27 @@ function Test-AllowedRoot {
         [string]$ParameterName
     )
     
+    $normalizedPath = [System.IO.Path]::GetFullPath($Path)
     $isAllowedPath = $false
     foreach ($root in $AllowedRoots) {
-        if ($Path -like "$root\*" -or $Path -eq $root) {
+        $normalizedRoot = [System.IO.Path]::GetFullPath($root)
+
+        if ($normalizedPath.Length -lt $normalizedRoot.Length) {
+            continue
+        }
+
+        if (-not $normalizedPath.StartsWith($normalizedRoot, [System.StringComparison]::OrdinalIgnoreCase)) {
+            continue
+        }
+
+        if ($normalizedPath.Length -eq $normalizedRoot.Length) {
+            $isAllowedPath = $true
+            break
+        }
+
+        $nextChar = $normalizedPath[$normalizedRoot.Length]
+        if ($nextChar -eq [System.IO.Path]::DirectorySeparatorChar -or
+            $nextChar -eq [System.IO.Path]::AltDirectorySeparatorChar) {
             $isAllowedPath = $true
             break
         }
