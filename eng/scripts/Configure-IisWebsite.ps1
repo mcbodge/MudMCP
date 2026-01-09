@@ -47,8 +47,9 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
-# Load shared validation functions
+# Load shared utilities
 . "$PSScriptRoot\Common\PathValidation.ps1"
+. "$PSScriptRoot\Common\LoggingUtility.ps1"
 
 # Validate names
 Test-IisResourceName -Name $WebsiteName -ResourceType 'website'
@@ -62,12 +63,12 @@ Import-Module IISAdministration -ErrorAction SilentlyContinue
 
 # Create Application Pool if it doesn't exist
 if (-not (Get-IISAppPool -Name $AppPoolName -ErrorAction SilentlyContinue)) {
-    Write-Host "Creating application pool: $AppPoolName"
+    Write-InfoLog "Creating application pool: $AppPoolName"
     New-WebAppPool -Name $AppPoolName
 }
 
 # Configure Application Pool
-Write-Host "Configuring application pool..."
+Write-InfoLog "Configuring application pool..."
 $appPool = Get-Item "IIS:\AppPools\$AppPoolName"
 $appPool.managedRuntimeVersion = ""  # No managed code (use .NET Core hosting)
 $appPool.startMode = "AlwaysRunning"
@@ -76,17 +77,17 @@ $appPool | Set-Item
 
 # Create Website if it doesn't exist
 if (-not (Get-Website -Name $WebsiteName -ErrorAction SilentlyContinue)) {
-    Write-Host "Creating website: $WebsiteName"
+    Write-InfoLog "Creating website: $WebsiteName"
     New-Website -Name $WebsiteName `
                 -PhysicalPath $PhysicalPath `
                 -ApplicationPool $AppPoolName `
                 -Port $Port
 } else {
     # Update existing website
-    Write-Host "Updating website: $WebsiteName"
+    Write-InfoLog "Updating website: $WebsiteName"
     Set-ItemProperty "IIS:\Sites\$WebsiteName" -Name physicalPath -Value $PhysicalPath
     Set-ItemProperty "IIS:\Sites\$WebsiteName" -Name applicationPool -Value $AppPoolName
 }
 
-Write-Host "IIS configuration completed."
+Write-InfoLog "IIS configuration completed."
 exit 0
