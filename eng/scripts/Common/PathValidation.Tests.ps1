@@ -79,27 +79,37 @@ Describe 'Test-PathSecurity' {
     }
 
     Context 'When given paths with invalid characters' {
+        # Note: For characters like <, >, |, ", .NET's IsPathRooted throws "Illegal characters in path"
+        # before our regex check runs. For ? and *, our regex catches them first.
+        # Either way, the important thing is that these paths are rejected.
+
         It 'Should throw for path with <' {
-            { Test-PathSecurity -Path 'C:\inetpub\<test>' -ParameterName 'TestPath' } | Should -Throw '*Invalid characters*'
+            # IsPathRooted throws before our check
+            { Test-PathSecurity -Path 'C:\inetpub\<test>' -ParameterName 'TestPath' } | Should -Throw '*Illegal characters*'
         }
 
         It 'Should throw for path with >' {
-            { Test-PathSecurity -Path 'C:\inetpub\test>' -ParameterName 'TestPath' } | Should -Throw '*Invalid characters*'
+            # IsPathRooted throws before our check
+            { Test-PathSecurity -Path 'C:\inetpub\test>' -ParameterName 'TestPath' } | Should -Throw '*Illegal characters*'
         }
 
         It 'Should throw for path with |' {
-            { Test-PathSecurity -Path 'C:\inetpub\test|file' -ParameterName 'TestPath' } | Should -Throw '*Invalid characters*'
+            # IsPathRooted throws before our check
+            { Test-PathSecurity -Path 'C:\inetpub\test|file' -ParameterName 'TestPath' } | Should -Throw '*Illegal characters*'
         }
 
         It 'Should throw for path with "' {
-            { Test-PathSecurity -Path 'C:\inetpub\"test"' -ParameterName 'TestPath' } | Should -Throw '*Invalid characters*'
+            # IsPathRooted throws before our check
+            { Test-PathSecurity -Path 'C:\inetpub\"test"' -ParameterName 'TestPath' } | Should -Throw '*Illegal characters*'
         }
 
         It 'Should throw for path with ?' {
+            # IsPathRooted doesn't throw for ?, so our regex catches it
             { Test-PathSecurity -Path 'C:\inetpub\test?' -ParameterName 'TestPath' } | Should -Throw '*Invalid characters*'
         }
 
         It 'Should throw for path with *' {
+            # IsPathRooted doesn't throw for *, so our regex catches it
             { Test-PathSecurity -Path 'C:\inetpub\test*' -ParameterName 'TestPath' } | Should -Throw '*Invalid characters*'
         }
     }
@@ -290,8 +300,9 @@ Describe 'Test-IisResourceName' {
         }
 
         It 'Should throw for empty string' {
-            # Empty string passes mandatory check but fails regex validation (requires at least one valid char)
-            { Test-IisResourceName -Name '' -ResourceType 'website' } | Should -Throw '*Invalid*'
+            # NOTE: Mandatory [string] parameters in PowerShell reject empty strings before our regex is evaluated.
+            # See project docs (PathValidation PowerShell notes) or PowerShell help for [Parameter(Mandatory=$true)] for details.
+            { Test-IisResourceName -Name '' -ResourceType 'website' } | Should -Throw '*empty string*'
         }
     }
 
