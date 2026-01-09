@@ -264,7 +264,7 @@ Use this checklist when reviewing security-related changes:
 
 - [ ] Pipeline conditions prevent PR builds from deploying
 - [ ] Secrets are stored in Key Vault or secret variables (not source code)
-- [ ] Deployment scripts validate and sanitize all inputs
+- [ ] Any deployment scripts in this change validate and sanitize all inputs (leave unchecked if no deployment scripts are modified or added)
 - [ ] Logging does not expose secrets, paths, or sensitive data
 - [ ] File system permissions follow least-privilege principle
 - [ ] Error messages do not expose internal system details
