@@ -1,9 +1,27 @@
 # CODEOWNERS file for MudBlazor MCP
 # These paths require review by repository maintainers
+#
+# SECURITY: Changes to these files can affect deployment security.
+# All changes require maintainer review before merge.
 
-# Azure DevOps pipeline configuration and templates
+# Security documentation - changes affect security posture
+SECURITY.md                 @mcbodge
+
+# Pipeline configuration and templates (CRITICAL)
 eng/azure-pipelines.yaml    @mcbodge
 eng/templates/**            @mcbodge
 
-# Deployment and automation scripts
+# Deployment and automation scripts (CRITICAL)
 eng/scripts/**              @mcbodge
+
+# Engineering documentation
+eng/README.md               @mcbodge
+
+# GitHub configuration (workflows, actions, CODEOWNERS itself)
+.github/**                  @mcbodge
+
+# NuGet and build configuration (supply chain)
+nuget.config                @mcbodge
+Directory.Build.props       @mcbodge
+Directory.Packages.props    @mcbodge
+global.json                 @mcbodge

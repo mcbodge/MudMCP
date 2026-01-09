@@ -21,18 +21,17 @@
 # Paths that should be redacted in logs for security
 # These are replaced with friendly labels to maintain log readability
 # Order matters: more specific paths should be listed first to match before generic ones
-# Note: Use single backslashes - PowerShell will handle escaping when needed
 $script:PathRedactions = [ordered]@{
     # IIS deployment paths - more specific first
-    'C:\inetpub\wwwroot\' = '[WEBROOT]\'
-    'D:\inetpub\wwwroot\' = '[WEBROOT]\'
-    'C:\wwwroot\' = '[WEBROOT]\'
-    'D:\wwwroot\' = '[WEBROOT]\'
-    'C:\WWW\' = '[WEBROOT]\'
-    'D:\WWW\' = '[WEBROOT]\'
+    'C:\\inetpub\\wwwroot\\' = '[WEBROOT]\'
+    'D:\\inetpub\\wwwroot\\' = '[WEBROOT]\'
+    'C:\\wwwroot\\' = '[WEBROOT]\'
+    'D:\\wwwroot\\' = '[WEBROOT]\'
+    'C:\\WWW\\' = '[WEBROOT]\'
+    'D:\\WWW\\' = '[WEBROOT]\'
     # Less specific IIS paths
-    'C:\inetpub\' = '[IIS]\'
-    'D:\inetpub\' = '[IIS]\'
+    'C:\\inetpub\\' = '[IIS]\'
+    'D:\\inetpub\\' = '[IIS]\'
 }
 
 <#

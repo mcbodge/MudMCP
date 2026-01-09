@@ -85,11 +85,11 @@ If you discover a security vulnerability, please report it by:
 
 **Mitigations**:
 1. **Secret masking**: Variables marked as secret are auto-masked in logs
-2. **No secrets in scripts**: Scripts never reference secret variables directly
-3. **Sanitized output**: Diagnostic output limited to non-sensitive data
-4. **Secret protection**: Secrets marked as secret and not exposed in logs
+2. **Redacted logging**: `LoggingUtility.ps1` redacts file paths and sensitive patterns
+3. **No secrets in scripts**: Scripts never reference secret variables directly
+4. **HTTP content truncation**: Response bodies truncated and secret patterns removed
 
-**Residual Risk**: MEDIUM - Log output should be periodically audited
+**Residual Risk**: LOW - Multiple redaction layers in place
 
 ### Threat 4: Parameter Injection
 
@@ -165,6 +165,23 @@ All deployment scripts must include:
 ```powershell
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'  # Or 'Continue' for diagnostic scripts
+
+# Load shared modules
+. "$PSScriptRoot\Common\PathValidation.ps1"
+. "$PSScriptRoot\Common\LoggingUtility.ps1"
+```
+
+### Redacted Logging Pattern
+
+Use `LoggingUtility.ps1` functions instead of `Write-Host`/`Write-Warning`:
+
+```powershell
+# Instead of: Write-Host "Deploying to $PhysicalPath"
+Write-InfoLog "Deploying to $PhysicalPath"  # Outputs: Deploying to [WEBROOT]\...
+
+# For HTTP responses (truncated + secrets redacted)
+$safeContent = Get-RedactedHttpContent -Content $response.Content -MaxLength 200
+Write-InfoLog "Response: $safeContent"
 ```
 
 ### Path Validation Pattern
@@ -218,6 +235,7 @@ $normalizedPath = Get-ValidatedPath -Path $inputPath -AllowedRoots $customRoots 
 - [ ] `$ErrorActionPreference` explicitly set
 - [ ] Path parameters validated via `PathValidation.ps1`
 - [ ] IIS names validated via `Test-IisResourceName`
+- [ ] Uses `LoggingUtility.ps1` for output (not raw `Write-Host`)
 - [ ] No dynamic command construction with user input
 - [ ] No secret values logged or displayed
 - [ ] New parameters have `[ValidateNotNullOrEmpty()]`
@@ -265,6 +283,21 @@ $normalizedPath = Get-ValidatedPath -Path $inputPath -AllowedRoots $customRoots 
 - **Access Control**: Organization access controlled via identity provider
 - **Secret Management**: Use secure vault for production secrets
 - **Data Protection**: No PII stored or processed by deployment pipeline
+
+## CODEOWNERS Protection
+
+The `.github/CODEOWNERS` file enforces maintainer review for security-critical paths:
+
+| Path | Protection Reason |
+|------|-------------------|
+| `SECURITY.md` | Security documentation |
+| `eng/azure-pipelines.yaml` | Pipeline conditions and deployment logic |
+| `eng/templates/**` | Deployment templates |
+| `eng/scripts/**` | Deployment scripts with path validation |
+| `.github/**` | GitHub configuration including CODEOWNERS itself |
+| `nuget.config`, `Directory.*.props` | Supply chain configuration |
+
+**Note**: CODEOWNERS requires branch protection rules to be enabled in GitHub repository settings.
 
 ## References
 
