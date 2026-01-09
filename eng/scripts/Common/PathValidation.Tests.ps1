@@ -312,20 +312,8 @@ Describe 'Test-IisResourceName' {
         }
 
         It 'Should throw for empty string' {
-            # IMPORTANT: PowerShell's mandatory parameter binding DOES reject empty strings for [string] parameters.
-            # This is a commonly misunderstood behavior. When [Parameter(Mandatory=$true)] is applied to a
-            # [string] parameter, PowerShell rejects BOTH $null AND empty strings ('').
-            #
-            # The error thrown is:
-            #   "Cannot bind argument to parameter 'Name' because it is an empty string."
-            #   FullyQualifiedErrorId: ParameterArgumentValidationErrorEmptyStringNotAllowed
-            #
-            # This is different from other types where Mandatory only prevents $null.
-            # To allow empty strings on a mandatory string parameter, you would need to use
-            # [AllowEmptyString()] attribute explicitly.
-            #
-            # Evidence: CI pipeline output and local testing both confirm this behavior.
-            # The empty string never reaches our regex validation in Test-IisResourceName.
+            # NOTE: Mandatory [string] parameters in PowerShell reject empty strings before our regex is evaluated.
+            # See project docs (PathValidation PowerShell notes) or PowerShell help for [Parameter(Mandatory=$true)] for details.
             { Test-IisResourceName -Name '' -ResourceType 'website' } | Should -Throw '*empty string*'
         }
     }
