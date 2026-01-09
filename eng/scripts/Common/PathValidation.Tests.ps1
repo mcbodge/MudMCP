@@ -290,8 +290,8 @@ Describe 'Test-IisResourceName' {
         }
 
         It 'Should throw for empty string' {
-            # PowerShell parameter validation throws before our code runs
-            { Test-IisResourceName -Name '' -ResourceType 'website' } | Should -Throw '*empty string*'
+            # Empty string passes mandatory check but fails regex validation (requires at least one valid char)
+            { Test-IisResourceName -Name '' -ResourceType 'website' } | Should -Throw '*Invalid*'
         }
     }
 
