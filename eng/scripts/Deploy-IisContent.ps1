@@ -36,13 +36,14 @@ $ErrorActionPreference = 'Stop'
 # Load shared validation functions
 . "$PSScriptRoot\Common\PathValidation.ps1"
 
-# Validate both paths before any normalization
+# Validate ArtifactPath security (IIS root validation happens below with dynamic CI roots)
 Test-PathSecurity -Path $ArtifactPath -ParameterName 'ArtifactPath'
-Test-PathSecurity -Path $PhysicalPath -ParameterName 'PhysicalPath'
 
-# Now safe to resolve to canonical full paths for consistent comparisons
+# Validate PhysicalPath with full IIS root validation
+$PhysicalPath = Get-ValidatedPath -Path $PhysicalPath -ParameterName 'PhysicalPath'
+
+# Normalize ArtifactPath to canonical full path
 $ArtifactPath = [System.IO.Path]::GetFullPath($ArtifactPath).TrimEnd('\')
-$PhysicalPath = [System.IO.Path]::GetFullPath($PhysicalPath).TrimEnd('\')
 
 # Validate artifact path is under expected CI roots when available
 $allowedArtifactRoots = @()
@@ -71,21 +72,6 @@ if ($allowedArtifactRoots.Count -gt 0) {
 # Validate artifact path exists
 if (-not (Test-Path $ArtifactPath)) {
     Write-Error "Artifact path does not exist: $ArtifactPath"
-    exit 1
-}
-
-# Validate physical path is an allowed root
-$allowedRoots = @('C:\inetpub', 'C:\WWW', 'D:\WWW')
-$isAllowedPath = $false
-foreach ($root in $allowedRoots) {
-    if ($PhysicalPath -like "$root\*" -or $PhysicalPath -eq $root) {
-        $isAllowedPath = $true
-        break
-    }
-}
-
-if (-not $isAllowedPath) {
-    Write-Error "Physical path must be under one of the allowed roots: $($allowedRoots -join ', ')"
     exit 1
 }
 
