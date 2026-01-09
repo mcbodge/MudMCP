@@ -57,9 +57,11 @@ function Test-PathSecurity {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory=$true)]
+        [ValidateNotNullOrEmpty()]
         [string]$Path,
         
         [Parameter(Mandatory=$true)]
+        [ValidateNotNullOrEmpty()]
         [string]$ParameterName
     )
     
