@@ -29,20 +29,25 @@ public sealed class ComponentSearchTools
         [Description("The search query (e.g., 'button', 'form input', 'date picker')")]
         string query,
         [Description("Fields to search in: 'name', 'description', 'parameters', 'examples', or 'all' (default)")]
-        string searchIn = "all",
+        string? searchIn = null,
         [Description("Maximum number of results to return (default: 10, max: 50)")]
-        int maxResults = 10,
+        int? maxResults = null,
         CancellationToken cancellationToken = default)
     {
         ToolValidation.RequireNonEmpty(query, nameof(query));
-        ToolValidation.RequireValidOption(searchIn, ValidSearchInOptions, nameof(searchIn));
-        ToolValidation.RequireInRange(maxResults, 1, 50, nameof(maxResults));
+
+        // Apply default values if not provided (MCP clients may send null for optional parameters)
+        var effectiveSearchIn = searchIn ?? "all";
+        var effectiveMaxResults = maxResults ?? 10;
+
+        ToolValidation.RequireValidOption(effectiveSearchIn, ValidSearchInOptions, nameof(searchIn));
+        ToolValidation.RequireInRange(effectiveMaxResults, 1, 50, nameof(maxResults));
 
         logger.LogDebug("Searching components with query: '{Query}', searchIn: {SearchIn}, maxResults: {MaxResults}",
-            query, searchIn, maxResults);
+            query, effectiveSearchIn, effectiveMaxResults);
 
-        var searchFields = ParseSearchFields(searchIn);
-        var results = await indexer.SearchComponentsAsync(query, searchFields, maxResults, cancellationToken);
+        var searchFields = ParseSearchFields(effectiveSearchIn);
+        var results = await indexer.SearchComponentsAsync(query, searchFields, effectiveMaxResults, cancellationToken);
 
         logger.LogDebug("Search returned {Count} results", results.Count);
 
@@ -177,14 +182,17 @@ public sealed class ComponentSearchTools
         [Description("The component name (e.g., 'MudButton' or 'Button')")]
         string componentName,
         [Description("Type of relationship: 'all', 'parent', 'child', 'sibling', or 'commonly_used_with' (default: 'all')")]
-        string relationshipType = "all",
+        string? relationshipType = null,
         CancellationToken cancellationToken = default)
     {
         ToolValidation.RequireNonEmpty(componentName, nameof(componentName));
-        ToolValidation.RequireValidOption(relationshipType, ValidRelationshipTypes, nameof(relationshipType));
+
+        // Apply default value if not provided (MCP clients may send null for optional parameters)
+        var effectiveRelationshipType = relationshipType ?? "all";
+        ToolValidation.RequireValidOption(effectiveRelationshipType, ValidRelationshipTypes, nameof(relationshipType));
 
         logger.LogDebug("Getting related components for: {ComponentName}, relationship: {RelationshipType}",
-            componentName, relationshipType);
+            componentName, effectiveRelationshipType);
 
         var component = await indexer.GetComponentAsync(componentName, cancellationToken);
         
@@ -194,7 +202,7 @@ public sealed class ComponentSearchTools
             ToolValidation.ThrowComponentNotFound(componentName);
         }
 
-        var relationship = ParseRelationshipType(relationshipType);
+        var relationship = ParseRelationshipType(effectiveRelationshipType);
         var related = await indexer.GetRelatedComponentsAsync(componentName, relationship, cancellationToken);
 
         logger.LogDebug("Found {Count} related components for {ComponentName}", related.Count, componentName);

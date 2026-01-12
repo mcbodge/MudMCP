@@ -33,11 +33,14 @@ public sealed class ComponentListTools
         [Description("Optional category to filter by (e.g., 'Buttons', 'Form Inputs', 'Navigation')")] 
         string? category = null,
         [Description("Include parameter counts and brief descriptions (default: true)")]
-        bool includeDetails = true,
+        bool? includeDetails = null,
         CancellationToken cancellationToken = default)
     {
+        // Apply default value if not provided (MCP clients may send null for optional parameters)
+        var effectiveIncludeDetails = includeDetails ?? true;
+
         logger.LogDebug("Listing components with category filter: {Category}, includeDetails: {IncludeDetails}",
-            category ?? "none", includeDetails);
+            category ?? "none", effectiveIncludeDetails);
 
         if (!indexer.IsIndexed)
         {
@@ -83,7 +86,7 @@ public sealed class ComponentListTools
 
             foreach (var component in group.OrderBy(c => c.Name))
             {
-                if (includeDetails)
+                if (effectiveIncludeDetails)
                 {
                     sb.AppendLine($"- **{component.Name}**: {TruncateText(component.Summary, 80)}");
                     sb.AppendLine($"  - Parameters: {component.Parameters.Count}, Events: {component.Events.Count}, Examples: {component.Examples.Count}");

@@ -28,14 +28,17 @@ public sealed class ApiReferenceTools
         [Description("The type name (e.g., 'MudButton', 'Color', 'Size')")]
         string typeName,
         [Description("Filter to specific member type: 'all', 'properties', 'methods', 'events' (default: 'all')")]
-        string memberType = "all",
+        string? memberType = null,
         CancellationToken cancellationToken = default)
     {
         ToolValidation.RequireNonEmpty(typeName, nameof(typeName));
-        ToolValidation.RequireValidOption(memberType, ValidMemberTypes, nameof(memberType));
+
+        // Apply default value if not provided (MCP clients may send null for optional parameters)
+        var effectiveMemberType = memberType ?? "all";
+        ToolValidation.RequireValidOption(effectiveMemberType, ValidMemberTypes, nameof(memberType));
 
         logger.LogDebug("Getting API reference for type: {TypeName}, memberType: {MemberType}",
-            typeName, memberType);
+            typeName, effectiveMemberType);
 
         var apiRef = await indexer.GetApiReferenceAsync(typeName, cancellationToken);
         
@@ -69,14 +72,14 @@ public sealed class ApiReferenceTools
 
         // Filter members
         var members = apiRef.Members ?? [];
-        if (!memberType.Equals("all", StringComparison.OrdinalIgnoreCase))
+        if (!effectiveMemberType.Equals("all", StringComparison.OrdinalIgnoreCase))
         {
-            var filterType = memberType.ToLowerInvariant() switch
+            var filterType = effectiveMemberType.ToLowerInvariant() switch
             {
                 "properties" => "Property",
                 "methods" => "Method",
                 "events" => "Event",
-                _ => memberType
+                _ => effectiveMemberType
             };
             
             members = members.Where(m => 

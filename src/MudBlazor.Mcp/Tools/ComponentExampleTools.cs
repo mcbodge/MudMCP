@@ -26,16 +26,19 @@ public sealed class ComponentExampleTools
         [Description("The component name (e.g., 'MudButton' or 'Button')")]
         string componentName,
         [Description("Maximum number of examples to return (default: 5, max: 20)")]
-        int maxExamples = 5,
+        int? maxExamples = null,
         [Description("Optional filter for example names (e.g., 'basic', 'icon', 'disabled')")]
         string? filter = null,
         CancellationToken cancellationToken = default)
     {
         ToolValidation.RequireNonEmpty(componentName, nameof(componentName));
-        ToolValidation.RequireInRange(maxExamples, 1, 20, nameof(maxExamples));
+
+        // Apply default value if not provided (MCP clients may send null for optional parameters)
+        var effectiveMaxExamples = maxExamples ?? 5;
+        ToolValidation.RequireInRange(effectiveMaxExamples, 1, 20, nameof(maxExamples));
 
         logger.LogDebug("Getting examples for component: {ComponentName}, maxExamples: {MaxExamples}, filter: {Filter}",
-            componentName, maxExamples, filter ?? "none");
+            componentName, effectiveMaxExamples, filter ?? "none");
 
         var component = await indexer.GetComponentAsync(componentName, cancellationToken);
         
@@ -72,7 +75,7 @@ public sealed class ComponentExampleTools
         sb.AppendLine($"*{examples.Count} example(s) available*");
         sb.AppendLine();
 
-        var displayExamples = examples.Take(maxExamples).ToList();
+        var displayExamples = examples.Take(effectiveMaxExamples).ToList();
 
         foreach (var example in displayExamples)
         {
@@ -124,9 +127,9 @@ public sealed class ComponentExampleTools
             sb.AppendLine();
         }
 
-        if (examples.Count > maxExamples)
+        if (examples.Count > effectiveMaxExamples)
         {
-            sb.AppendLine($"*{examples.Count - maxExamples} more example(s) available. Increase `maxExamples` to see more.*");
+            sb.AppendLine($"*{examples.Count - effectiveMaxExamples} more example(s) available. Increase `maxExamples` to see more.*");
         }
 
         return sb.ToString();

@@ -27,15 +27,19 @@ public sealed class ComponentDetailTools
         [Description("The component name (e.g., 'MudButton' or 'Button')")]
         string componentName,
         [Description("Include inherited members from base classes (default: false)")]
-        bool includeInheritedMembers = false,
+        bool? includeInheritedMembers = null,
         [Description("Include code examples (default: true)")]
-        bool includeExamples = true,
+        bool? includeExamples = null,
         CancellationToken cancellationToken = default)
     {
         ToolValidation.RequireNonEmpty(componentName, nameof(componentName));
 
+        // Apply default values if not provided (MCP clients may send null for optional parameters)
+        var effectiveIncludeInherited = includeInheritedMembers ?? false;
+        var effectiveIncludeExamples = includeExamples ?? true;
+
         logger.LogDebug("Getting component detail for: {ComponentName}, includeInherited: {IncludeInherited}, includeExamples: {IncludeExamples}",
-            componentName, includeInheritedMembers, includeExamples);
+            componentName, effectiveIncludeInherited, effectiveIncludeExamples);
 
         var component = await indexer.GetComponentAsync(componentName, cancellationToken);
         
@@ -142,7 +146,7 @@ public sealed class ComponentDetailTools
         }
 
         // Examples
-        if (includeExamples && component.Examples.Count > 0)
+        if (effectiveIncludeExamples && component.Examples.Count > 0)
         {
             sb.AppendLine("## Examples");
             sb.AppendLine();

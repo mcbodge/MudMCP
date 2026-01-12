@@ -30,6 +30,20 @@ public class ComponentListToolsTests
     }
 
     [Fact]
+    public async Task ListComponentsAsync_WithNullIncludeDetails_UsesDefault()
+    {
+        // Arrange
+        var indexer = CreateMockIndexer();
+
+        // Act - simulating what happens when MCP client doesn't send includeDetails
+        var result = await ComponentListTools.ListComponentsAsync(indexer, NullLogger, null, null, CancellationToken.None);
+
+        // Assert - default is includeDetails=true, so details should be included
+        Assert.Contains("MudButton", result);
+        Assert.Contains("Parameters:", result); // This indicates details are included
+    }
+
+    [Fact]
     public async Task ListComponentsAsync_WithCategoryFilter_ReturnsFilteredComponents()
     {
         // Arrange

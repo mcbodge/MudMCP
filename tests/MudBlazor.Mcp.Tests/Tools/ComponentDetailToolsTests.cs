@@ -64,6 +64,21 @@ public class ComponentDetailToolsTests
     }
 
     [Fact]
+    public async Task GetComponentDetailAsync_WithNullOptionalParameters_UsesDefaults()
+    {
+        // Arrange
+        var indexer = CreateMockIndexer();
+
+        // Act - simulating what happens when MCP client doesn't send optional parameters
+        var result = await ComponentDetailTools.GetComponentDetailAsync(
+            indexer, NullLogger, "MudButton", null, null, CancellationToken.None);
+
+        // Assert - default is includeExamples=true, so examples should be included
+        Assert.Contains("MudButton", result);
+        Assert.Contains("Examples", result);
+    }
+
+    [Fact]
     public async Task GetComponentParametersAsync_ReturnsParameters()
     {
         // Arrange
