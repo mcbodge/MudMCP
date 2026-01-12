@@ -78,6 +78,94 @@ public class ComponentDetailToolsTests
         Assert.Contains("Variant", result);
     }
 
+    [Fact]
+    public async Task GetComponentParametersAsync_WithBoolParameter_ShowsUsageHint()
+    {
+        // Arrange
+        var indexer = CreateMockIndexerWithBoolParam();
+
+        // Act
+        var result = await ComponentDetailTools.GetComponentParametersAsync(
+            indexer, NullLogger, "MudStack", null, CancellationToken.None);
+
+        // Assert - Bool parameters should show usage hint with true/false
+        Assert.Contains("Row", result);
+        // Should indicate bool usage syntax: Row="true" or Row="false"
+        Assert.Contains("\"true\"", result);
+    }
+
+    [Fact]
+    public async Task GetComponentParametersAsync_WithEnumParameter_ShowsUsageHint()
+    {
+        // Arrange
+        var indexer = CreateMockIndexerWithEnumParam();
+
+        // Act
+        var result = await ComponentDetailTools.GetComponentParametersAsync(
+            indexer, NullLogger, "MudStack", null, CancellationToken.None);
+
+        // Assert - Enum parameters should show usage hint with enum type prefix
+        Assert.Contains("AlignItems", result);
+        // Should indicate enum usage syntax: AlignItems="AlignItems.Center"
+        Assert.Contains("AlignItems.", result);
+    }
+
+    private static IComponentIndexer CreateMockIndexerWithBoolParam()
+    {
+        var indexer = new Mock<IComponentIndexer>();
+        
+        var component = new ComponentInfo(
+            Name: "MudStack",
+            Namespace: "MudBlazor",
+            Summary: "A component for stacking items",
+            Description: "Stack children vertically or horizontally.",
+            Category: "Layout",
+            BaseType: "MudComponentBase",
+            Parameters: [
+                new ComponentParameter("Row", "bool", "If true, items are stacked horizontally", "false", false, false, "Behavior")
+            ],
+            Events: [],
+            Methods: [],
+            Examples: [],
+            RelatedComponents: [],
+            DocumentationUrl: null,
+            SourceUrl: null
+        );
+
+        indexer.Setup(x => x.GetComponentAsync("MudStack", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(component);
+
+        return indexer.Object;
+    }
+
+    private static IComponentIndexer CreateMockIndexerWithEnumParam()
+    {
+        var indexer = new Mock<IComponentIndexer>();
+        
+        var component = new ComponentInfo(
+            Name: "MudStack",
+            Namespace: "MudBlazor",
+            Summary: "A component for stacking items",
+            Description: "Stack children vertically or horizontally.",
+            Category: "Layout",
+            BaseType: "MudComponentBase",
+            Parameters: [
+                new ComponentParameter("AlignItems", "AlignItems", "Defines the alignment of items", "AlignItems.Stretch", false, false, "Behavior")
+            ],
+            Events: [],
+            Methods: [],
+            Examples: [],
+            RelatedComponents: [],
+            DocumentationUrl: null,
+            SourceUrl: null
+        );
+
+        indexer.Setup(x => x.GetComponentAsync("MudStack", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(component);
+
+        return indexer.Object;
+    }
+
     private static IComponentIndexer CreateMockIndexer()
     {
         var indexer = new Mock<IComponentIndexer>();

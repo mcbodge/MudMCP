@@ -279,12 +279,88 @@ public sealed class ComponentDetailTools
                     
                 if (!string.IsNullOrEmpty(param.Description))
                     sb.AppendLine($"- **Description:** {param.Description}");
+
+                // Add usage hint for bool and enum types to help LLMs generate correct syntax
+                var usageHint = GetParameterUsageHint(param);
+                if (usageHint is not null)
+                    sb.AppendLine($"- **Usage:** `{usageHint}`");
                     
                 sb.AppendLine();
             }
         }
 
         return sb.ToString();
+    }
+
+    /// <summary>
+    /// Generates a usage hint for a parameter to help LLMs understand the correct Blazor syntax.
+    /// </summary>
+    private static string? GetParameterUsageHint(ComponentParameter param)
+    {
+        // For bool parameters, show true/false syntax
+        if (param.Type.Equals("bool", StringComparison.OrdinalIgnoreCase) ||
+            param.Type.Equals("bool?", StringComparison.OrdinalIgnoreCase))
+        {
+            return $"{param.Name}=\"true\"";
+        }
+
+        // For enum parameters (type name matches a known enum pattern or param name equals type name),
+        // show EnumType.Value syntax
+        if (IsLikelyEnumType(param.Type))
+        {
+            var exampleValue = GetEnumExampleValue(param.Type);
+            return $"{param.Name}=\"{param.Type}.{exampleValue}\"";
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// Determines if a type is likely an enum based on its name.
+    /// </summary>
+    private static bool IsLikelyEnumType(string typeName)
+    {
+        // Remove nullable suffix
+        var baseType = typeName.TrimEnd('?');
+        
+        // Known MudBlazor enum types
+        var knownEnums = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            "Color", "Size", "Variant", "Align", "AlignItems", "Justify", "Position",
+            "Placement", "Typo", "Edge", "Origin", "Adornment", "InputType",
+            "Anchor", "DrawerVariant", "DrawerClipMode", "Breakpoint", "MaxWidth",
+            "DialogPosition", "Elevation", "Margin", "OverflowBehavior", "ResizeMode",
+            "SkeletonType", "TableApplyButtonPosition", "TabHeaderPosition",
+            "SortDirection", "SelectionMode"
+        };
+
+        return knownEnums.Contains(baseType);
+    }
+
+    /// <summary>
+    /// Gets an example value for a known enum type.
+    /// </summary>
+    private static string GetEnumExampleValue(string typeName)
+    {
+        var baseType = typeName.TrimEnd('?');
+        
+        return baseType.ToLowerInvariant() switch
+        {
+            "color" => "Primary",
+            "size" => "Medium",
+            "variant" => "Filled",
+            "align" => "Center",
+            "alignitems" => "Center",
+            "justify" => "Center",
+            "position" => "Top",
+            "placement" => "Bottom",
+            "typo" => "body1",
+            "edge" => "Start",
+            "origin" => "TopLeft",
+            "adornment" => "End",
+            "inputtype" => "Text",
+            _ => "Default"
+        };
     }
 
     private static string TruncateText(string? text, int maxLength)

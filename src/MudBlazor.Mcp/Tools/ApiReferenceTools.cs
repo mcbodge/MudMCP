@@ -192,7 +192,8 @@ public sealed class ApiReferenceTools
         sb.AppendLine("## Usage Example");
         sb.AppendLine();
         sb.AppendLine($"```razor");
-        sb.AppendLine($"<MudComponent {enumName}=\"{enumValues[0].Value}\" />");
+        // Show correct Blazor enum syntax: EnumType="EnumType.Value"
+        sb.AppendLine($"<MudComponent {enumName}=\"{enumName}.{enumValues[0].Value}\" />");
         sb.AppendLine($"```");
 
         return Task.FromResult(sb.ToString());
@@ -297,6 +298,21 @@ public sealed class ApiReferenceTools
                 ("Week", "Week input"),
                 ("Color", "Color picker input"),
                 ("Hidden", "Hidden input")
+            ],
+            "alignitems" => [
+                ("Baseline", "Align items to their baseline"),
+                ("Center", "Center items along the cross axis"),
+                ("Start", "Align items to the start of the cross axis"),
+                ("End", "Align items to the end of the cross axis"),
+                ("Stretch", "Stretch items to fill the container (default)")
+            ],
+            "justify" => [
+                ("FlexStart", "Pack items toward the start"),
+                ("Center", "Pack items around the center"),
+                ("FlexEnd", "Pack items toward the end"),
+                ("SpaceBetween", "Distribute items evenly, first at start, last at end"),
+                ("SpaceAround", "Distribute items evenly with equal space around them"),
+                ("SpaceEvenly", "Distribute items evenly with equal space between them")
             ],
             _ => null
         };
