@@ -208,7 +208,7 @@ stages:
   - stage: DeployDev
     displayName: 'Deploy to Development'
     dependsOn: Build
-    condition: |
+    condition: >
       and(
         succeeded(),
         eq(variables['deployEnabled'], 'true'),
@@ -250,7 +250,7 @@ stages:
   - stage: DeployProd
     displayName: 'Deploy to Production'
     dependsOn: Build
-    condition: |
+    condition: >
       and(
         succeeded(),
         eq(variables['deployEnabled'], 'true'),
