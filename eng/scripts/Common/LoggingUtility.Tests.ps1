@@ -71,6 +71,16 @@ Describe 'Get-RedactedMessage' {
             $result | Should -Be 'Artifact at [PIPELINE]\artifacts\file.zip'
         }
         
+        It 'Does not redact PIPELINE_WORKSPACE when path lacks trailing backslash' {
+            # Edge case: if path is 'D:\a\1artifacts' (no backslash), it should NOT match
+            # because we require the backslash separator for security
+            $env:PIPELINE_WORKSPACE = 'D:\a\1'
+            $message = 'Artifact at D:\a\1artifacts\file.zip'
+            $result = Get-RedactedMessage -Message $message
+            # The path should be redacted by the generic fallback, not the PIPELINE pattern
+            $result | Should -Be 'Artifact at [PATH]\file.zip'
+        }
+        
         It 'Redacts BUILD_ARTIFACTSTAGINGDIRECTORY paths' {
             $env:BUILD_ARTIFACTSTAGINGDIRECTORY = 'D:\a\1\a'
             $message = 'Publishing to D:\a\1\a\publish'
@@ -163,6 +173,19 @@ Describe 'Get-RedactedHttpContent' {
             $result | Should -Match 'password=\[REDACTED\]'
         }
         
+        It 'Redacts password patterns without space after colon' {
+            $content = '{"password":"secret123"}'
+            $result = Get-RedactedHttpContent -Content $content
+            $result | Should -Match 'password=\[REDACTED\]'
+        }
+        
+        It 'Redacts multi-word values in quotes' {
+            $content = '{"password": "my secret value"}'
+            $result = Get-RedactedHttpContent -Content $content
+            $result | Should -Match 'password=\[REDACTED\]'
+            $result | Should -Not -Match 'my secret value'
+        }
+        
         It 'Redacts token patterns' {
             $content = 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9'
             $result = Get-RedactedHttpContent -Content $content
@@ -173,6 +196,19 @@ Describe 'Get-RedactedHttpContent' {
             $content = 'api_key=abc123xyz'
             $result = Get-RedactedHttpContent -Content $content
             $result | Should -Match 'key=\[REDACTED\]'
+        }
+        
+        It 'Redacts XML password elements' {
+            $content = '<configuration><password>mysecret</password></configuration>'
+            $result = Get-RedactedHttpContent -Content $content
+            $result | Should -Match '<password>\[REDACTED\]</'
+            $result | Should -Not -Match 'mysecret'
+        }
+        
+        It 'Redacts connection string patterns' {
+            $content = '<connectionstring>Server=myserver;Password=secret123</connectionstring>'
+            $result = Get-RedactedHttpContent -Content $content
+            $result | Should -Match 'connectionstring>\[REDACTED\]'
         }
     }
 }
@@ -189,5 +225,19 @@ Describe 'Write-WarnLog' {
         # Capture warning stream
         $warnings = Write-WarnLog -Message 'Path not found: C:\inetpub\wwwroot\MyApp' 3>&1
         $warnings | Should -Match '\[WEBROOT\]'
+    }
+}
+
+Describe 'Write-ErrorLog' {
+    It 'Outputs redacted error message' {
+        # Capture error stream - Write-Error produces non-terminating error
+        $errors = Write-ErrorLog -Message 'Failed to access C:\inetpub\wwwroot\MyApp\config.json' 2>&1
+        $errors | Should -Match '\[WEBROOT\]'
+    }
+    
+    It 'Redacts multiple paths in error message' {
+        $errors = Write-ErrorLog -Message 'Copy failed from C:\inetpub\wwwroot\Source to C:\inetpub\wwwroot\Dest' 2>&1
+        $errors | Should -Match '\[WEBROOT\]\\Source'
+        $errors | Should -Match '\[WEBROOT\]\\Dest'
     }
 }

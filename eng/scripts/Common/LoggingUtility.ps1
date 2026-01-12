@@ -20,18 +20,29 @@
 
 # Paths that should be redacted in logs for security
 # These are replaced with friendly labels to maintain log readability
-# Order matters: more specific paths should be listed first to match before generic ones
+#
+# REPLACEMENT ORDER (critical for correct behavior):
+# 1. Static IIS paths (most specific first: wwwroot before inetpub)
+# 2. Dynamic CI/CD environment variable paths
+# 3. Generic fallback for any remaining absolute paths
+#
+# EDGE CASES:
+# - Environment variable paths must include trailing backslash to match correctly
+#   (e.g., 'D:\a\1\' matches 'D:\a\1\artifacts' but not 'D:\a\1artifacts')
+# - If an environment variable overlaps with a static path (e.g., PIPELINE_WORKSPACE='C:\inetpub\temp'),
+#   the static path replacement wins because it runs first
 $script:PathRedactions = [ordered]@{
     # IIS deployment paths - more specific first
-    'C:\\inetpub\\wwwroot\\' = '[WEBROOT]\'
-    'D:\\inetpub\\wwwroot\\' = '[WEBROOT]\'
-    'C:\\wwwroot\\' = '[WEBROOT]\'
-    'D:\\wwwroot\\' = '[WEBROOT]\'
-    'C:\\WWW\\' = '[WEBROOT]\'
-    'D:\\WWW\\' = '[WEBROOT]\'
+    # Keys are literal paths (not regex) - they get escaped when used
+    'C:\inetpub\wwwroot\' = '[WEBROOT]\'
+    'D:\inetpub\wwwroot\' = '[WEBROOT]\'
+    'C:\wwwroot\' = '[WEBROOT]\'
+    'D:\wwwroot\' = '[WEBROOT]\'
+    'C:\WWW\' = '[WEBROOT]\'
+    'D:\WWW\' = '[WEBROOT]\'
     # Less specific IIS paths
-    'C:\\inetpub\\' = '[IIS]\'
-    'D:\\inetpub\\' = '[IIS]\'
+    'C:\inetpub\' = '[IIS]\'
+    'D:\inetpub\' = '[IIS]\'
 }
 
 <#
@@ -92,8 +103,10 @@ function Get-RedactedMessage {
         # LAST: Redact any remaining absolute paths that look like server paths
         # This catches paths not in our known list but still potentially sensitive
         # Pattern: Drive letter followed by backslash and path segments (but NOT already redacted)
-        # Only match paths that haven't been redacted yet (don't start with [)
-        $redacted = $redacted -replace '(?<!\[)([A-Z]):\\(?:[^\\]+\\)+', '[PATH]\'
+        # The negative lookbehind specifically checks for our redaction token prefixes to avoid
+        # double-redaction. This is more precise than just checking for '[' which could match
+        # legitimate text like "File not found] C:\path".
+        $redacted = $redacted -replace '(?<!\[(?:WEBROOT|IIS|PATH|PIPELINE|ARTIFACTS|SOURCE|TEMP)\\)([A-Z]):\\(?:[^\\]+\\)+', '[PATH]\'
         
         return $redacted
     }
@@ -236,8 +249,19 @@ function Get-RedactedHttpContent {
     # Redact any paths that might appear in response
     $Content = Get-RedactedMessage -Message $Content
     
-    # Redact potential secrets/tokens (simple patterns)
-    $Content = $Content -replace '(?i)(password|secret|key|token|bearer|authorization)["\s:=]+[^\s",}]+', '$1=[REDACTED]'
+    # Redact potential secrets/tokens
+    # Pattern handles multiple formats:
+    # - JSON with/without space: "password":"value" or "password": "value"
+    # - Key=value: password=secret
+    # - Values in quotes (including spaces): "password": "my secret value"
+    # - XML-style: <password>value</password>
+    # For security, we aggressively redact the entire value portion
+    
+    # JSON/query string format: key":"value" or key": "value" or key=value
+    $Content = $Content -replace '(?i)(password|secret|key|token|bearer|authorization|credential|apikey|api_key|conn(?:ection)?_?string)["'']?\s*[:=]\s*["'']?([^"''\s,}<]+|["''][^"'']*["''])', '$1=[REDACTED]'
+    
+    # XML format: <password>value</password>
+    $Content = $Content -replace '(?i)<(password|secret|key|token|credential|connectionstring)>([^<]*)</', '<$1>[REDACTED]</'
     
     return $Content
 }

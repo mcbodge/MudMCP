@@ -236,12 +236,12 @@ The deployment pipeline implements defense-in-depth to protect against unauthori
 All deployment stages require **ALL** of these conditions:
 
 ```yaml
-condition: |
+condition: >
   and(
-    succeeded(),                                          # Build must pass
-    eq(variables['deployEnabled'], 'true'),               # Kill switch enabled
-    ne(variables['Build.Reason'], 'PullRequest'),         # Not a PR build
-    eq(variables['Build.SourceBranch'], 'refs/heads/X')   # Protected branch only
+    succeeded(),
+    eq(variables['deployEnabled'], 'true'),
+    ne(variables['Build.Reason'], 'PullRequest'),
+    eq(variables['Build.SourceBranch'], 'refs/heads/X')
   )
 ```
 

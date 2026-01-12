@@ -73,7 +73,7 @@ if (Test-Path $webConfigPath) {
         Write-WarnLog "Could not find aspNetCore section in web.config"
     }
 } else {
-    Write-WarnLog "web.config not found"
+    Write-WarnLog "web.config not found at: $webConfigPath"
 }
 
 exit 0
