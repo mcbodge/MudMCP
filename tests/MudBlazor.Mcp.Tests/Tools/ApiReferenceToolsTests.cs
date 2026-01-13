@@ -202,7 +202,7 @@ public class ApiReferenceToolsTests
         // Act & Assert
         var ex = await Assert.ThrowsAsync<ModelContextProtocol.McpException>(async () =>
             await ApiReferenceTools.GetApiReferenceAsync(
-                indexer.Object, NullLogger, "MudButton", "invalid", CancellationToken.None));
+                indexer, NullLogger, "MudButton", "invalid", CancellationToken.None));
 
         Assert.Contains("memberType", ex.Message);
     }
