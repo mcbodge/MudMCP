@@ -211,10 +211,11 @@ stages:
                 - template: templates/deploy-iis.yaml
                   parameters:
                     artifactName: '$(artifactName)'
-                    websiteName: 'dev-$(iisWebsiteName)'
-                    appPoolName: '$(iisAppPoolName)'
-                    physicalPath: '$(iisPhysicalPath)'
+                    websiteName: '$(iisWebsiteName)-Dev'
+                    appPoolName: '$(iisAppPoolName)-Dev'
+                    physicalPath: '$(iisPhysicalPath)-Dev'
                     environment: '$(aspnetCoreEnvironment)'
+                    port: 5181
             routeTraffic:
               steps:
                 - script: echo "Routing traffic to new deployment..."
@@ -226,7 +227,7 @@ stages:
                   inputs:
                     targetType: 'filePath'
                     filePath: '$(Build.SourcesDirectory)/eng/scripts/Test-DeploymentHealth.ps1'
-                    arguments: '-Port 5181 -AppPoolName "$(iisAppPoolName)" -PhysicalPath "$(iisPhysicalPath)" -MaxRetries 5 -RetryDelaySeconds 10'
+                    arguments: '-Port 5181 -AppPoolName "$(iisAppPoolName)-Dev" -PhysicalPath "$(iisPhysicalPath)-Dev" -MaxRetries 5 -RetryDelaySeconds 10'
             on:
               failure:
                 steps:
@@ -270,6 +271,7 @@ stages:
                     appPoolName: '$(iisAppPoolName)'
                     physicalPath: '$(iisPhysicalPath)'
                     environment: '$(aspnetCoreEnvironment)'
+                    port: 5180
             routeTraffic:
               steps:
                 - script: echo "Routing traffic to new deployment..."

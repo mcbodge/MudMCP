@@ -79,9 +79,42 @@ if ($appPool.State -ne 'Started') {
     Write-Error "IIS application pool '$AppPoolName' did not reach the 'Started' state within $timeout seconds."
     exit 1
 }
-# Start Website
-Write-Host "Starting website: $WebsiteName"
-Start-Website -Name $WebsiteName
+
+# Start Website (idempotent - check state first)
+$website = Get-Website -Name $WebsiteName -ErrorAction SilentlyContinue
+if (-not $website) {
+    Write-Error "IIS website '$WebsiteName' was not found."
+    exit 1
+}
+
+if ($website.State -eq 'Started') {
+    Write-Warning "Website '$WebsiteName' was already running."
+} else {
+    Write-Host "Starting website: $WebsiteName"
+    try {
+        Start-Website -Name $WebsiteName
+        
+        # Wait briefly and verify website started
+        Start-Sleep -Seconds 2
+        $website = Get-Website -Name $WebsiteName -ErrorAction SilentlyContinue
+        if ($website -and $website.State -eq 'Started') {
+            Write-Host "Website started successfully."
+        } else {
+            Write-Error "Website '$WebsiteName' failed to start (state: $($website.State))."
+            exit 1
+        }
+    } catch {
+        # Check if port is already in use by another site
+        $binding = Get-WebBinding -Name $WebsiteName -ErrorAction SilentlyContinue
+        if ($binding) {
+            $port = ($binding.bindingInformation -split ':')[1]
+            Write-Error "Failed to start website '$WebsiteName'. Port $port may be in use by another site. Error: $_"
+        } else {
+            Write-Error "Failed to start website '$WebsiteName'. Error: $_"
+        }
+        exit 1
+    }
+}
 
 Write-Host "IIS Application Pool and Website started successfully."
 exit 0
