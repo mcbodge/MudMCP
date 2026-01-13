@@ -195,7 +195,6 @@ public sealed class ApiReferenceTools
         sb.AppendLine($"<MudComponent {enumName}=\"{enumName}.{enumValues[0].Value}\" />");
         sb.AppendLine($"```");
 
-        await Task.CompletedTask; // Ensure async behavior for consistent exception handling
         return sb.ToString();
     }
 
