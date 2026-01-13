@@ -1,4 +1,4 @@
-// Copyright (c) 2025 Mud MCP Contributors
+// Copyright (c) 2026 Mud MCP Contributors
 // Licensed under the GNU General Public License v2.0. See LICENSE file in the project root for full license information.
 
 using System.ComponentModel;
@@ -192,7 +192,7 @@ public sealed class ApiReferenceTools
         sb.AppendLine("## Usage Example");
         sb.AppendLine();
         sb.AppendLine($"```razor");
-        sb.AppendLine($"<MudComponent {enumName}=\"{enumValues[0].Value}\" />");
+        sb.AppendLine($"<MudComponent {enumName}=\"{enumName}.{enumValues[0].Value}\" />");
         sb.AppendLine($"```");
 
         await Task.CompletedTask; // Ensure async behavior for consistent exception handling
@@ -298,6 +298,21 @@ public sealed class ApiReferenceTools
                 ("Week", "Week input"),
                 ("Color", "Color picker input"),
                 ("Hidden", "Hidden input")
+            ],
+            "alignitems" => [
+                ("Baseline", "Align items to baseline"),
+                ("Center", "Center items"),
+                ("Start", "Align items to start"),
+                ("End", "Align items to end"),
+                ("Stretch", "Stretch items to fill")
+            ],
+            "justify" => [
+                ("FlexStart", "Justify to flex start"),
+                ("Center", "Justify to center"),
+                ("FlexEnd", "Justify to flex end"),
+                ("SpaceBetween", "Space between items"),
+                ("SpaceAround", "Space around items"),
+                ("SpaceEvenly", "Space evenly between items")
             ],
             _ => null
         };
