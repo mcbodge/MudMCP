@@ -96,8 +96,8 @@ if (!useStdio)
         ResponseWriter = WriteHealthCheckResponse
     });
 
-    // Map MCP endpoint
-    app.MapMcp();
+    // Map MCP endpoint at /mcp for streamable HTTP transport
+    app.MapMcp("/mcp");
 }
 
 // Build the index on startup

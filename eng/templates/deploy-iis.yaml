@@ -41,11 +41,11 @@ steps:
       targetPath: '$(Pipeline.Workspace)/${{ parameters.artifactName }}'
 
   - task: PowerShell@2
-    displayName: 'Stop IIS Application Pool'
+    displayName: 'Stop IIS Website and Application Pool'
     inputs:
       targetType: 'filePath'
       filePath: '$(Build.SourcesDirectory)/eng/scripts/Stop-IisSiteAndAppPool.ps1'
-      arguments: '-AppPoolName "${{ parameters.appPoolName }}"'
+      arguments: '-AppPoolName "${{ parameters.appPoolName }}" -WebsiteName "${{ parameters.websiteName }}"'
       errorActionPreference: 'continue'
 
   - task: PowerShell@2

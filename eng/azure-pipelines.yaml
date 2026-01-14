@@ -211,10 +211,32 @@ stages:
                 - template: templates/deploy-iis.yaml
                   parameters:
                     artifactName: '$(artifactName)'
-                    websiteName: '$(iisWebsiteName)'
-                    appPoolName: '$(iisAppPoolName)'
-                    physicalPath: '$(iisPhysicalPath)'
+                    websiteName: '$(iisWebsiteName)-Dev'
+                    appPoolName: '$(iisAppPoolName)-Dev'
+                    physicalPath: '$(iisPhysicalPath)-Dev'
                     environment: '$(aspnetCoreEnvironment)'
+                    port: 5181
+            routeTraffic:
+              steps:
+                - script: echo "Routing traffic to new deployment..."
+                  displayName: 'Route traffic'
+            postRouteTraffic:
+              steps:
+                - task: PowerShell@2
+                  displayName: 'Verify deployment health'
+                  inputs:
+                    targetType: 'filePath'
+                    filePath: '$(Build.SourcesDirectory)/eng/scripts/Test-DeploymentHealth.ps1'
+                    arguments: '-Port 5181 -AppPoolName "$(iisAppPoolName)-Dev" -PhysicalPath "$(iisPhysicalPath)-Dev" -MaxRetries 5 -RetryDelaySeconds 10'
+            on:
+              failure:
+                steps:
+                  - script: echo "Deployment failed. Consider rollback."
+                    displayName: 'Handle deployment failure'
+              success:
+                steps:
+                  - script: echo "Development deployment successful!"
+                    displayName: 'Log deployment success'
 
   # ============================================
   # Stage: Deploy to Production
@@ -249,6 +271,7 @@ stages:
                     appPoolName: '$(iisAppPoolName)'
                     physicalPath: '$(iisPhysicalPath)'
                     environment: '$(aspnetCoreEnvironment)'
+                    port: 5180
             routeTraffic:
               steps:
                 - script: echo "Routing traffic to new deployment..."
