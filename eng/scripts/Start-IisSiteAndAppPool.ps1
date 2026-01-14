@@ -32,21 +32,18 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
-# Validate names (alphanumeric, underscores, hyphens only)
-if ($AppPoolName -notmatch '^[a-zA-Z0-9_-]+$') {
-    Write-Error "Invalid app pool name. Only alphanumeric characters, underscores, and hyphens are allowed."
-    exit 1
-}
+# Load shared utilities
+. "$PSScriptRoot\Common\PathValidation.ps1"
+. "$PSScriptRoot\Common\LoggingUtility.ps1"
 
-if ($WebsiteName -notmatch '^[a-zA-Z0-9_-]+$') {
-    Write-Error "Invalid website name. Only alphanumeric characters, underscores, and hyphens are allowed."
-    exit 1
-}
+# Validate names
+Test-IisResourceName -Name $AppPoolName -ResourceType 'app pool'
+Test-IisResourceName -Name $WebsiteName -ResourceType 'website'
 
 Import-Module WebAdministration -ErrorAction SilentlyContinue
 
 # Start App Pool
-Write-Host "Starting application pool: $AppPoolName"
+Write-InfoLog "Starting application pool: $AppPoolName"
 Start-WebAppPool -Name $AppPoolName
 
 # Wait for pool to start
@@ -58,12 +55,12 @@ while ($elapsed -lt $timeout) {
     $appPool = Get-IISAppPool -Name $AppPoolName -ErrorAction SilentlyContinue
     
     if ($null -eq $appPool) {
-        Write-Host "Waiting for app pool to be available..."
+        Write-InfoLog "Waiting for app pool to be available..."
     } elseif ($appPool.State -eq 'Started') {
-        Write-Host "Application pool started successfully."
+        Write-InfoLog "Application pool started successfully."
         break
     } else {
-        Write-Host "Waiting for app pool to start (current state: $($appPool.State))..."
+        Write-InfoLog "Waiting for app pool to start (current state: $($appPool.State))..."
     }
     
     Start-Sleep -Seconds 1
@@ -80,8 +77,8 @@ if ($appPool.State -ne 'Started') {
     exit 1
 }
 # Start Website
-Write-Host "Starting website: $WebsiteName"
+Write-InfoLog "Starting website: $WebsiteName"
 Start-Website -Name $WebsiteName
 
-Write-Host "IIS Application Pool and Website started successfully."
+Write-InfoLog "IIS Application Pool and Website started successfully."
 exit 0

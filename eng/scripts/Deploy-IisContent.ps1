@@ -33,8 +33,9 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
-# Load shared validation functions
+# Load shared utilities
 . "$PSScriptRoot\Common\PathValidation.ps1"
+. "$PSScriptRoot\Common\LoggingUtility.ps1"
 
 # Validate ArtifactPath security (IIS root validation happens below with dynamic CI roots)
 Test-PathSecurity -Path $ArtifactPath -ParameterName 'ArtifactPath'
@@ -92,13 +93,13 @@ if ($mainDll -and $mainDll.DirectoryName) {
     $sourcePath = $ArtifactPath
 }
 
-Write-Host "Deploying from: $sourcePath"
-Write-Host "Deploying to: $PhysicalPath"
+Write-InfoLog "Deploying from: $sourcePath"
+Write-InfoLog "Deploying to: $PhysicalPath"
 
 # Ensure destination directory exists
 if (-not (Test-Path $PhysicalPath)) {
     New-Item -ItemType Directory -Path $PhysicalPath -Force | Out-Null
-    Write-Host "Created destination directory."
+    Write-InfoLog "Created destination directory."
 }
 
 # Clear existing files (except logs, data, and server-managed config)
@@ -107,11 +108,11 @@ if (-not (Test-Path $PhysicalPath)) {
 Get-ChildItem -Path $PhysicalPath -Exclude 'logs', 'data', 'appsettings.Production.json' | 
 ForEach-Object {
     Remove-Item -Path $_.FullName -Recurse -Force
-    Write-Host "Removed: $($_.Name)"
+    Write-InfoLog "Removed: $($_.Name)"
 }
 
 # Copy new files
 Copy-Item -Path "$sourcePath\*" -Destination $PhysicalPath -Recurse -Force
-Write-Host "Application files deployed successfully."
+Write-InfoLog "Application files deployed successfully."
 
 exit 0

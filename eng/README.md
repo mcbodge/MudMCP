@@ -217,19 +217,110 @@ foreach ($dir in @("logs", "data")) {
 
 ## Security Considerations
 
-- Use Azure Key Vault for sensitive configuration
-- Configure approval gates for production deployments
-- Restrict VM access to deployment service accounts
-- Enable IIS request logging for audit trails
-- Use HTTPS in production with valid SSL certificates
+> **⚠️ IMPORTANT**: Special security measures are in place to prevent unauthorized deployments from fork PRs and untrusted sources. See [SECURITY.md](/SECURITY.md) for the full threat model.
+
+### Pipeline Security Model
+
+The deployment pipeline implements defense-in-depth to protect against unauthorized deployments:
+
+| Threat | Mitigation |
+|--------|------------|
+| Malicious fork PR deploys code | `Build.Reason` check blocks PR validation builds |
+| Path traversal in deployment | Whitelist validation rejects out-of-scope paths |
+| Secret leakage via logs | Secrets marked as secret, not logged |
+| Injection via parameters | Strict regex validation on all inputs |
+| Unauthorized deployment trigger | Kill switch + branch protection + environment approvals |
+
+### Deployment Stage Protection
+
+All deployment stages require **ALL** of these conditions:
+
+```yaml
+condition: >
+  and(
+    succeeded(),
+    eq(variables['deployEnabled'], 'true'),
+    ne(variables['Build.Reason'], 'PullRequest'),
+    eq(variables['Build.SourceBranch'], 'refs/heads/X')
+  )
+```
+
+### Emergency Kill Switch
+
+To immediately disable all deployments:
+
+1. **Azure DevOps Portal**: Pipelines → Edit → Variables → Set `deployEnabled` = `false`
+2. **Per-Run Override**: Run pipeline manually with `deployEnabled` = `false`
+
+### Azure DevOps Environment Setup Checklist
+
+#### Fork PR Security (Critical for Public Repos)
+
+- [ ] **Disable fork PR builds** OR configure with limited permissions:
+  - Project Settings → Repositories → Security
+  - Limit build access for fork PRs
+- [ ] **Require PR comments to trigger builds** from first-time contributors
+- [ ] **Disable secret access** for fork PR builds
+
+#### Environment Protection
+
+- [ ] **Production environment approvals**: At least 1 required approver
+- [ ] **Branch filters**: Production only from `refs/heads/main`
+- [ ] **Exclusive locks**: Prevent concurrent deployments
+
+#### Secret Protection
+
+- [ ] Store secrets in **Variable Groups** marked as secret
+- [ ] Use **Azure Key Vault integration** for production credentials
+- [ ] **Never** reference secrets in script output/logs
+
+#### Branch Policies (GitHub)
+
+- [ ] Require PR reviews before merge to `main`/`develop`
+- [ ] Require status checks to pass
+- [ ] Require linear history (no merge commits from forks)
+
+### Path Validation
+
+All deployment scripts validate paths against an allowlist:
+
+```powershell
+# Allowed deployment roots (from PathValidation.ps1)
+$script:DefaultAllowedRoots = @(
+    'C:\inetpub',
+    'D:\inetpub',
+    'C:\wwwroot',
+    'D:\wwwroot',
+    'C:\WWW',
+    'D:\WWW'
+)
+```
+
+Paths outside these roots are rejected. Path traversal sequences (`..`) are detected and blocked **before** normalization.
 
 ### Deployment Scripts Security
 
 All deployment scripts in `eng/scripts/` implement security hardening:
-- Input validation using parameter whitelists and allowed path roots
-- Protection against path traversal attacks
-- Strict mode and error handling
-- No sensitive data logging
-- Clear parameter definitions with mandatory/optional attributes
+
+| Control | Implementation |
+|---------|---------------|
+| Strict mode | `Set-StrictMode -Version Latest` |
+| Error handling | `$ErrorActionPreference = 'Stop'` |
+| Path validation | `Get-ValidatedPath` with allowlist |
+| Name validation | `Test-IisResourceName` with regex `^[a-zA-Z0-9_-]+$` |
+| Traversal protection | Pre-normalization `..` detection |
+| No secrets in output | Scripts don't log sensitive data |
+
+### Security Review Checklist
+
+Before merging changes to `eng/`:
+
+- [ ] No new secret variables exposed in logs
+- [ ] Deployment conditions unchanged or more restrictive
+- [ ] Path parameters validated via `PathValidation.ps1`
+- [ ] IIS names validated via `Test-IisResourceName`
+- [ ] Pester tests pass for validation functions
+- [ ] No dynamic command construction with user input
 
 **IMPORTANT**: All changes to deployment scripts and pipeline configurations in `eng/` require code review by repository maintainers (enforced via `.github/CODEOWNERS`).
+

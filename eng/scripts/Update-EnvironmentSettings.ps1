@@ -32,8 +32,9 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
-# Load shared validation functions
+# Load shared utilities
 . "$PSScriptRoot\Common\PathValidation.ps1"
+. "$PSScriptRoot\Common\LoggingUtility.ps1"
 
 # Validate and normalize physical path
 $PhysicalPath = Get-ValidatedPath -Path $PhysicalPath -ParameterName 'PhysicalPath'
@@ -41,7 +42,7 @@ $PhysicalPath = Get-ValidatedPath -Path $PhysicalPath -ParameterName 'PhysicalPa
 $webConfigPath = Join-Path $PhysicalPath "web.config"
 
 if (Test-Path $webConfigPath) {
-    Write-Host "Updating web.config for environment: $Environment"
+    Write-InfoLog "Updating web.config for environment: $Environment"
     
     [xml]$webConfig = Get-Content $webConfigPath
     
@@ -67,12 +68,12 @@ if (Test-Path $webConfigPath) {
         }
         
         $webConfig.Save($webConfigPath)
-        Write-Host "web.config updated successfully."
+        Write-InfoLog "web.config updated successfully."
     } else {
-        Write-Warning "Could not find aspNetCore section in web.config"
+        Write-WarnLog "Could not find aspNetCore section in web.config"
     }
 } else {
-    Write-Warning "web.config not found at: $webConfigPath"
+    Write-WarnLog "web.config not found at: $webConfigPath"
 }
 
 exit 0
