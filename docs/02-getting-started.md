@@ -372,13 +372,13 @@ Use this when you want Claude Desktop to launch the server process itself using 
      "mcpServers": {
        "mud-mcp": {
          "command": "dotnet",
-         "args": ["run", "--project", "C:\\path\\to\\MudBlazor.Mcp\\src\\MudBlazor.Mcp", "--", "--stdio"]
+         "args": ["run", "--project", "C:\\path\\to\\MudBlazor.Mcp\\src\\MudBlazor.Mcp", "--", "--stdio", "--version", "9.0.0"]
        }
      }
    }
    ```
 
-   Replace `C:\\path\\to\\MudBlazor.Mcp` with the actual path to your cloned repository.
+   Replace `C:\\path\\to\\MudBlazor.Mcp` with the actual path to your cloned repository, and replace `9.0.0` with your project's MudBlazor package version.
 
 2. **Restart Claude Desktop**
 
