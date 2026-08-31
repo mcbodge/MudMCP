@@ -10,6 +10,7 @@ Solutions for common issues when running Mud MCP.
 - [Indexing Issues](#indexing-issues)
 - [MCP Protocol Issues](#mcp-protocol-issues)
 - [IDE Integration Issues](#ide-integration-issues)
+- [dnx Issues](#dnx-issues)
 - [Performance Issues](#performance-issues)
 - [IIS Deployment Issues](#iis-deployment-issues)
 - [Logging and Debugging](#logging-and-debugging)
@@ -427,6 +428,80 @@ Or use short paths:
 ```json
 {
   "args": ["run", "--project", "C:/PathWi~1/MudBlazor.Mcp", "--", "--stdio"]
+}
+```
+
+---
+
+## dnx Issues
+
+Issues specific to launching the packaged tool with `dnx MudBlazor.Mcp`.
+
+### Issue: `dnx` command not found
+
+**Error:**
+```
+dnx : The term 'dnx' is not recognized...
+```
+
+**Cause:** `dnx` ships with the **.NET 10 SDK**. An older SDK (or a runtime-only install) does not include it.
+
+**Solution:**
+```bash
+dotnet --version   # must report 10.0.xxx
+# Install the .NET 10 SDK if missing: https://dotnet.microsoft.com/download/dotnet/10.0
+```
+
+### Issue: Package `MudBlazor.Mcp` could not be found
+
+**Error:**
+```
+error NU1101: Unable to find package MudBlazor.Mcp. No packages exist with this id...
+```
+
+**Cause:** The package is not published to a public feed yet, so `dnx` cannot restore it from nuget.org.
+
+**Solution:** Build a local package and point `dnx` at it with an **absolute** `--source` path (a relative `./nupkg` resolves against the client's working directory, not the repo):
+
+```bash
+dotnet pack src/MudBlazor.Mcp/MudBlazor.Mcp.csproj -c Release -o ./nupkg
+dnx MudBlazor.Mcp --source C:/Mapei/MudBlazor/Mcp/MudBlazor.Mcp/nupkg --yes -- --stdio
+```
+
+Once the package is published (nuget.org or a private feed in `NuGet.config`), remove `--source`.
+
+### Issue: Wrong version served / `--version` ignored
+
+**Symptoms:** `dnx` treats `--version` as the package version, or the server errors that a MudBlazor version is required.
+
+**Cause:** `dnx` reserves `--version` for the *tool package* version, so it never reaches the server.
+
+**Solution:** Pass the MudBlazor docs version through the environment variable, and forward server flags after `--`:
+
+```bash
+# PowerShell
+$env:MUDBLAZOR_VERSION = "9.0.0"; dnx MudBlazor.Mcp --yes -- --stdio
+
+# bash
+MUDBLAZOR_VERSION=9.0.0 dnx MudBlazor.Mcp --yes -- --stdio
+```
+
+Alternatively append the flag after the separator: `dnx MudBlazor.Mcp --yes -- --stdio --version 9.0.0`.
+
+### Issue: `data/` clone appears in an unexpected folder
+
+**Symptoms:** A ~500 MB `data/` folder is created wherever you launched the client, and each project re-clones instead of reusing the cache.
+
+**Cause:** The cache path defaults to `./data` relative to the current working directory, which `dnx` inherits from the MCP client.
+
+**Solution:** Set an absolute cache path so every project shares one clone:
+
+```json
+{
+  "env": {
+    "MUDBLAZOR_VERSION": "9.0.0",
+    "MudBlazor__Repository__DataPath": "C:/mud-mcp-cache"
+  }
 }
 ```
 

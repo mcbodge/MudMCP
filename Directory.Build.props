@@ -5,6 +5,9 @@
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
     <AnalysisLevel>latest</AnalysisLevel>
+    <!-- Only the main MCP server project opts back in (PackAsTool). This keeps
+         solution-wide `dotnet pack` from emitting AppHost/ServiceDefaults/test packages. -->
+    <IsPackable>false</IsPackable>
   </PropertyGroup>
 
 </Project>
