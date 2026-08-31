@@ -1,315 +1,117 @@
 # Mud MCP - AI Coding Agent Instructions
 
-## Project Overview
+MCP (Model Context Protocol) server that gives AI assistants **version-accurate** MudBlazor component documentation. It clones the MudBlazor repo at a specific tag, parses source with Roslyn, builds an in-memory index of ~85 components, and exposes it via 12 MCP tools.
 
-Mud MCP is an MCP (Model Context Protocol) server that provides AI assistants with access to MudBlazor component documentation. It clones the MudBlazor repository, parses source files using Roslyn, and exposes an indexed API via MCP tools.
+**Tech Stack:** .NET 10, ASP.NET Core, Roslyn (`Microsoft.CodeAnalysis.CSharp`), LibGit2Sharp, Aspire 13.1, xunit.v3 + Moq on Microsoft Testing Platform.
 
-**Tech Stack:** .NET 10, ASP.NET Core, Roslyn, LibGit2Sharp, Aspire 13.1, xUnit + Moq
+## Documentation Map (read these before duplicating knowledge)
+
+Deep docs live in [docs/](../docs/) — link to them, don't re-explain them here:
+
+| Topic | Doc |
+|-------|-----|
+| Architecture, Roslyn pipeline, caching | [docs/03-architecture.md](../docs/03-architecture.md) |
+| All 12 MCP tools (params & output) | [docs/05-tools-reference.md](../docs/05-tools-reference.md) |
+| Configuration schema & options | [docs/06-configuration.md](../docs/06-configuration.md) |
+| Testing (framework, patterns, commands) | [docs/07-testing.md](../docs/07-testing.md) |
+| Getting started / IDE integration / troubleshooting | [docs/02](../docs/02-getting-started.md), [09](../docs/09-ide-integration.md), [10](../docs/10-troubleshooting.md) |
 
 ## Architecture
 
 ```
-MCP Tools (12 tools) → ComponentIndexer → Parsing Services → GitRepositoryService
-                              ↓
-                      In-memory index of ~85 components
+CLI: --version 9.0.0 ─▶ VersionContext ─▶ GitRepositoryService (clones MudBlazor @ tag v9.0.0)
+                                                    │
+MCP Tools (12) ─▶ ComponentIndexer ◀── Parsing (Roslyn) ◀──┘
+        │                 │
+        └── VersionCacheManager (LRU, up to MaxCachedVersions=3) ─▶ per-version data/v9.0.0/index.json
 ```
 
-**Key services:**
-- [ComponentIndexer.cs](../src/MudBlazor.Mcp/Services/ComponentIndexer.cs) - Builds/queries the component index
-- [XmlDocParser.cs](../src/MudBlazor.Mcp/Services/Parsing/XmlDocParser.cs) - Parses C# source using Roslyn
-- [GitRepositoryService.cs](../src/MudBlazor.Mcp/Services/GitRepositoryService.cs) - Clones/updates MudBlazor repo
-- [Tools/](../src/MudBlazor.Mcp/Tools/) - MCP tool implementations with `[McpServerTool]` attributes
+Every request is scoped to one MudBlazor version. Indexes persist to disk so subsequent runs load instantly.
+
+**Key services** ([src/MudBlazor.Mcp/Services/](../src/MudBlazor.Mcp/Services/)):
+- `ComponentIndexer` — builds/queries the in-memory component index
+- `VersionCacheManager` — LRU cache of up to 3 version indexes; evicts least-recently-used
+- `VersionContext` ([Configuration/VersionContext.cs](../src/MudBlazor.Mcp/Configuration/VersionContext.cs)) — resolves per-version paths (`data/v{version}/...`)
+- `GitRepositoryService` — clones the MudBlazor repo and checks out the `v{version}` tag
+- `DocumentationCache` — caches component/example lookups
+- `Parsing/` — `XmlDocParser`, `RazorDocParser`, `ExampleExtractor`, `CategoryMapper` (see [docs/03](../docs/03-architecture.md))
 
 ## Build & Test Commands
 
 ```bash
-# Build (from repo root)
+# Build from repo root — TreatWarningsAsErrors=true, so ANY warning fails the build
 dotnet build
 
-# Run tests
-dotnet test --no-build
+# Tests run on Microsoft Testing Platform (MTP), enabled via global.json — NOT VSTest.
+# Use the MTP CLI (--filter-class / --filter-method), not `dotnet test --filter`.
+dotnet test tests/MudBlazor.Mcp.Tests/MudBlazor.Mcp.Tests.csproj -c Release --no-build
 
-# Run server (HTTP transport on localhost:8000)
-cd src/MudBlazor.Mcp && dotnet run
+# Run the server — `--version` is REQUIRED and must match the consumer's MudBlazor version.
+dotnet run --project src/MudBlazor.Mcp/MudBlazor.Mcp.csproj -- --version 9.0.0            # HTTP on http://localhost:8000
+dotnet run --project src/MudBlazor.Mcp/MudBlazor.Mcp.csproj -- --stdio --version 9.0.0    # stdio (CLI clients)
 
-# Run server (stdio transport for CLI clients)
-cd src/MudBlazor.Mcp && dotnet run -- --stdio
-
-# Run with Aspire dashboard (OpenTelemetry, health checks, service discovery)
-cd src/MudBlazor.Mcp.AppHost && dotnet run
+# Aspire dashboard (OpenTelemetry, health checks, service discovery)
+dotnet run --project src/MudBlazor.Mcp.AppHost
 ```
 
-## Configuration
+## Critical Conventions (agents can't infer these)
 
-Configuration via `appsettings.json` with these key sections:
-
-```json
-{
-  "MudBlazor": {
-    "Repository": {
-      "Url": "https://github.com/MudBlazor/MudBlazor.git",
-      "Branch": "main",
-      "LocalPath": "./data/mudblazor-repo"
-    },
-    "Cache": {
-      "RefreshIntervalMinutes": 60,
-      "ComponentCacheDurationMinutes": 30,
-      "ExampleCacheDurationMinutes": 120
-    },
-    "Parsing": {
-      "IncludeInternalComponents": false,
-      "IncludeDeprecatedComponents": true,
-      "MaxExamplesPerComponent": 20
-    }
-  }
-}
-```
-
-Options are bound to strongly-typed classes in [Configuration/MudBlazorOptions.cs](../src/MudBlazor.Mcp/Configuration/MudBlazorOptions.cs).
-
-## Aspire Integration (13.1)
-
-The project uses .NET Aspire for orchestration and observability:
-
-**AppHost** ([MudBlazor.Mcp.AppHost](../src/MudBlazor.Mcp.AppHost/Program.cs)):
-```csharp
-var builder = DistributedApplication.CreateBuilder(args);
-builder.AddProject<Projects.MudBlazor_Mcp>("mudblazor-mcp");
-builder.Build().Run();
-```
-
-**ServiceDefaults** ([Extensions.cs](../src/MudBlazor.Mcp.ServiceDefaults/Extensions.cs)) provides:
-- OpenTelemetry (metrics, tracing, logging)
-- Health checks (`/health`, `/alive`)
-- Service discovery with resilience handlers
-- OTLP exporter when `OTEL_EXPORTER_OTLP_ENDPOINT` is set
-
-To add Aspire defaults to a service: `builder.AddServiceDefaults()`.
-
-## Roslyn Parsing Deep Dive
-
-The parsing layer extracts component metadata from C# source using Roslyn's syntax API.
-
-### XmlDocParser - Core C# Parsing
-
-[XmlDocParser.cs](../src/MudBlazor.Mcp/Services/Parsing/XmlDocParser.cs) extracts component info:
-
-```csharp
-// Parse syntax tree from source
-var syntaxTree = CSharpSyntaxTree.ParseText(sourceCode);
-var root = syntaxTree.GetRoot();
-
-// Find public class declaration
-var classDeclaration = root.DescendantNodes()
-    .OfType<ClassDeclarationSyntax>()
-    .FirstOrDefault(c => c.Modifiers.Any(m => m.IsKind(SyntaxKind.PublicKeyword)));
-```
-
-**Key extraction patterns:**
-- **Parameters**: Properties with `[Parameter]` or `[CascadingParameter]` attributes
-- **Events**: Properties of type `EventCallback` or `EventCallback<T>` with `[Parameter]`
-- **Methods**: Public methods excluding lifecycle overrides (`OnInitialized`, `Dispose`, etc.)
-- **XML docs**: Extracted from `DocumentationCommentTriviaSyntax` leading trivia
-
-**Regex patterns** (generated via `[GeneratedRegex]` for performance):
-- `CategoryTypesRegex` - Extracts `CategoryTypes.xxx` values
-- `GenericArgumentRegex` - Extracts `<T>` from `EventCallback<T>`
-
-### RazorDocParser - Documentation Extraction
-
-[RazorDocParser.cs](../src/MudBlazor.Mcp/Services/Parsing/RazorDocParser.cs) parses `*Page.razor` files:
-- Extracts `Title` and `SubTitle` from `<DocsPageHeader>` components
-- Finds `<DocsPageSection>` blocks for structured content
-- Identifies related components via `href="/components/..."` links
-
-### ExampleExtractor - Code Examples
-
-[ExampleExtractor.cs](../src/MudBlazor.Mcp/Services/Parsing/ExampleExtractor.cs) finds examples in:
-`Docs/Pages/Components/{ComponentName}/*Example*.razor`
-
-Splits files into markup and `@code` blocks, cleans directives (`@page`, `@using`).
-
-### CategoryMapper - Component Organization
-
-[CategoryMapper.cs](../src/MudBlazor.Mcp/Services/Parsing/CategoryMapper.cs) maps components to categories:
-- Hardcoded category definitions from MudBlazor's `MenuService`
-- Pattern-based inference: `*Button*` → "Buttons", `*Field*` → "Form Inputs"
+- **`--version X.Y.Z` is mandatory** in every transport (or the `MUDBLAZOR_VERSION` env var used by IIS hosting). Missing/invalid version → the server prints guidance and exits with code 1. Format: `X.Y.Z` or `X.Y.Z-prerelease`. See argument parsing in [Program.cs](../src/MudBlazor.Mcp/Program.cs).
+- **Central Package Management**: add/bump NuGet versions in [Directory.Packages.props](../Directory.Packages.props) (`<PackageVersion>`), never inline `Version=` in a `.csproj`. `ManagePackageVersionsCentrally=true`.
+- **`TreatWarningsAsErrors=true` repo-wide** ([Directory.Build.props](../Directory.Build.props)) with `EnforceCodeStyleInBuild` + `AnalysisLevel=latest`. In tests, **xUnit1051** fires whenever you await a method taking a `CancellationToken` without passing one — including setup I/O (`File.WriteAllTextAsync`) and `indexer.BuildIndexAsync()`. Fix: pass `TestContext.Current.CancellationToken`; use the named form `cancellationToken:` when optional params precede the token. Details in [docs/07-testing.md](../docs/07-testing.md).
+- **`IsPackable=false` by default**; only `MudBlazor.Mcp` opts back in and packs as a **dnx .NET tool** (`ToolCommandName=mudblazor-mcp`). Solution-wide `dotnet pack` emits only that one package.
+- **`data/` is runtime-generated** (per-version repo clones + `index.json`) and excluded from compilation via `<DefaultItemExcludes>`. Never commit it.
+- **All logs go to stderr** — stdout is reserved for MCP protocol frames in stdio mode.
+- **slnx gotcha**: running a throwaway `dotnet run --project <outside-repo>` while this workspace is open makes C# Dev Kit rewrite [MudBlazor.Mcp.slnx](../MudBlazor.Mcp.slnx). Revert with `git checkout -- MudBlazor.Mcp.slnx`; keep throwaway projects outside the repo tree.
+- **Copyright header** on every source file:
+  ```csharp
+  // Copyright (c) 2025 Mud MCP Contributors
+  // Licensed under the GNU General Public License v2.0. See LICENSE file in the project root for full license information.
+  ```
 
 ## Code Patterns
 
-### MCP Tools Pattern
-Tools are static methods with DI parameters and `[McpServerTool]` + `[Description]` attributes:
+**MCP tools** are `static` methods on `[McpServerToolType]` classes, marked `[McpServerTool(Name = "…")]` + `[Description]`. Services are injected as parameters; tool inputs are `[Description]`-annotated params. Tools are **auto-discovered** via `WithToolsFromAssembly()` — no registration needed. Return **Markdown** (LLM-friendly).
 
 ```csharp
-[McpServerToolType]
-public sealed class ComponentDetailTools
+[McpServerTool(Name = "get_component_detail")]
+[Description("Gets comprehensive details about a MudBlazor component.")]
+public static async Task<string> GetComponentDetailAsync(
+    IComponentIndexer indexer,                                  // DI injected
+    ILogger<ComponentDetailTools> logger,
+    [Description("Component name")] string componentName,       // tool parameter
+    CancellationToken cancellationToken = default)
 {
-    [McpServerTool(Name = "get_component_detail")]
-    [Description("Gets comprehensive details about a MudBlazor component.")]
-    public static async Task<string> GetComponentDetailAsync(
-        IComponentIndexer indexer,           // DI injected
-        ILogger<ComponentDetailTools> logger,
-        [Description("Component name")] string componentName,  // Tool parameter
-        CancellationToken cancellationToken = default)
-    {
-        ToolValidation.RequireNonEmpty(componentName, nameof(componentName));
-        // ... implementation
-    }
+    ToolValidation.RequireNonEmpty(componentName, nameof(componentName));
+    // ...
 }
 ```
 
-### Error Handling in Tools
-Use `ToolValidation` for consistent MCP-friendly errors that LLMs can self-correct:
-
-```csharp
-ToolValidation.RequireNonEmpty(componentName, nameof(componentName));
-ToolValidation.ThrowComponentNotFound(componentName);  // Suggests list_components
-```
-
-### Domain Models
-All models in [Models/ComponentInfo.cs](../src/MudBlazor.Mcp/Models/ComponentInfo.cs) are immutable records:
-- `ComponentInfo` - Component with parameters, events, methods, examples
-- `ComponentParameter`, `ComponentEvent`, `ComponentMethod`, `ComponentExample`
-- `ApiReference`, `ComponentCategory`
-
-## Adding a New MCP Tool (Step-by-Step)
-
-### 1. Create the Tool Class
-Add a new file in `src/MudBlazor.Mcp/Tools/`:
-
-```csharp
-// Copyright (c) 2025 Mud MCP Contributors
-// Licensed under the GNU General Public License v2.0.
-
-using System.ComponentModel;
-using Microsoft.Extensions.Logging;
-using ModelContextProtocol.Server;
-using MudBlazor.Mcp.Services;
-
-namespace MudBlazor.Mcp.Tools;
-
-[McpServerToolType]
-public sealed class MyNewTools
-{
-    [McpServerTool(Name = "my_new_tool")]
-    [Description("Describe what this tool does for LLMs.")]
-    public static async Task<string> MyNewToolAsync(
-        IComponentIndexer indexer,              // Inject services
-        ILogger<MyNewTools> logger,
-        [Description("Parameter description")] string requiredParam,
-        [Description("Optional param")] int maxResults = 10,
-        CancellationToken cancellationToken = default)
-    {
-        // 1. Validate inputs
-        ToolValidation.RequireNonEmpty(requiredParam, nameof(requiredParam));
-        ToolValidation.RequireInRange(maxResults, 1, 100, nameof(maxResults));
-
-        // 2. Call indexer/services
-        var result = await indexer.SomeMethodAsync(cancellationToken);
-
-        // 3. Format output as markdown (LLM-friendly)
-        return $"# Results\n\n{FormatResult(result)}";
-    }
-}
-```
-
-### 2. Write Unit Tests
-Add test file in `tests/MudBlazor.Mcp.Tests/Tools/`:
-
-```csharp
-public class MyNewToolsTests
-{
-    private static readonly ILogger<MyNewTools> NullLogger = 
-        NullLoggerFactory.Instance.CreateLogger<MyNewTools>();
-
-    [Fact]
-    public async Task MyNewToolAsync_WithValidInput_ReturnsExpectedResult()
-    {
-        var indexer = new Mock<IComponentIndexer>();
-        indexer.Setup(x => x.SomeMethodAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(expectedData);
-
-        var result = await MyNewTools.MyNewToolAsync(
-            indexer.Object, NullLogger, "test", 10, CancellationToken.None);
-
-        Assert.Contains("expected", result);
-    }
-
-    [Fact]
-    public async Task MyNewToolAsync_WithEmptyParam_ThrowsMcpException()
-    {
-        var indexer = new Mock<IComponentIndexer>();
-
-        await Assert.ThrowsAsync<McpException>(() =>
-            MyNewTools.MyNewToolAsync(indexer.Object, NullLogger, "", 10, CancellationToken.None));
-    }
-}
-```
-
-### 3. Build & Test
-```bash
-dotnet build
-dotnet test --no-build
-```
-
-### 4. Test Manually
-```bash
-cd src/MudBlazor.Mcp && dotnet run
-# In another terminal:
-curl -X POST http://localhost:8000/mcp \
-  -H "Content-Type: application/json" \
-  -d '{"jsonrpc":"2.0","method":"tools/call","params":{"name":"my_new_tool","arguments":{"requiredParam":"test"}},"id":1}'
-```
-
-**No registration needed** - tools are auto-discovered via `WithToolsFromAssembly()`.
+- **Validation**: use [ToolValidation](../src/MudBlazor.Mcp/Tools/ToolValidation.cs) (`RequireNonEmpty`, `RequireInRange`, `ThrowComponentNotFound`) for MCP-friendly `McpException`s that LLMs can self-correct.
+- **Domain models** in [Models/ComponentInfo.cs](../src/MudBlazor.Mcp/Models/ComponentInfo.cs) are immutable `record`s.
+- **Flexible lookup**: `"Button"` resolves to `"MudButton"`.
+- Full walkthrough for adding a tool: [docs/05-tools-reference.md](../docs/05-tools-reference.md).
 
 ## Testing Conventions
 
-- Tests in `tests/MudBlazor.Mcp.Tests/` mirror `src/` structure
-- Use Moq for interface mocking, xUnit for assertions
-- Use `NullLoggerFactory.Instance.CreateLogger<T>()` for test loggers
-- Tool tests should verify both success and `McpException` error cases
+- Tests in [tests/MudBlazor.Mcp.Tests/](../tests/MudBlazor.Mcp.Tests/) mirror `src/` structure; Moq for interfaces, xunit.v3 for assertions.
+- Use `NullLoggerFactory.Instance.CreateLogger<T>()` for test loggers.
+- Cover both success and `McpException` error cases for every tool.
 
-Example pattern from [ComponentDetailToolsTests.cs](../tests/MudBlazor.Mcp.Tests/Tools/ComponentDetailToolsTests.cs):
-```csharp
-[Fact]
-public async Task GetComponentDetailAsync_WithInvalidComponent_ThrowsMcpException()
-{
-    var indexer = new Mock<IComponentIndexer>();
-    indexer.Setup(x => x.GetComponentAsync("Unknown", It.IsAny<CancellationToken>()))
-        .ReturnsAsync((ComponentInfo?)null);
-
-    var ex = await Assert.ThrowsAsync<McpException>(...);
-    Assert.Contains("not found", ex.Message);
-}
-```
-
-## Key Files to Understand
+## Key Files
 
 | Purpose | Location |
 |---------|----------|
-| Startup/DI | [Program.cs](../src/MudBlazor.Mcp/Program.cs) |
-| Service interfaces | [Services/IComponentIndexer.cs](../src/MudBlazor.Mcp/Services/IComponentIndexer.cs) |
+| Startup, arg parsing, DI, transports | [Program.cs](../src/MudBlazor.Mcp/Program.cs) |
+| Version scoping / path resolution | [Configuration/VersionContext.cs](../src/MudBlazor.Mcp/Configuration/VersionContext.cs) |
+| Options binding | [Configuration/MudBlazorOptions.cs](../src/MudBlazor.Mcp/Configuration/MudBlazorOptions.cs) |
+| Index build/query | [Services/ComponentIndexer.cs](../src/MudBlazor.Mcp/Services/ComponentIndexer.cs) |
+| Multi-version LRU cache | [Services/VersionCacheManager.cs](../src/MudBlazor.Mcp/Services/VersionCacheManager.cs) |
 | Roslyn parsing | [Services/Parsing/XmlDocParser.cs](../src/MudBlazor.Mcp/Services/Parsing/XmlDocParser.cs) |
-| Example extraction | [Services/Parsing/ExampleExtractor.cs](../src/MudBlazor.Mcp/Services/Parsing/ExampleExtractor.cs) |
-| Category mapping | [Services/Parsing/CategoryMapper.cs](../src/MudBlazor.Mcp/Services/Parsing/CategoryMapper.cs) |
-| Configuration | [Configuration/MudBlazorOptions.cs](../src/MudBlazor.Mcp/Configuration/MudBlazorOptions.cs) |
-| Tool validation | [Tools/ToolValidation.cs](../src/MudBlazor.Mcp/Tools/ToolValidation.cs) |
-| Aspire host | [MudBlazor.Mcp.AppHost/Program.cs](../src/MudBlazor.Mcp.AppHost/Program.cs) |
+| Tool validation helpers | [Tools/ToolValidation.cs](../src/MudBlazor.Mcp/Tools/ToolValidation.cs) |
+| Aspire host / ServiceDefaults | [AppHost/Program.cs](../src/MudBlazor.Mcp.AppHost/Program.cs), [ServiceDefaults/Extensions.cs](../src/MudBlazor.Mcp.ServiceDefaults/Extensions.cs) |
 
-## Project-Specific Notes
+## Related Customizations
 
-- The `data/mudblazor-repo/` folder is cloned at runtime and excluded from compilation via `<DefaultItemExcludes>`
-- Server supports both HTTP (`/mcp` endpoint) and stdio transports via `--stdio` flag
-- Health checks at `/health`, `/health/ready`, `/health/live`
-- All logging goes to stderr for MCP protocol compatibility
-- Component names support flexible lookup: "Button" resolves to "MudButton"
-- Aspire SDK version is pinned in `MudBlazor.Mcp.AppHost.csproj`: `<Sdk Name="Aspire.AppHost.Sdk" Version="13.1.0" />`
-
-## License
-
-GPL-2.0 - Include copyright header in all source files:
-```csharp
-// Copyright (c) 2026 Mud MCP Contributors
-// Licensed under the GNU General Public License v2.0.
-```
+- Domain agents in [.github/agents/](agents/): `mudblazor-expert` (teaches Copilot to query MCP tools before answering), `csharp-expert`, `csharp-mcp-expert`.
+- Health checks: `/health`, `/health/ready`, `/health/live`. Aspire SDK pinned in [Directory.Packages.props](../Directory.Packages.props) (`Aspire.AppHost.Sdk` 13.1.0).

@@ -26,9 +26,8 @@
     <PackageLicenseFile>LICENSE</PackageLicenseFile>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <RepositoryType>git</RepositoryType>
-    <!-- TODO: replace the placeholder owner with the real git remote before publishing. -->
-    <RepositoryUrl>https://github.com/yourusername/MudBlazor.Mcp.git</RepositoryUrl>
-    <PackageProjectUrl>https://github.com/yourusername/MudBlazor.Mcp</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/mcbodge/MudBlazor.Mcp.git</RepositoryUrl>
+    <PackageProjectUrl>https://github.com/mcbodge/MudBlazor.Mcp</PackageProjectUrl>
   </PropertyGroup>
 
   <ItemGroup>

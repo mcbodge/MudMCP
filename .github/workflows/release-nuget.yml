@@ -1,0 +1,61 @@
+name: Release to NuGet
+
+# Publishes the MudBlazor.Mcp .NET tool to nuget.org when a GitHub Release is
+# published (tag drives the package version), or on manual dispatch.
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Package version, e.g. 1.0.0 (defaults to the release tag)."
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: Resolve version
+        id: ver
+        shell: bash
+        run: |
+          RAW="${{ github.event.inputs.version }}"
+          if [ -z "$RAW" ]; then RAW="${{ github.event.release.tag_name }}"; fi
+          VER="${RAW#v}"   # strip an optional leading 'v'
+          if [ -z "$VER" ]; then echo "::error::No version could be resolved."; exit 1; fi
+          echo "version=$VER" >> "$GITHUB_OUTPUT"
+          echo "Resolved package version: $VER"
+
+      - name: Restore
+        run: dotnet restore
+
+      - name: Test
+        run: dotnet test tests/MudBlazor.Mcp.Tests/MudBlazor.Mcp.Tests.csproj -c Release
+
+      - name: Pack
+        run: dotnet pack src/MudBlazor.Mcp/MudBlazor.Mcp.csproj -c Release -o artifacts -p:Version=${{ steps.ver.outputs.version }}
+
+      - name: Push to NuGet
+        run: >
+          dotnet nuget push "artifacts/*.nupkg"
+          --api-key "${{ secrets.NUGET_API_KEY }}"
+          --source https://api.nuget.org/v3/index.json
+          --skip-duplicate
+
+      - name: Upload package artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: nupkg
+          path: artifacts/*.nupkg
