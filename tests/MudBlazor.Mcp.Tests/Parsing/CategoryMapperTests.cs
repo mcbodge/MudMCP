@@ -20,7 +20,7 @@ public class CategoryMapperTests
     public async Task InitializeAsync_SetsUpCategories()
     {
         // Act
-        await _mapper.InitializeAsync("/repo", CancellationToken.None);
+        await _mapper.InitializeAsync("/repo", TestContext.Current.CancellationToken);
 
         // Assert
         var categories = _mapper.GetCategories();
@@ -39,7 +39,7 @@ public class CategoryMapperTests
     public async Task GetCategoryName_ReturnsCorrectCategory(string componentName, string expectedCategory)
     {
         // Arrange
-        await _mapper.InitializeAsync("/repo", CancellationToken.None);
+        await _mapper.InitializeAsync("/repo", TestContext.Current.CancellationToken);
 
         // Act
         var category = _mapper.GetCategoryName(componentName);
@@ -52,7 +52,7 @@ public class CategoryMapperTests
     public async Task GetCategoryForComponent_ReturnsFullCategoryInfo()
     {
         // Arrange
-        await _mapper.InitializeAsync("/repo", CancellationToken.None);
+        await _mapper.InitializeAsync("/repo", TestContext.Current.CancellationToken);
 
         // Act
         var category = _mapper.GetCategoryForComponent("MudButton");
@@ -69,7 +69,7 @@ public class CategoryMapperTests
     public async Task GetComponentsInCategory_ReturnsComponentsInCategory()
     {
         // Arrange
-        await _mapper.InitializeAsync("/repo", CancellationToken.None);
+        await _mapper.InitializeAsync("/repo", TestContext.Current.CancellationToken);
 
         // Act
         var components = _mapper.GetComponentsInCategory("Buttons");
@@ -88,7 +88,7 @@ public class CategoryMapperTests
     public async Task InferCategoryFromName_InfersCorrectCategory(string componentName, string expectedCategory)
     {
         // Arrange
-        await _mapper.InitializeAsync("/repo", CancellationToken.None);
+        await _mapper.InitializeAsync("/repo", TestContext.Current.CancellationToken);
 
         // Act
         var category = _mapper.InferCategoryFromName(componentName);
@@ -101,7 +101,7 @@ public class CategoryMapperTests
     public async Task GetCategoryName_UnknownComponent_ReturnsNull()
     {
         // Arrange
-        await _mapper.InitializeAsync("/repo", CancellationToken.None);
+        await _mapper.InitializeAsync("/repo", TestContext.Current.CancellationToken);
 
         // Act
         var category = _mapper.GetCategoryName("UnknownComponent");
@@ -114,7 +114,7 @@ public class CategoryMapperTests
     public async Task InitializeAsync_WithEmptyPath_DoesNotThrow()
     {
         // Act & Assert — cached-load fast path passes string.Empty
-        await _mapper.InitializeAsync(string.Empty, CancellationToken.None);
+        await _mapper.InitializeAsync(string.Empty, TestContext.Current.CancellationToken);
 
         var categories = _mapper.GetCategories();
         Assert.NotEmpty(categories);
@@ -126,7 +126,7 @@ public class CategoryMapperTests
     public async Task InitializeAsync_WithWhitespacePath_DoesNotThrow(string path)
     {
         // Act & Assert — whitespace paths are also accepted since repositoryPath is unused
-        await _mapper.InitializeAsync(path, CancellationToken.None);
+        await _mapper.InitializeAsync(path, TestContext.Current.CancellationToken);
 
         var categories = _mapper.GetCategories();
         Assert.NotEmpty(categories);
@@ -136,6 +136,6 @@ public class CategoryMapperTests
     public async Task InitializeAsync_WithNullPath_ThrowsArgumentNullException()
     {
         await Assert.ThrowsAsync<ArgumentNullException>(
-            () => _mapper.InitializeAsync(null!, CancellationToken.None));
+            () => _mapper.InitializeAsync(null!, TestContext.Current.CancellationToken));
     }
 }

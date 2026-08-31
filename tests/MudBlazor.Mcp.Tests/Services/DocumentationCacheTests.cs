@@ -113,7 +113,7 @@ public class DocumentationCacheTests : IDisposable
         {
             factoryCalled = true;
             return Task.FromResult("new-value");
-        });
+        }, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Equal(cachedValue, result);
@@ -133,7 +133,7 @@ public class DocumentationCacheTests : IDisposable
         {
             factoryCalled = true;
             return Task.FromResult(expectedValue);
-        });
+        }, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Equal(expectedValue, result);
@@ -152,13 +152,13 @@ public class DocumentationCacheTests : IDisposable
         {
             factoryCallCount++;
             return Task.FromResult("value");
-        });
+        }, TestContext.Current.CancellationToken);
         
         await _cache.GetOrCreateAsync(key, ct =>
         {
             factoryCallCount++;
             return Task.FromResult("value");
-        });
+        }, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Equal(1, factoryCallCount);
@@ -235,9 +235,9 @@ public class DocumentationCacheTests : IDisposable
     {
         // Act & Assert - null throws ArgumentNullException, whitespace throws ArgumentException
         await Assert.ThrowsAnyAsync<ArgumentException>(() => 
-            _cache.GetOrCreateAsync<string>(null!, _ => Task.FromResult("value")));
+            _cache.GetOrCreateAsync<string>(null!, _ => Task.FromResult("value"), TestContext.Current.CancellationToken));
         await Assert.ThrowsAnyAsync<ArgumentException>(() => 
-            _cache.GetOrCreateAsync<string>("", _ => Task.FromResult("value")));
+            _cache.GetOrCreateAsync<string>("", _ => Task.FromResult("value"), TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -245,7 +245,7 @@ public class DocumentationCacheTests : IDisposable
     {
         // Act & Assert
         await Assert.ThrowsAsync<ArgumentNullException>(() => 
-            _cache.GetOrCreateAsync<string>("key", null!));
+            _cache.GetOrCreateAsync<string>("key", null!, TestContext.Current.CancellationToken));
     }
 
     [Fact]

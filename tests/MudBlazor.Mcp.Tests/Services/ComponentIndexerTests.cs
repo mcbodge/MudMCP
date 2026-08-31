@@ -128,7 +128,7 @@ public class ComponentIndexerTests : IDisposable
 
         // Act & Assert
         await Assert.ThrowsAsync<InvalidOperationException>(() => 
-            indexer.GetAllComponentsAsync());
+            indexer.GetAllComponentsAsync(TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -139,7 +139,7 @@ public class ComponentIndexerTests : IDisposable
 
         // Act & Assert
         await Assert.ThrowsAsync<InvalidOperationException>(() => 
-            indexer.GetComponentAsync("MudButton"));
+            indexer.GetComponentAsync("MudButton", TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -150,7 +150,7 @@ public class ComponentIndexerTests : IDisposable
 
         // Act & Assert
         await Assert.ThrowsAsync<InvalidOperationException>(() => 
-            indexer.GetCategoriesAsync());
+            indexer.GetCategoriesAsync(TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -161,7 +161,7 @@ public class ComponentIndexerTests : IDisposable
 
         // Act & Assert
         await Assert.ThrowsAsync<InvalidOperationException>(() => 
-            indexer.SearchComponentsAsync("button"));
+            indexer.SearchComponentsAsync("button", cancellationToken: TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -177,7 +177,7 @@ public class ComponentIndexerTests : IDisposable
 
         // Act & Assert
         await Assert.ThrowsAsync<InvalidOperationException>(() => 
-            indexer.BuildIndexAsync());
+            indexer.BuildIndexAsync(TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -212,7 +212,7 @@ public class ComponentIndexerTests : IDisposable
             {
                 [Parameter] public string? Label { get; set; }
             }
-            """);
+            """, TestContext.Current.CancellationToken);
 
         await File.WriteAllTextAsync(Path.Combine(buttonDir, "MudIconButton.razor.cs"), """
             namespace MudBlazor;
@@ -220,7 +220,7 @@ public class ComponentIndexerTests : IDisposable
             {
                 [Parameter] public string? Icon { get; set; }
             }
-            """);
+            """, TestContext.Current.CancellationToken);
 
         await File.WriteAllTextAsync(Path.Combine(buttonDir, "MudFab.razor.cs"), """
             namespace MudBlazor;
@@ -228,7 +228,7 @@ public class ComponentIndexerTests : IDisposable
             {
                 [Parameter] public string? StartIcon { get; set; }
             }
-            """);
+            """, TestContext.Current.CancellationToken);
 
         var gitService = new Mock<IGitRepositoryService>();
         gitService.Setup(g => g.IsAvailable).Returns(true);
@@ -239,10 +239,10 @@ public class ComponentIndexerTests : IDisposable
         var indexer = CreateIndexer(gitService: gitService.Object);
 
         // Act
-        await indexer.BuildIndexAsync();
+        await indexer.BuildIndexAsync(TestContext.Current.CancellationToken);
 
         // Assert - all three components should be indexed
-        var all = await indexer.GetAllComponentsAsync();
+        var all = await indexer.GetAllComponentsAsync(TestContext.Current.CancellationToken);
         Assert.Equal(3, all.Count);
         Assert.Contains(all, c => c.Name == "MudButton");
         Assert.Contains(all, c => c.Name == "MudIconButton");
@@ -264,7 +264,7 @@ public class ComponentIndexerTests : IDisposable
             {
                 [Parameter] public int Spacing { get; set; }
             }
-            """);
+            """, TestContext.Current.CancellationToken);
 
         // This .cs file is for a DIFFERENT component (no corresponding .razor.cs)
         await File.WriteAllTextAsync(Path.Combine(gridDir, "MudItem.cs"), """
@@ -273,7 +273,7 @@ public class ComponentIndexerTests : IDisposable
             {
                 [Parameter] public int Xs { get; set; }
             }
-            """);
+            """, TestContext.Current.CancellationToken);
 
         // This .cs file has a corresponding .razor.cs above, so it should NOT be indexed separately
         await File.WriteAllTextAsync(Path.Combine(gridDir, "MudGrid.cs"), """
@@ -282,7 +282,7 @@ public class ComponentIndexerTests : IDisposable
             {
                 public void SomeMethod() { }
             }
-            """);
+            """, TestContext.Current.CancellationToken);
 
         var gitService = new Mock<IGitRepositoryService>();
         gitService.Setup(g => g.IsAvailable).Returns(true);
@@ -293,10 +293,10 @@ public class ComponentIndexerTests : IDisposable
         var indexer = CreateIndexer(gitService: gitService.Object);
 
         // Act
-        await indexer.BuildIndexAsync();
+        await indexer.BuildIndexAsync(TestContext.Current.CancellationToken);
 
         // Assert - MudGrid from .razor.cs and MudItem from .cs
-        var all = await indexer.GetAllComponentsAsync();
+        var all = await indexer.GetAllComponentsAsync(TestContext.Current.CancellationToken);
         Assert.Equal(2, all.Count);
         Assert.Contains(all, c => c.Name == "MudGrid");
         Assert.Contains(all, c => c.Name == "MudItem");
@@ -316,7 +316,7 @@ public class ComponentIndexerTests : IDisposable
             {
                 [Parameter] public string? Label { get; set; }
             }
-            """);
+            """, TestContext.Current.CancellationToken);
 
         var gitService = new Mock<IGitRepositoryService>();
         gitService.Setup(g => g.IsAvailable).Returns(true);
@@ -338,13 +338,13 @@ public class ComponentIndexerTests : IDisposable
                 "ApiReferences": []
             }
             """;
-        await File.WriteAllTextAsync(context.IndexPath, staleJson);
+        await File.WriteAllTextAsync(context.IndexPath, staleJson, TestContext.Current.CancellationToken);
 
         // Act — should detect stale schema, delete the file, and rebuild from repo
-        await indexer.BuildIndexAsync();
+        await indexer.BuildIndexAsync(TestContext.Current.CancellationToken);
 
         // Assert — component was indexed from the repo (not the empty stale cache)
-        var all = await indexer.GetAllComponentsAsync();
+        var all = await indexer.GetAllComponentsAsync(TestContext.Current.CancellationToken);
         Assert.Single(all);
         Assert.Contains(all, c => c.Name == "MudButton");
     }
@@ -363,7 +363,7 @@ public class ComponentIndexerTests : IDisposable
             {
                 [Parameter] public string? Label { get; set; }
             }
-            """);
+            """, TestContext.Current.CancellationToken);
 
         var gitService = new Mock<IGitRepositoryService>();
         gitService.Setup(g => g.IsAvailable).Returns(true);
@@ -386,13 +386,13 @@ public class ComponentIndexerTests : IDisposable
                 "ApiReferences": []
             }
             """;
-        await File.WriteAllTextAsync(context.IndexPath, staleJson);
+        await File.WriteAllTextAsync(context.IndexPath, staleJson, TestContext.Current.CancellationToken);
 
         // Act — should detect options mismatch, delete the stale file, and rebuild
-        await indexer.BuildIndexAsync();
+        await indexer.BuildIndexAsync(TestContext.Current.CancellationToken);
 
         // Assert — component was indexed from the repo (not the empty stale cache)
-        var all = await indexer.GetAllComponentsAsync();
+        var all = await indexer.GetAllComponentsAsync(TestContext.Current.CancellationToken);
         Assert.Single(all);
         Assert.Contains(all, c => c.Name == "MudButton");
         // The stale file should have been deleted and replaced with a new one
@@ -413,7 +413,7 @@ public class ComponentIndexerTests : IDisposable
             {
                 [Parameter] public string? Label { get; set; }
             }
-            """);
+            """, TestContext.Current.CancellationToken);
 
         var gitService = new Mock<IGitRepositoryService>();
         gitService.Setup(g => g.IsAvailable).Returns(true);
@@ -425,13 +425,13 @@ public class ComponentIndexerTests : IDisposable
 
         // Write corrupt data to the index.json path
         Directory.CreateDirectory(Path.GetDirectoryName(context.IndexPath)!);
-        await File.WriteAllTextAsync(context.IndexPath, "{{not valid json!!");
+        await File.WriteAllTextAsync(context.IndexPath, "{{not valid json!!", TestContext.Current.CancellationToken);
 
         // Act — should detect corruption, delete the bad file, and rebuild from repo
-        await indexer.BuildIndexAsync();
+        await indexer.BuildIndexAsync(TestContext.Current.CancellationToken);
 
         // Assert — component was indexed from the repo (not the corrupted cache)
-        var all = await indexer.GetAllComponentsAsync();
+        var all = await indexer.GetAllComponentsAsync(TestContext.Current.CancellationToken);
         Assert.Single(all);
         Assert.Contains(all, c => c.Name == "MudButton");
         // The corrupted file should have been deleted and replaced with a valid one
@@ -452,7 +452,7 @@ public class ComponentIndexerTests : IDisposable
             {
                 [Parameter] public string? Label { get; set; }
             }
-            """);
+            """, TestContext.Current.CancellationToken);
 
         var gitService = new Mock<IGitRepositoryService>();
         gitService.Setup(g => g.IsAvailable).Returns(true);
@@ -463,10 +463,10 @@ public class ComponentIndexerTests : IDisposable
         var (indexer, context) = CreateIndexerWithContext(gitService: gitService.Object);
 
         // Act
-        await indexer.BuildIndexAsync();
+        await indexer.BuildIndexAsync(TestContext.Current.CancellationToken);
 
         // Assert — SourceUrl must contain the version tag, not "tree/dev"
-        var component = await indexer.GetComponentAsync("MudButton");
+        var component = await indexer.GetComponentAsync("MudButton", TestContext.Current.CancellationToken);
         Assert.NotNull(component);
         Assert.NotNull(component.SourceUrl);
         Assert.Contains($"/tree/{context.Tag}/", component.SourceUrl);

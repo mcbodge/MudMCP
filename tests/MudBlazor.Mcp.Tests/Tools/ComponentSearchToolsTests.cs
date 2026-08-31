@@ -27,7 +27,7 @@ public class ComponentSearchToolsTests
 
         // Act
         var result = await ComponentSearchTools.SearchComponentsAsync(
-            indexer, NullLogger, _versionContext, "button", "all", 10, CancellationToken.None);
+            indexer, NullLogger, _versionContext, "button", "all", 10, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Contains("Search Results", result);
@@ -42,7 +42,7 @@ public class ComponentSearchToolsTests
 
         // Act - simulating what happens when MCP client doesn't send searchIn
         var result = await ComponentSearchTools.SearchComponentsAsync(
-            indexer, NullLogger, _versionContext, "button", null, 10, CancellationToken.None);
+            indexer, NullLogger, _versionContext, "button", null, 10, TestContext.Current.CancellationToken);
 
         // Assert - should use default "all" and return results
         Assert.Contains("Search Results", result);
@@ -57,7 +57,7 @@ public class ComponentSearchToolsTests
 
         // Act - simulating what happens when MCP client doesn't send maxResults
         var result = await ComponentSearchTools.SearchComponentsAsync(
-            indexer, NullLogger, _versionContext, "button", "all", null, CancellationToken.None);
+            indexer, NullLogger, _versionContext, "button", "all", null, TestContext.Current.CancellationToken);
 
         // Assert - should use default 10 and return results
         Assert.Contains("Search Results", result);
@@ -72,7 +72,7 @@ public class ComponentSearchToolsTests
 
         // Act - simulating what happens when MCP client sends null for all optional parameters
         var result = await ComponentSearchTools.SearchComponentsAsync(
-            indexer, NullLogger, _versionContext, "button", null, null, CancellationToken.None);
+            indexer, NullLogger, _versionContext, "button", null, null, TestContext.Current.CancellationToken);
 
         // Assert - should use defaults (searchIn="all", maxResults=10) and return results
         Assert.Contains("Search Results", result);
@@ -88,7 +88,7 @@ public class ComponentSearchToolsTests
         // Act & Assert
         await Assert.ThrowsAsync<ModelContextProtocol.McpException>(async () =>
             await ComponentSearchTools.SearchComponentsAsync(
-                indexer.Object, NullLogger, _versionContext, "", null, null, CancellationToken.None));
+                indexer.Object, NullLogger, _versionContext, "", null, null, TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -100,7 +100,7 @@ public class ComponentSearchToolsTests
         // Act & Assert
         await Assert.ThrowsAsync<ModelContextProtocol.McpException>(async () =>
             await ComponentSearchTools.SearchComponentsAsync(
-                indexer, NullLogger, _versionContext, "button", "invalid_option", null, CancellationToken.None));
+                indexer, NullLogger, _versionContext, "button", "invalid_option", null, TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -112,7 +112,7 @@ public class ComponentSearchToolsTests
         // Act & Assert - maxResults = 0 is out of range (min is 1)
         await Assert.ThrowsAsync<ModelContextProtocol.McpException>(async () =>
             await ComponentSearchTools.SearchComponentsAsync(
-                indexer, NullLogger, _versionContext, "button", null, 0, CancellationToken.None));
+                indexer, NullLogger, _versionContext, "button", null, 0, TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -129,7 +129,7 @@ public class ComponentSearchToolsTests
 
         // Act
         var result = await ComponentSearchTools.SearchComponentsAsync(
-            indexer.Object, NullLogger, _versionContext, "nonexistent", null, null, CancellationToken.None);
+            indexer.Object, NullLogger, _versionContext, "nonexistent", null, null, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Contains("No components found", result);
@@ -147,7 +147,7 @@ public class ComponentSearchToolsTests
 
         // Act
         var result = await ComponentSearchTools.GetComponentsByCategoryAsync(
-            indexer, NullLogger, _versionContext, "Buttons", CancellationToken.None);
+            indexer, NullLogger, _versionContext, "Buttons", TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Contains("Buttons", result);
@@ -163,7 +163,7 @@ public class ComponentSearchToolsTests
         // Act & Assert
         await Assert.ThrowsAsync<ModelContextProtocol.McpException>(async () =>
             await ComponentSearchTools.GetComponentsByCategoryAsync(
-                indexer.Object, NullLogger, _versionContext, "", CancellationToken.None));
+                indexer.Object, NullLogger, _versionContext, "", TestContext.Current.CancellationToken));
     }
 
     #endregion
@@ -178,7 +178,7 @@ public class ComponentSearchToolsTests
 
         // Act
         var result = await ComponentSearchTools.GetRelatedComponentsAsync(
-            indexer, NullLogger, _versionContext, "MudButton", "all", CancellationToken.None);
+            indexer, NullLogger, _versionContext, "MudButton", "all", TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Contains("Related to MudButton", result);
@@ -192,7 +192,7 @@ public class ComponentSearchToolsTests
 
         // Act - simulating what happens when MCP client doesn't send relationshipType
         var result = await ComponentSearchTools.GetRelatedComponentsAsync(
-            indexer, NullLogger, _versionContext, "MudButton", null, CancellationToken.None);
+            indexer, NullLogger, _versionContext, "MudButton", null, TestContext.Current.CancellationToken);
 
         // Assert - should use default "all" and return results
         Assert.Contains("Related to MudButton", result);
@@ -207,7 +207,7 @@ public class ComponentSearchToolsTests
         // Act & Assert
         await Assert.ThrowsAsync<ModelContextProtocol.McpException>(async () =>
             await ComponentSearchTools.GetRelatedComponentsAsync(
-                indexer.Object, NullLogger, _versionContext, "", null, CancellationToken.None));
+                indexer.Object, NullLogger, _versionContext, "", null, TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -219,7 +219,7 @@ public class ComponentSearchToolsTests
         // Act & Assert
         await Assert.ThrowsAsync<ModelContextProtocol.McpException>(async () =>
             await ComponentSearchTools.GetRelatedComponentsAsync(
-                indexer, NullLogger, _versionContext, "MudButton", "invalid_type", CancellationToken.None));
+                indexer, NullLogger, _versionContext, "MudButton", "invalid_type", TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -233,7 +233,7 @@ public class ComponentSearchToolsTests
         // Act & Assert
         var ex = await Assert.ThrowsAsync<ModelContextProtocol.McpException>(async () =>
             await ComponentSearchTools.GetRelatedComponentsAsync(
-                indexer.Object, NullLogger, _versionContext, "Unknown", null, CancellationToken.None));
+                indexer.Object, NullLogger, _versionContext, "Unknown", null, TestContext.Current.CancellationToken));
 
         Assert.Contains("not found", ex.Message);
     }

@@ -33,7 +33,7 @@ Mud MCP follows these testing principles:
 
 | Package | Purpose |
 |---------|---------|
-| **xUnit** | Test framework and assertions |
+| **xUnit.net v3** | Test framework and assertions (runs on Microsoft Testing Platform) |
 | **Moq** | Mocking framework for interfaces |
 | **Microsoft.Extensions.Logging.Abstractions** | `NullLogger<T>` for testing |
 
@@ -41,10 +41,11 @@ Mud MCP follows these testing principles:
 
 ```xml
 <PackageReference Include="Microsoft.NET.Test.Sdk" />
-<PackageReference Include="xunit" />
+<PackageReference Include="xunit.v3" />
 <PackageReference Include="xunit.runner.visualstudio" />
 <PackageReference Include="Moq" />
-<PackageReference Include="coverlet.collector" />
+<PackageReference Include="Microsoft.Testing.Extensions.CodeCoverage" />
+<PackageReference Include="Microsoft.Testing.Extensions.TrxReport" />
 ```
 
 ---
@@ -88,13 +89,13 @@ dotnet test --verbosity normal
 dotnet test tests/MudBlazor.Mcp.Tests
 
 # Run specific test class
-dotnet test --filter "FullyQualifiedName~ComponentListToolsTests"
+dotnet test --filter-class "*ComponentListToolsTests"
 
 # Run specific test method
-dotnet test --filter "FullyQualifiedName~ListComponentsAsync_ReturnsAllComponents"
+dotnet test --filter-method "*ListComponentsAsync_ReturnsAllComponents*"
 
-# Run with code coverage
-dotnet test --collect:"XPlat Code Coverage"
+# Run with code coverage (cobertura output under TestResults/)
+dotnet test --coverage --coverage-output-format cobertura
 ```
 
 ### Visual Studio / Rider
