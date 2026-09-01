@@ -413,6 +413,10 @@ FodyWeavers.xsd
 # MudBlazor.Mcp - cloned repository data
 src/MudBlazor.Mcp/data/mudblazor-repo
 **/data/mudblazor-repo/
+# Runtime-generated version cache (manifest + per-version index/clone)
+/data/
+**/data/versions.json
+**/data/v*/
 
 # Windows Installer files from build outputs
 *.cab
