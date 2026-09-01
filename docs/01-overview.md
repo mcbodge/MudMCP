@@ -251,8 +251,8 @@ We welcome contributions! Here's how to get started:
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/yourusername/MudBlazor.Mcp.git
-   cd MudBlazor.Mcp
+   git clone https://github.com/mcbodge/MudMCP.git
+   cd MudMCP
    ```
 
 2. **Install prerequisites**

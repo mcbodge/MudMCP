@@ -26,8 +26,8 @@
     <PackageLicenseFile>LICENSE</PackageLicenseFile>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <RepositoryType>git</RepositoryType>
-    <RepositoryUrl>https://github.com/mcbodge/MudBlazor.Mcp.git</RepositoryUrl>
-    <PackageProjectUrl>https://github.com/mcbodge/MudBlazor.Mcp</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/mcbodge/MudMCP.git</RepositoryUrl>
+    <PackageProjectUrl>https://github.com/mcbodge/MudMCP</PackageProjectUrl>
   </PropertyGroup>
 
   <ItemGroup>

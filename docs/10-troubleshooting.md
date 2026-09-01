@@ -700,7 +700,7 @@ Include in bug reports:
 
 ### Resources
 
-- [GitHub Issues](https://github.com/YourOrg/MudBlazor.Mcp/issues)
+- [GitHub Issues](https://github.com/mcbodge/MudMCP/issues)
 - [MCP Protocol Spec](https://spec.modelcontextprotocol.io/)
 - [MudBlazor Docs](https://mudblazor.com/docs)
 - [.NET Troubleshooting](https://docs.microsoft.com/dotnet/core/tools/troubleshoot-usage-issues)

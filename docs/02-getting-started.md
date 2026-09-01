@@ -52,10 +52,10 @@ git --version
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/MudBlazor.Mcp.git
+git clone https://github.com/mcbodge/MudMCP.git
 
 # Navigate to the project
-cd MudBlazor.Mcp
+cd MudMCP
 
 # Restore dependencies
 dotnet restore
