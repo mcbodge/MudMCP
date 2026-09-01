@@ -30,16 +30,14 @@ The HTTP URL shown here is the local `dotnet run` default. IIS deployments use t
 
 ## Launching via dnx
 
-`dnx` (bundled with the **.NET 10 SDK**) downloads and runs a tool package on demand — no global install and no manually cloned repo. This project is packaged as the .NET tool **`MudMCP`** (command `mudmcp`), so every client below can launch it the same way.
+`dnx` (bundled with the **.NET 10 SDK**) downloads and runs a tool package on demand — no global install and no manually cloned repo. This project is published to nuget.org as the .NET tool **[`MudMCP`](https://www.nuget.org/packages/MudMCP)** (command `mudmcp`), so every client below can launch it the same way.
 
 ### Prerequisites
 
 - **.NET 10 SDK** (provides the `dnx` command).
-- The package is not on a public feed yet, so build it locally first:
-  ```bash
-  dotnet pack src/MudBlazor.Mcp/MudBlazor.Mcp.csproj -c Release -o ./nupkg
-  ```
-  Then add `"--source", "<absolute-path>/nupkg"` to the `args` below. Use an **absolute** path — each client sets its own working directory, so a relative `./nupkg` will not resolve. Once the package is published to nuget.org (or a private feed configured in `NuGet.config`), remove the `--source` args.
+- Nothing else — `dnx` restores **`MudMCP`** from nuget.org on first run.
+
+> **Building from source instead of nuget.org?** Pack it locally (`dotnet pack src/MudBlazor.Mcp/MudBlazor.Mcp.csproj -c Release -o ./nupkg`) and add `"--source", "<absolute-path>/nupkg"` to the `args` below. Use an **absolute** path — each client sets its own working directory, so a relative `./nupkg` will not resolve.
 
 ### Key differences from the `dotnet run` configs
 

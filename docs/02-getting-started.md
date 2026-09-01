@@ -148,31 +148,24 @@ This starts:
 
 ## Running via dnx (one-off, no install)
 
-`dnx` ships with the .NET 10 SDK and runs a tool package on demand — no global install, no manually cloned repo. This project is packaged as the .NET tool **`MudMCP`** (command `mudmcp`).
-
-### 1. Build a local package
-
-The package is not on a public feed yet, so pack it locally and point `dnx` at that folder with `--source`:
-
-```bash
-dotnet pack src/MudBlazor.Mcp/MudBlazor.Mcp.csproj -c Release -o ./nupkg
-```
-
-This produces `./nupkg/MudMCP.1.0.0.nupkg`.
-
-### 2. Run it
+`dnx` ships with the .NET 10 SDK and runs a tool package on demand — no global install, no manually cloned repo. This project is published to nuget.org as the .NET tool **[`MudMCP`](https://www.nuget.org/packages/MudMCP)** (command `mudmcp`).
 
 The docs version is supplied through the `MUDBLAZOR_VERSION` environment variable, because `dnx` reserves `--version` for the *package* version. Anything after `--` is forwarded to the server.
 
 ```bash
 # PowerShell
-$env:MUDBLAZOR_VERSION = "9.0.0"; dnx MudMCP --source ./nupkg --yes -- --stdio
+$env:MUDBLAZOR_VERSION = "9.0.0"; dnx MudMCP@1.0.0 --yes -- --stdio
 
 # bash
-MUDBLAZOR_VERSION=9.0.0 dnx MudMCP --source ./nupkg --yes -- --stdio
+MUDBLAZOR_VERSION=9.0.0 dnx MudMCP@1.0.0 --yes -- --stdio
 ```
 
-Once the package is published to nuget.org (or a private feed), drop `--source ./nupkg`.
+> **Building from source?** Pack it locally and add `--source`:
+>
+> ```bash
+> dotnet pack src/MudBlazor.Mcp/MudBlazor.Mcp.csproj -c Release -o ./nupkg   # produces ./nupkg/MudMCP.1.0.0.nupkg
+> MUDBLAZOR_VERSION=9.0.0 dnx MudMCP --source ./nupkg --yes -- --stdio
+> ```
 
 > **Cache location:** `dnx` runs from the current working directory, so the clone lands in `./data` there. Set `MudBlazor__Repository__DataPath` to a fixed absolute path to reuse one cache across projects.
 

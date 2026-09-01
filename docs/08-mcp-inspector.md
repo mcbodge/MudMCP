@@ -99,19 +99,16 @@ These Inspector examples use the local HTTP transport. For IIS deployments, use 
 
 ### Option C: dnx (one-off, no install)
 
-`dnx` (bundled with the .NET 10 SDK) runs the packaged tool without a manual clone. Build a local package first, then launch it in stdio mode:
+`dnx` (bundled with the .NET 10 SDK) runs the published tool without a manual clone:
 
 ```bash
-# Build the tool package once
-dotnet pack src/MudBlazor.Mcp/MudBlazor.Mcp.csproj -c Release -o ./nupkg
-
-# Launch the Inspector against the dnx-hosted server
+# Launch the Inspector against the dnx-hosted server (restores MudMCP from nuget.org)
 npx @modelcontextprotocol/inspector \
   --command "dnx" \
-  --args "MudMCP --source ./nupkg --yes -- --stdio"
+  --args "MudMCP@1.0.0 --yes -- --stdio"
 ```
 
-Set the docs version via the `MUDBLAZOR_VERSION` environment variable before launching (for example `export MUDBLAZOR_VERSION=9.0.0` or `$env:MUDBLAZOR_VERSION="9.0.0"`), because `dnx` reserves `--version` for the package version. Drop `--source ./nupkg` once the package is published to a feed.
+Set the docs version via the `MUDBLAZOR_VERSION` environment variable before launching (for example `export MUDBLAZOR_VERSION=9.0.0` or `$env:MUDBLAZOR_VERSION="9.0.0"`), because `dnx` reserves `--version` for the package version. If you're building from source, pack locally and use `--args "MudMCP --source ./nupkg --yes -- --stdio"`.
 
 ---
 

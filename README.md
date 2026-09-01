@@ -238,22 +238,17 @@ docker compose down -v
 
 ### Option D — dnx (one-off, no install)
 
-[`dnx`](https://learn.microsoft.com/dotnet/core/tools/dotnet-tool-exec) ships with the .NET 10 SDK and downloads + runs a tool package on demand — no global install and no manually cloned repo. This project is packaged as the .NET tool **`MudMCP`** (command `mudmcp`).
-
-> **Prerequisite:** The package is not published to a public feed yet, so build a local NuGet package first and point `dnx` at it with `--source`. Once it is published to nuget.org (or a private feed), drop the `--source` flag.
+[`dnx`](https://learn.microsoft.com/dotnet/core/tools/dotnet-tool-exec) ships with the .NET 10 SDK and downloads + runs a tool package on demand — no global install and no manually cloned repo. This project is published to nuget.org as the .NET tool **[`MudMCP`](https://www.nuget.org/packages/MudMCP)** (command `mudmcp`).
 
 ```bash
-# 1. Build the tool package into ./nupkg
-dotnet pack src/MudBlazor.Mcp/MudBlazor.Mcp.csproj -c Release -o ./nupkg
-
-# 2. Run it one-off — MUDBLAZOR_VERSION selects the docs version
+# MUDBLAZOR_VERSION selects the docs version to serve
 #    PowerShell:
-$env:MUDBLAZOR_VERSION = "9.0.0"; dnx MudMCP --source ./nupkg --yes -- --stdio
+$env:MUDBLAZOR_VERSION = "9.0.0"; dnx MudMCP@1.0.0 --yes -- --stdio
 #    bash:
-MUDBLAZOR_VERSION=9.0.0 dnx MudMCP --source ./nupkg --yes -- --stdio
+MUDBLAZOR_VERSION=9.0.0 dnx MudMCP@1.0.0 --yes -- --stdio
 ```
 
-MCP client configuration (also provided as `mcp.dnx.json` in the repo root). If you're using a locally packed package (not a published feed yet), add `"--source", "<absolute-path>/nupkg"` to `args` before `"--yes"`:
+MCP client configuration (also provided as `mcp.dnx.json` in the repo root):
 
 ```json
 {
@@ -267,6 +262,8 @@ MCP client configuration (also provided as `mcp.dnx.json` in the repo root). If 
 }
 ```
 
+> **Building from source instead?** Pack locally and point `dnx` at it: `dotnet pack src/MudBlazor.Mcp/MudBlazor.Mcp.csproj -c Release -o ./nupkg`, then `dnx MudMCP --source ./nupkg --yes -- --stdio` (use an absolute `--source` path in MCP client configs).
+>
 > **Why the `--` and the env var?** `dnx` has its own `--version` flag (the *package* version), so the MudBlazor docs version is supplied via the `MUDBLAZOR_VERSION` environment variable to avoid a collision. Everything after `--` (here `--stdio`) is forwarded to the server — you can append `--version 9.0.0` there instead of the env var if you prefer.
 >
 > **Cache location:** `dnx` runs from the current working directory, so the ~500 MB clone lands in `./data` relative to it. Set `MudBlazor__Repository__DataPath` to a fixed absolute path to share one cache across projects.

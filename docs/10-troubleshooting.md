@@ -459,16 +459,14 @@ dotnet --version   # must report 10.0.xxx
 error NU1101: Unable to find package MudMCP. No packages exist with this id...
 ```
 
-**Cause:** The package is not published to a public feed yet, so `dnx` cannot restore it from nuget.org.
+**Cause:** Either you're building from source (the package isn't on your configured feeds) or a just-published version hasn't finished indexing on nuget.org yet.
 
-**Solution:** Build a local package and point `dnx` at it with an **absolute** `--source` path (a relative `./nupkg` resolves against the client's working directory, not the repo):
+**Solution:** For a published version, wait a few minutes for indexing, then retry `dnx MudMCP@<version>`. To run a source build, pack a local package and point `dnx` at it with an **absolute** `--source` path (a relative `./nupkg` resolves against the client's working directory, not the repo):
 
 ```bash
 dotnet pack src/MudBlazor.Mcp/MudBlazor.Mcp.csproj -c Release -o ./nupkg
 dnx MudMCP --source C:/Mapei/MudBlazor/Mcp/MudBlazor.Mcp/nupkg --yes -- --stdio
 ```
-
-Once the package is published (nuget.org or a private feed in `NuGet.config`), remove `--source`.
 
 ### Issue: Wrong version served / `--version` ignored
 
