@@ -43,7 +43,7 @@ The HTTP URL shown here is the local `dotnet run` default. IIS deployments use t
 
 - The docs version is passed through the **`MUDBLAZOR_VERSION`** environment variable, because `dnx` reserves `--version` for the *package* version.
 - Everything after `--` (here `--stdio`) is forwarded to the server. You may append `"--version", "9.0.0"` there instead of the env var.
-- `dnx` runs from the client's working directory, so the ~500 MB clone lands in `./data` there. Set **`MudBlazor__Repository__DataPath`** to a fixed absolute path to share one cache across projects.
+- **Shared cache (recommended):** `dnx` runs from the client's working directory, so by default each project clones MudBlazor (~500 MB) into its own `./data`. Set **`MudBlazor__Repository__DataPath`** to one fixed folder (as in the configs below) so every project shares a single cache. VS Code expands `${userHome}`; other clients need a literal absolute path.
 
 ### VS Code — `.vscode/mcp.json`
 
@@ -52,10 +52,10 @@ The HTTP URL shown here is the local `dotnet run` default. IIS deployments use t
   "servers": {
     "mudblazor-mcp": {
       "command": "dnx",
-      "args": ["MudMCP@1.0.1", "--yes", "--", "--stdio"],
+      "args": ["MudMCP@1.0.2", "--yes", "--", "--stdio"],
       "env": {
         "MUDBLAZOR_VERSION": "9.0.0",
-        "MudBlazor__Repository__DataPath": "C:/mud-mcp-cache"
+        "MudBlazor__Repository__DataPath": "${userHome}/.mudmcp"
       }
     }
   }
@@ -69,8 +69,11 @@ The HTTP URL shown here is the local `dotnet run` default. IIS deployments use t
   "mcpServers": {
     "mudblazor-mcp": {
       "command": "dnx",
-      "args": ["MudMCP@1.0.1", "--yes", "--", "--stdio"],
-      "env": { "MUDBLAZOR_VERSION": "9.0.0" }
+      "args": ["MudMCP@1.0.2", "--yes", "--", "--stdio"],
+      "env": {
+        "MUDBLAZOR_VERSION": "9.0.0",
+        "MudBlazor__Repository__DataPath": "C:/Users/you/.mudmcp"
+      }
     }
   }
 }
@@ -86,9 +89,12 @@ The HTTP URL shown here is the local `dotnet run` default. IIS deployments use t
         "transport": {
           "type": "stdio",
           "command": "dnx",
-          "args": ["MudMCP@1.0.1", "--yes", "--", "--stdio"]
+          "args": ["MudMCP@1.0.2", "--yes", "--", "--stdio"]
         },
-        "env": { "MUDBLAZOR_VERSION": "9.0.0" }
+        "env": {
+          "MUDBLAZOR_VERSION": "9.0.0",
+          "MudBlazor__Repository__DataPath": "C:/Users/you/.mudmcp"
+        }
       }
     }
   }
