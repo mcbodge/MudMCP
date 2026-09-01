@@ -243,9 +243,9 @@ docker compose down -v
 ```bash
 # MUDBLAZOR_VERSION selects the docs version to serve
 #    PowerShell:
-$env:MUDBLAZOR_VERSION = "9.0.0"; dnx MudMCP@1.0.1 --yes -- --stdio
+$env:MUDBLAZOR_VERSION = "9.0.0"; dnx MudMCP@1.0.2 --yes -- --stdio
 #    bash:
-MUDBLAZOR_VERSION=9.0.0 dnx MudMCP@1.0.1 --yes -- --stdio
+MUDBLAZOR_VERSION=9.0.0 dnx MudMCP@1.0.2 --yes -- --stdio
 ```
 
 MCP client configuration (also provided as `mcp.dnx.json` in the repo root):
@@ -255,8 +255,11 @@ MCP client configuration (also provided as `mcp.dnx.json` in the repo root):
   "mcpServers": {
     "mudblazor": {
       "command": "dnx",
-      "args": ["MudMCP@1.0.1", "--yes", "--", "--stdio"],
-      "env": { "MUDBLAZOR_VERSION": "9.0.0" }
+      "args": ["MudMCP@1.0.2", "--yes", "--", "--stdio"],
+      "env": {
+        "MUDBLAZOR_VERSION": "9.0.0",
+        "MudBlazor__Repository__DataPath": "${userHome}/.mudmcp"
+      }
     }
   }
 }
@@ -266,7 +269,7 @@ MCP client configuration (also provided as `mcp.dnx.json` in the repo root):
 >
 > **Why the `--` and the env var?** `dnx` has its own `--version` flag (the *package* version), so the MudBlazor docs version is supplied via the `MUDBLAZOR_VERSION` environment variable to avoid a collision. Everything after `--` (here `--stdio`) is forwarded to the server — you can append `--version 9.0.0` there instead of the env var if you prefer.
 >
-> **Cache location:** `dnx` runs from the current working directory, so the ~500 MB clone lands in `./data` relative to it. Set `MudBlazor__Repository__DataPath` to a fixed absolute path to share one cache across projects.
+> **Shared cache (recommended):** by default each `dnx` run clones MudBlazor (~500 MB) into a `./data` folder in the working directory, so every project gets its own copy. Point `MudBlazor__Repository__DataPath` at one fixed folder (as in the config above) so all projects share a single cache. `${userHome}` is expanded by VS Code; for other clients use a literal absolute path (e.g. `C:/Users/you/.mudmcp` or `/home/you/.mudmcp`).
 
 ### Version Caching
 

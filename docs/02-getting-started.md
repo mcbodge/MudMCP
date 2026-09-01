@@ -154,20 +154,20 @@ The docs version is supplied through the `MUDBLAZOR_VERSION` environment variabl
 
 ```bash
 # PowerShell
-$env:MUDBLAZOR_VERSION = "9.0.0"; dnx MudMCP@1.0.1 --yes -- --stdio
+$env:MUDBLAZOR_VERSION = "9.0.0"; dnx MudMCP@1.0.2 --yes -- --stdio
 
 # bash
-MUDBLAZOR_VERSION=9.0.0 dnx MudMCP@1.0.1 --yes -- --stdio
+MUDBLAZOR_VERSION=9.0.0 dnx MudMCP@1.0.2 --yes -- --stdio
 ```
 
 > **Building from source?** Pack it locally and add `--source`:
 >
 > ```bash
-> dotnet pack src/MudBlazor.Mcp/MudBlazor.Mcp.csproj -c Release -o ./nupkg   # produces ./nupkg/MudMCP.1.0.1.nupkg
+> dotnet pack src/MudBlazor.Mcp/MudBlazor.Mcp.csproj -c Release -o ./nupkg   # produces ./nupkg/MudMCP.1.0.2.nupkg
 > MUDBLAZOR_VERSION=9.0.0 dnx MudMCP --source ./nupkg --yes -- --stdio
 > ```
 
-> **Cache location:** `dnx` runs from the current working directory, so the clone lands in `./data` there. Set `MudBlazor__Repository__DataPath` to a fixed absolute path to reuse one cache across projects.
+> **Shared cache (recommended):** each `dnx` run clones MudBlazor (~500 MB) into `./data` in the working directory. Point `MudBlazor__Repository__DataPath` at one fixed folder so every project reuses a single cache — e.g. `$env:MudBlazor__Repository__DataPath = "$HOME/.mudmcp"` (PowerShell) or `export MudBlazor__Repository__DataPath="$HOME/.mudmcp"` (bash). In MCP client configs, add it under `env`.
 
 ---
 

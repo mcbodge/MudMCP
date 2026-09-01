@@ -5,13 +5,14 @@
       "description": "MudBlazor MCP Server (dnx - no install, requires .NET 10 SDK)",
       "command": "dnx",
       "args": [
-        "MudMCP@1.0.1",
+        "MudMCP@1.0.2",
         "--yes",
         "--",
         "--stdio"
       ],
       "env": {
-        "MUDBLAZOR_VERSION": "9.0.0"
+        "MUDBLAZOR_VERSION": "9.0.0",
+        "MudBlazor__Repository__DataPath": "${userHome}/.mudmcp"
       }
     }
   }

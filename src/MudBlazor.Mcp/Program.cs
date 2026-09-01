@@ -112,8 +112,6 @@ if (useStdio)
 
     var host = builder.Build();
 
-    await BuildIndexAsync(host.Services);
-
     await host.RunAsync();
 
     return 0;
@@ -155,8 +153,6 @@ else
     });
 
     app.MapMcp("/mcp");
-
-    await BuildIndexAsync(app.Services);
 
     await app.RunAsync();
 
@@ -219,28 +215,14 @@ static void RegisterCoreServices(IServiceCollection services, IConfiguration con
     services.AddSingleton<IGitRepositoryService, GitRepositoryService>();
     services.AddSingleton<IComponentIndexer, ComponentIndexer>();
 
+    // Build the index in the background so the MCP transport can serve the initialize
+    // handshake immediately; tools report "not ready" until the first build completes.
+    services.AddHostedService<IndexInitializationService>();
+
     services.AddSingleton<XmlDocParser>();
     services.AddSingleton<RazorDocParser>();
     services.AddSingleton<ExampleExtractor>();
     services.AddSingleton<CategoryMapper>();
-}
-
-static async Task BuildIndexAsync(IServiceProvider services)
-{
-    var indexer = services.GetRequiredService<IComponentIndexer>();
-    var logger = services.GetRequiredService<ILogger<Program>>();
-
-    try
-    {
-        logger.LogInformation("Building MudBlazor component index...");
-        await indexer.BuildIndexAsync();
-        logger.LogInformation("Index built successfully with {ComponentCount} components",
-            (await indexer.GetAllComponentsAsync()).Count);
-    }
-    catch (Exception ex)
-    {
-        logger.LogError(ex, "Failed to build initial index. Server will start without component data.");
-    }
 }
 
 static Task WriteHealthCheckResponse(HttpContext context, HealthReport report)
