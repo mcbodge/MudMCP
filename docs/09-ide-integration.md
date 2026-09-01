@@ -52,7 +52,7 @@ The HTTP URL shown here is the local `dotnet run` default. IIS deployments use t
   "servers": {
     "mudblazor-mcp": {
       "command": "dnx",
-      "args": ["MudMCP@1.0.0", "--yes", "--", "--stdio"],
+      "args": ["MudMCP@1.0.1", "--yes", "--", "--stdio"],
       "env": {
         "MUDBLAZOR_VERSION": "9.0.0",
         "MudBlazor__Repository__DataPath": "C:/mud-mcp-cache"
@@ -69,7 +69,7 @@ The HTTP URL shown here is the local `dotnet run` default. IIS deployments use t
   "mcpServers": {
     "mudblazor-mcp": {
       "command": "dnx",
-      "args": ["MudMCP@1.0.0", "--yes", "--", "--stdio"],
+      "args": ["MudMCP@1.0.1", "--yes", "--", "--stdio"],
       "env": { "MUDBLAZOR_VERSION": "9.0.0" }
     }
   }
@@ -86,7 +86,7 @@ The HTTP URL shown here is the local `dotnet run` default. IIS deployments use t
         "transport": {
           "type": "stdio",
           "command": "dnx",
-          "args": ["MudMCP@1.0.0", "--yes", "--", "--stdio"]
+          "args": ["MudMCP@1.0.1", "--yes", "--", "--stdio"]
         },
         "env": { "MUDBLAZOR_VERSION": "9.0.0" }
       }

@@ -19,7 +19,7 @@
     <PackAsTool>true</PackAsTool>
     <ToolCommandName>mudmcp</ToolCommandName>
     <PackageId>MudMCP</PackageId>
-    <Version>1.0.0</Version>
+    <Version>1.0.1</Version>
     <Authors>Mud MCP Contributors</Authors>
     <Description>MCP server that exposes MudBlazor component documentation, parameters, and code examples to AI assistants. Launch one-off with `dnx MudMCP`; set the target MudBlazor version via the MUDBLAZOR_VERSION environment variable (or `--version` after `--`).</Description>
     <PackageTags>mcp;modelcontextprotocol;mudblazor;blazor;ai;dotnet-tool;dnx</PackageTags>

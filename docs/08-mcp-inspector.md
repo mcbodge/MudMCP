@@ -105,7 +105,7 @@ These Inspector examples use the local HTTP transport. For IIS deployments, use 
 # Launch the Inspector against the dnx-hosted server (restores MudMCP from nuget.org)
 npx @modelcontextprotocol/inspector \
   --command "dnx" \
-  --args "MudMCP@1.0.0 --yes -- --stdio"
+  --args "MudMCP@1.0.1 --yes -- --stdio"
 ```
 
 Set the docs version via the `MUDBLAZOR_VERSION` environment variable before launching (for example `export MUDBLAZOR_VERSION=9.0.0` or `$env:MUDBLAZOR_VERSION="9.0.0"`), because `dnx` reserves `--version` for the package version. If you're building from source, pack locally and use `--args "MudMCP --source ./nupkg --yes -- --stdio"`.

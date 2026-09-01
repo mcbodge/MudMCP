@@ -5,7 +5,7 @@
       "description": "MudBlazor MCP Server (dnx - no install, requires .NET 10 SDK)",
       "command": "dnx",
       "args": [
-        "MudMCP@1.0.0",
+        "MudMCP@1.0.1",
         "--yes",
         "--",
         "--stdio"
