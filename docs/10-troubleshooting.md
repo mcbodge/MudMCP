@@ -435,7 +435,7 @@ Or use short paths:
 
 ## dnx Issues
 
-Issues specific to launching the packaged tool with `dnx MudBlazor.Mcp`.
+Issues specific to launching the packaged tool with `dnx MudMCP`.
 
 ### Issue: `dnx` command not found
 
@@ -452,23 +452,21 @@ dotnet --version   # must report 10.0.xxx
 # Install the .NET 10 SDK if missing: https://dotnet.microsoft.com/download/dotnet/10.0
 ```
 
-### Issue: Package `MudBlazor.Mcp` could not be found
+### Issue: Package `MudMCP` could not be found
 
 **Error:**
 ```
-error NU1101: Unable to find package MudBlazor.Mcp. No packages exist with this id...
+error NU1101: Unable to find package MudMCP. No packages exist with this id...
 ```
 
-**Cause:** The package is not published to a public feed yet, so `dnx` cannot restore it from nuget.org.
+**Cause:** Either you're building from source (the package isn't on your configured feeds) or a just-published version hasn't finished indexing on nuget.org yet.
 
-**Solution:** Build a local package and point `dnx` at it with an **absolute** `--source` path (a relative `./nupkg` resolves against the client's working directory, not the repo):
+**Solution:** For a published version, wait a few minutes for indexing, then retry `dnx MudMCP@<version>`. To run a source build, pack a local package and point `dnx` at it with an **absolute** `--source` path (a relative `./nupkg` resolves against the client's working directory, not the repo):
 
 ```bash
 dotnet pack src/MudBlazor.Mcp/MudBlazor.Mcp.csproj -c Release -o ./nupkg
-dnx MudBlazor.Mcp --source C:/Mapei/MudBlazor/Mcp/MudBlazor.Mcp/nupkg --yes -- --stdio
+dnx MudMCP --source C:/Mapei/MudBlazor/Mcp/MudBlazor.Mcp/nupkg --yes -- --stdio
 ```
-
-Once the package is published (nuget.org or a private feed in `NuGet.config`), remove `--source`.
 
 ### Issue: Wrong version served / `--version` ignored
 
@@ -480,13 +478,13 @@ Once the package is published (nuget.org or a private feed in `NuGet.config`), r
 
 ```bash
 # PowerShell
-$env:MUDBLAZOR_VERSION = "9.0.0"; dnx MudBlazor.Mcp --yes -- --stdio
+$env:MUDBLAZOR_VERSION = "9.0.0"; dnx MudMCP --yes -- --stdio
 
 # bash
-MUDBLAZOR_VERSION=9.0.0 dnx MudBlazor.Mcp --yes -- --stdio
+MUDBLAZOR_VERSION=9.0.0 dnx MudMCP --yes -- --stdio
 ```
 
-Alternatively append the flag after the separator: `dnx MudBlazor.Mcp --yes -- --stdio --version 9.0.0`.
+Alternatively append the flag after the separator: `dnx MudMCP --yes -- --stdio --version 9.0.0`.
 
 ### Issue: `data/` clone appears in an unexpected folder
 
@@ -700,7 +698,7 @@ Include in bug reports:
 
 ### Resources
 
-- [GitHub Issues](https://github.com/YourOrg/MudBlazor.Mcp/issues)
+- [GitHub Issues](https://github.com/mcbodge/MudMCP/issues)
 - [MCP Protocol Spec](https://spec.modelcontextprotocol.io/)
 - [MudBlazor Docs](https://mudblazor.com/docs)
 - [.NET Troubleshooting](https://docs.microsoft.com/dotnet/core/tools/troubleshoot-usage-issues)
