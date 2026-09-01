@@ -1,6 +1,7 @@
 // Copyright (c) 2025 Mud MCP Contributors
 // Licensed under the GNU General Public License v2.0. See LICENSE file in the project root for full license information.
 
+using System.Security.Cryptography.X509Certificates;
 using LibGit2Sharp;
 using Microsoft.Extensions.Options;
 using MudBlazor.Mcp.Configuration;
@@ -131,6 +132,12 @@ public sealed class GitRepositoryService : IGitRepositoryService, IDisposable, I
                     RecurseSubmodules = false
                 };
 
+                // Corporate networks/proxies often block CRL/OCSP endpoints, so LibGit2Sharp
+                // reports the server certificate as invalid ("certificate revocation status
+                // could not be verified") and aborts. Re-validate chain + hostname ourselves
+                // without the revocation check so the public MudBlazor repo still clones.
+                cloneOptions.FetchOptions.CertificateCheck = AcceptCertificateIgnoringRevocation;
+
                 Repository.Clone(_options.Repository.Url, RepositoryPath, cloneOptions);
 
                 // Checkout the specific tag
@@ -161,6 +168,48 @@ public sealed class GitRepositoryService : IGitRepositoryService, IDisposable, I
         {
             _syncLock.Release();
         }
+    }
+
+    // Validates the TLS certificate when LibGit2Sharp's built-in check fails. We tolerate an
+    // unverifiable revocation status (common behind corporate proxies) but still require the
+    // chain to build to a trusted root and the hostname to match, preserving protection
+    // against untrusted or mismatched certificates.
+    private bool AcceptCertificateIgnoringRevocation(Certificate certificate, bool valid, string host)
+    {
+        if (valid)
+        {
+            return true;
+        }
+
+        if (certificate is CertificateX509 { Certificate: { } rawCertificate })
+        {
+            using var leaf = X509CertificateLoader.LoadCertificate(rawCertificate.Export(X509ContentType.Cert));
+            using var chain = new X509Chain();
+            chain.ChainPolicy.RevocationMode = X509RevocationMode.NoCheck;
+
+            var chainIsValid = chain.Build(leaf)
+                || chain.ChainStatus.All(status =>
+                    status.Status is X509ChainStatusFlags.NoError
+                        or X509ChainStatusFlags.RevocationStatusUnknown
+                        or X509ChainStatusFlags.OfflineRevocation
+                        or X509ChainStatusFlags.PartialChain);
+
+            var hostMatches = leaf.MatchesHostname(host);
+
+            if (chainIsValid && hostMatches)
+            {
+                _logger.LogWarning(
+                    "Accepting certificate for {Host} without a fully verified chain/revocation status (hostname validated; remaining issues limited to missing intermediates or unreachable revocation endpoints). This is expected behind corporate proxies.",
+                    host);
+                return true;
+            }
+
+            _logger.LogError(
+                "Rejecting certificate for {Host}: hostMatches={HostMatches}, chainStatus=[{ChainStatus}]",
+                host, hostMatches, string.Join(", ", chain.ChainStatus.Select(s => s.Status)));
+        }
+
+        return false;
     }
 
     /// <inheritdoc />

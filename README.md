@@ -243,9 +243,9 @@ docker compose down -v
 ```bash
 # MUDBLAZOR_VERSION selects the docs version to serve
 #    PowerShell:
-$env:MUDBLAZOR_VERSION = "9.0.0"; dnx MudMCP@1.0.0 --yes -- --stdio
+$env:MUDBLAZOR_VERSION = "9.0.0"; dnx MudMCP@1.0.1 --yes -- --stdio
 #    bash:
-MUDBLAZOR_VERSION=9.0.0 dnx MudMCP@1.0.0 --yes -- --stdio
+MUDBLAZOR_VERSION=9.0.0 dnx MudMCP@1.0.1 --yes -- --stdio
 ```
 
 MCP client configuration (also provided as `mcp.dnx.json` in the repo root):
@@ -255,7 +255,7 @@ MCP client configuration (also provided as `mcp.dnx.json` in the repo root):
   "mcpServers": {
     "mudblazor": {
       "command": "dnx",
-      "args": ["MudMCP@1.0.0", "--yes", "--", "--stdio"],
+      "args": ["MudMCP@1.0.1", "--yes", "--", "--stdio"],
       "env": { "MUDBLAZOR_VERSION": "9.0.0" }
     }
   }

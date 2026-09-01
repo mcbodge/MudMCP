@@ -154,16 +154,16 @@ The docs version is supplied through the `MUDBLAZOR_VERSION` environment variabl
 
 ```bash
 # PowerShell
-$env:MUDBLAZOR_VERSION = "9.0.0"; dnx MudMCP@1.0.0 --yes -- --stdio
+$env:MUDBLAZOR_VERSION = "9.0.0"; dnx MudMCP@1.0.1 --yes -- --stdio
 
 # bash
-MUDBLAZOR_VERSION=9.0.0 dnx MudMCP@1.0.0 --yes -- --stdio
+MUDBLAZOR_VERSION=9.0.0 dnx MudMCP@1.0.1 --yes -- --stdio
 ```
 
 > **Building from source?** Pack it locally and add `--source`:
 >
 > ```bash
-> dotnet pack src/MudBlazor.Mcp/MudBlazor.Mcp.csproj -c Release -o ./nupkg   # produces ./nupkg/MudMCP.1.0.0.nupkg
+> dotnet pack src/MudBlazor.Mcp/MudBlazor.Mcp.csproj -c Release -o ./nupkg   # produces ./nupkg/MudMCP.1.0.1.nupkg
 > MUDBLAZOR_VERSION=9.0.0 dnx MudMCP --source ./nupkg --yes -- --stdio
 > ```
 
