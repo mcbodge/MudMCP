@@ -97,6 +97,22 @@ Server runs at `http://localhost:8000/mcp`
 
 These Inspector examples use the local HTTP transport. For IIS deployments, use an HTTPS URL only when the configure step resolved the IIS binding protocol to `https`; otherwise use the HTTP endpoint reported for that deployment.
 
+### Option C: dnx (one-off, no install)
+
+`dnx` (bundled with the .NET 10 SDK) runs the packaged tool without a manual clone. Build a local package first, then launch it in stdio mode:
+
+```bash
+# Build the tool package once
+dotnet pack src/MudBlazor.Mcp/MudBlazor.Mcp.csproj -c Release -o ./nupkg
+
+# Launch the Inspector against the dnx-hosted server
+npx @modelcontextprotocol/inspector \
+  --command "dnx" \
+  --args "MudBlazor.Mcp --source ./nupkg --yes -- --stdio"
+```
+
+Set the docs version via the `MUDBLAZOR_VERSION` environment variable before launching (for example `export MUDBLAZOR_VERSION=9.0.0` or `$env:MUDBLAZOR_VERSION="9.0.0"`), because `dnx` reserves `--version` for the package version. Drop `--source ./nupkg` once the package is published to a feed.
+
 ---
 
 ## Connecting MCP Inspector

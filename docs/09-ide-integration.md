@@ -5,6 +5,7 @@ Configure Mud MCP for use with VS Code, Claude Desktop, and other AI assistants.
 ## Table of Contents
 
 - [Overview](#overview)
+- [Launching via dnx](#launching-via-dnx)
 - [VS Code with GitHub Copilot](#vs-code-with-github-copilot)
 - [Claude Desktop](#claude-desktop)
 - [Continue.dev](#continuedev)
@@ -24,6 +25,77 @@ Mud MCP supports two transport mechanisms:
 | **HTTP** | Web-based clients, remote access | `http://localhost:8000/mcp` |
 
 The HTTP URL shown here is the local `dotnet run` default. IIS deployments use the protocol resolved during deployment: `auto` selects HTTPS when a certificate thumbprint or existing HTTPS IIS binding is available, and otherwise uses HTTP.
+
+---
+
+## Launching via dnx
+
+`dnx` (bundled with the **.NET 10 SDK**) downloads and runs a tool package on demand — no global install and no manually cloned repo. This project is packaged as the .NET tool **`MudBlazor.Mcp`** (command `mudblazor-mcp`), so every client below can launch it the same way.
+
+### Prerequisites
+
+- **.NET 10 SDK** (provides the `dnx` command).
+- The package is not on a public feed yet, so build it locally first:
+  ```bash
+  dotnet pack src/MudBlazor.Mcp/MudBlazor.Mcp.csproj -c Release -o ./nupkg
+  ```
+  Then add `"--source", "<absolute-path>/nupkg"` to the `args` below. Use an **absolute** path — each client sets its own working directory, so a relative `./nupkg` will not resolve. Once the package is published to nuget.org (or a private feed configured in `NuGet.config`), remove the `--source` args.
+
+### Key differences from the `dotnet run` configs
+
+- The docs version is passed through the **`MUDBLAZOR_VERSION`** environment variable, because `dnx` reserves `--version` for the *package* version.
+- Everything after `--` (here `--stdio`) is forwarded to the server. You may append `"--version", "9.0.0"` there instead of the env var.
+- `dnx` runs from the client's working directory, so the ~500 MB clone lands in `./data` there. Set **`MudBlazor__Repository__DataPath`** to a fixed absolute path to share one cache across projects.
+
+### VS Code — `.vscode/mcp.json`
+
+```json
+{
+  "servers": {
+    "mudblazor-mcp": {
+      "command": "dnx",
+      "args": ["MudBlazor.Mcp@1.0.0", "--yes", "--", "--stdio"],
+      "env": {
+        "MUDBLAZOR_VERSION": "9.0.0",
+        "MudBlazor__Repository__DataPath": "C:/mud-mcp-cache"
+      }
+    }
+  }
+}
+```
+
+### Claude Desktop — `claude_desktop_config.json`
+
+```json
+{
+  "mcpServers": {
+    "mudblazor-mcp": {
+      "command": "dnx",
+      "args": ["MudBlazor.Mcp@1.0.0", "--yes", "--", "--stdio"],
+      "env": { "MUDBLAZOR_VERSION": "9.0.0" }
+    }
+  }
+}
+```
+
+### Continue.dev — `~/.continue/config.json`
+
+```json
+{
+  "experimental": {
+    "mcpServers": {
+      "mudblazor-mcp": {
+        "transport": {
+          "type": "stdio",
+          "command": "dnx",
+          "args": ["MudBlazor.Mcp@1.0.0", "--yes", "--", "--stdio"]
+        },
+        "env": { "MUDBLAZOR_VERSION": "9.0.0" }
+      }
+    }
+  }
+}
+```
 
 ---
 

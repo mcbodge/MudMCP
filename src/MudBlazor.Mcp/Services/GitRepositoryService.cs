@@ -17,7 +17,6 @@ public sealed class GitRepositoryService : IGitRepositoryService, IDisposable, I
     private readonly VersionContext _versionContext;
     private readonly IVersionCacheManager _cacheManager;
     private readonly SemaphoreSlim _syncLock = new(1, 1);
-    private Repository? _repository;
     private bool _disposed;
 
     /// <summary>
@@ -177,10 +176,6 @@ public sealed class GitRepositoryService : IGitRepositoryService, IDisposable, I
             // Delete existing repository
             if (Directory.Exists(RepositoryPath))
             {
-                // Dispose any open repository handles
-                _repository?.Dispose();
-                _repository = null;
-
                 // Delete with retry for locked files
                 await DeleteDirectoryAsync(RepositoryPath, cancellationToken).ConfigureAwait(false);
             }
@@ -192,13 +187,6 @@ public sealed class GitRepositoryService : IGitRepositoryService, IDisposable, I
 
         // Re-clone
         await EnsureRepositoryAsync(cancellationToken).ConfigureAwait(false);
-    }
-
-    /// <inheritdoc />
-    public string GetPath(string relativePath)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(relativePath);
-        return Path.Combine(RepositoryPath, relativePath.Replace('/', Path.DirectorySeparatorChar));
     }
 
     private static async Task DeleteDirectoryAsync(string path, CancellationToken cancellationToken)
@@ -238,27 +226,13 @@ public sealed class GitRepositoryService : IGitRepositoryService, IDisposable, I
             return;
 
         _disposed = true;
-        _repository?.Dispose();
         _syncLock.Dispose();
     }
 
     /// <inheritdoc />
-    public async ValueTask DisposeAsync()
+    public ValueTask DisposeAsync()
     {
-        if (_disposed)
-            return;
-
-        _disposed = true;
-        
-        await _syncLock.WaitAsync().ConfigureAwait(false);
-        try
-        {
-            _repository?.Dispose();
-        }
-        finally
-        {
-            _syncLock.Release();
-            _syncLock.Dispose();
-        }
+        Dispose();
+        return ValueTask.CompletedTask;
     }
 }

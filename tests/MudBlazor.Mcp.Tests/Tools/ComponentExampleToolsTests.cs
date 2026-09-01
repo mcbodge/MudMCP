@@ -27,7 +27,7 @@ public class ComponentExampleToolsTests
 
         // Act
         var result = await ComponentExampleTools.GetComponentExamplesAsync(
-            indexer, NullLogger, _versionContext, "MudButton", 5, null, CancellationToken.None);
+            indexer, NullLogger, _versionContext, "MudButton", 5, null, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Contains("MudButton", result);
@@ -43,7 +43,7 @@ public class ComponentExampleToolsTests
 
         // Act - simulating what happens when MCP client doesn't send maxExamples
         var result = await ComponentExampleTools.GetComponentExamplesAsync(
-            indexer, NullLogger, _versionContext, "MudButton", null, null, CancellationToken.None);
+            indexer, NullLogger, _versionContext, "MudButton", null, null, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Contains("MudButton", result);
@@ -58,7 +58,7 @@ public class ComponentExampleToolsTests
 
         // Act
         var result = await ComponentExampleTools.GetComponentExamplesAsync(
-            indexer, NullLogger, _versionContext, "MudButton", 5, "icon", CancellationToken.None);
+            indexer, NullLogger, _versionContext, "MudButton", 5, "icon", TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Contains("Icon Button", result);
@@ -73,7 +73,7 @@ public class ComponentExampleToolsTests
         // Act & Assert
         await Assert.ThrowsAsync<ModelContextProtocol.McpException>(async () =>
             await ComponentExampleTools.GetComponentExamplesAsync(
-                indexer.Object, NullLogger, _versionContext, "", 5, null, CancellationToken.None));
+                indexer.Object, NullLogger, _versionContext, "", 5, null, TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -85,7 +85,7 @@ public class ComponentExampleToolsTests
         // Act & Assert
         await Assert.ThrowsAsync<ModelContextProtocol.McpException>(async () =>
             await ComponentExampleTools.GetComponentExamplesAsync(
-                indexer.Object, NullLogger, _versionContext, null!, 5, null, CancellationToken.None));
+                indexer.Object, NullLogger, _versionContext, null!, 5, null, TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -99,7 +99,7 @@ public class ComponentExampleToolsTests
         // Act & Assert
         var ex = await Assert.ThrowsAsync<ModelContextProtocol.McpException>(async () =>
             await ComponentExampleTools.GetComponentExamplesAsync(
-                indexer.Object, NullLogger, _versionContext, "Unknown", 5, null, CancellationToken.None));
+                indexer.Object, NullLogger, _versionContext, "Unknown", 5, null, TestContext.Current.CancellationToken));
 
         Assert.Contains("not found", ex.Message);
         Assert.Contains("list_components", ex.Message);
@@ -114,7 +114,7 @@ public class ComponentExampleToolsTests
         // Act & Assert - maxExamples = 0 is out of range (min is 1)
         await Assert.ThrowsAsync<ModelContextProtocol.McpException>(async () =>
             await ComponentExampleTools.GetComponentExamplesAsync(
-                indexer, NullLogger, _versionContext, "MudButton", 0, null, CancellationToken.None));
+                indexer, NullLogger, _versionContext, "MudButton", 0, null, TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -126,7 +126,7 @@ public class ComponentExampleToolsTests
         // Act & Assert - maxExamples = 100 is out of range (max is 20)
         await Assert.ThrowsAsync<ModelContextProtocol.McpException>(async () =>
             await ComponentExampleTools.GetComponentExamplesAsync(
-                indexer, NullLogger, _versionContext, "MudButton", 100, null, CancellationToken.None));
+                indexer, NullLogger, _versionContext, "MudButton", 100, null, TestContext.Current.CancellationToken));
     }
 
     #endregion
@@ -141,7 +141,7 @@ public class ComponentExampleToolsTests
 
         // Act
         var result = await ComponentExampleTools.GetExampleByNameAsync(
-            indexer, NullLogger, _versionContext, "MudButton", "Basic Button", CancellationToken.None);
+            indexer, NullLogger, _versionContext, "MudButton", "Basic Button", TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Contains("MudButton", result);
@@ -157,7 +157,7 @@ public class ComponentExampleToolsTests
 
         // Act
         var result = await ComponentExampleTools.GetExampleByNameAsync(
-            indexer, NullLogger, _versionContext, "MudButton", "Basic", CancellationToken.None);
+            indexer, NullLogger, _versionContext, "MudButton", "Basic", TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Contains("Basic Button", result);
@@ -172,7 +172,7 @@ public class ComponentExampleToolsTests
         // Act & Assert
         var ex = await Assert.ThrowsAsync<ModelContextProtocol.McpException>(async () =>
             await ComponentExampleTools.GetExampleByNameAsync(
-                indexer, NullLogger, _versionContext, "MudButton", "NonExistent", CancellationToken.None));
+                indexer, NullLogger, _versionContext, "MudButton", "NonExistent", TestContext.Current.CancellationToken));
 
         Assert.Contains("not found", ex.Message);
     }
@@ -189,7 +189,7 @@ public class ComponentExampleToolsTests
 
         // Act
         var result = await ComponentExampleTools.ListComponentExamplesAsync(
-            indexer, NullLogger, _versionContext, "MudButton", CancellationToken.None);
+            indexer, NullLogger, _versionContext, "MudButton", TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Contains("MudButton", result);
@@ -223,7 +223,7 @@ public class ComponentExampleToolsTests
 
         // Act
         var result = await ComponentExampleTools.ListComponentExamplesAsync(
-            indexer.Object, NullLogger, _versionContext, "MudEmpty", CancellationToken.None);
+            indexer.Object, NullLogger, _versionContext, "MudEmpty", TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Contains("No examples available", result);

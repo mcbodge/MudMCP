@@ -24,7 +24,7 @@ public class ComponentListToolsTests
         var indexer = CreateMockIndexer();
 
         // Act
-        var result = await ComponentListTools.ListComponentsAsync(indexer, NullLogger, _versionContext, null, true, CancellationToken.None);
+        var result = await ComponentListTools.ListComponentsAsync(indexer, NullLogger, _versionContext, null, true, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Contains("MudButton", result);
@@ -39,7 +39,7 @@ public class ComponentListToolsTests
         var indexer = CreateMockIndexer();
 
         // Act - simulating what happens when MCP client doesn't send includeDetails
-        var result = await ComponentListTools.ListComponentsAsync(indexer, NullLogger, _versionContext, null, null, CancellationToken.None);
+        var result = await ComponentListTools.ListComponentsAsync(indexer, NullLogger, _versionContext, null, null, TestContext.Current.CancellationToken);
 
         // Assert - default is includeDetails=true, so details should be included
         Assert.Contains("MudButton", result);
@@ -53,7 +53,7 @@ public class ComponentListToolsTests
         var indexer = CreateMockIndexer();
 
         // Act
-        var result = await ComponentListTools.ListComponentsAsync(indexer, NullLogger, _versionContext, "Buttons", true, CancellationToken.None);
+        var result = await ComponentListTools.ListComponentsAsync(indexer, NullLogger, _versionContext, "Buttons", true, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Contains("MudButton", result);
@@ -73,7 +73,7 @@ public class ComponentListToolsTests
 
         // Act & Assert
         await Assert.ThrowsAsync<ModelContextProtocol.McpException>(async () =>
-            await ComponentListTools.ListComponentsAsync(indexer.Object, NullLogger, _versionContext, "Unknown", true, CancellationToken.None));
+            await ComponentListTools.ListComponentsAsync(indexer.Object, NullLogger, _versionContext, "Unknown", true, TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -83,7 +83,7 @@ public class ComponentListToolsTests
         var indexer = CreateMockIndexer();
 
         // Act
-        var result = await ComponentListTools.ListCategoriesAsync(indexer, NullLogger, _versionContext, CancellationToken.None);
+        var result = await ComponentListTools.ListCategoriesAsync(indexer, NullLogger, _versionContext, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Contains("Buttons", result);

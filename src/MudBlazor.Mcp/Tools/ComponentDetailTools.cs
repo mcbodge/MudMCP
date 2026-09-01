@@ -98,7 +98,7 @@ public sealed class ComponentDetailTools
                 var required = param.IsRequired ? " *(required)*" : "";
                 var cascading = param.IsCascading ? " *(cascading)*" : "";
                 var defaultVal = param.DefaultValue ?? "-";
-                var desc = TruncateText(param.Description, 60);
+                var desc = ToolFormatting.Truncate(param.Description, 60, collapseNewlines: true);
                 
                 sb.AppendLine($"| `{param.Name}`{required}{cascading} | `{param.Type}` | {desc} | `{defaultVal}` |");
             }
@@ -118,7 +118,7 @@ public sealed class ComponentDetailTools
                 var eventType = evt.EventArgsType is not null 
                     ? $"EventCallback<{evt.EventArgsType}>" 
                     : "EventCallback";
-                var desc = TruncateText(evt.Description, 80);
+                var desc = ToolFormatting.Truncate(evt.Description, 80, collapseNewlines: true);
                 
                 sb.AppendLine($"| `{evt.Name}` | `{eventType}` | {desc} |");
             }
@@ -368,18 +368,5 @@ public sealed class ComponentDetailTools
             "inputtype" => "Text",
             _ => "Default"
         };
-    }
-
-    private static string TruncateText(string? text, int maxLength)
-    {
-        if (string.IsNullOrEmpty(text))
-            return "-";
-
-        text = text.Replace("\n", " ").Replace("\r", "");
-        
-        if (text.Length <= maxLength)
-            return text;
-
-        return text[..(maxLength - 3)] + "...";
     }
 }

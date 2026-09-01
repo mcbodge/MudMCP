@@ -24,7 +24,7 @@ public class ApiReferenceToolsTests
     {
         // Act
         var result = await ApiReferenceTools.GetEnumValuesAsync(
-            NullLogger, _versionContext, "Color", CancellationToken.None);
+            NullLogger, _versionContext, "Color", TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Contains("Color Enum Values", result);
@@ -39,7 +39,7 @@ public class ApiReferenceToolsTests
     {
         // Act
         var result = await ApiReferenceTools.GetEnumValuesAsync(
-            NullLogger, _versionContext, "Size", CancellationToken.None);
+            NullLogger, _versionContext, "Size", TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Contains("Size Enum Values", result);
@@ -53,7 +53,7 @@ public class ApiReferenceToolsTests
     {
         // Act
         var result = await ApiReferenceTools.GetEnumValuesAsync(
-            NullLogger, _versionContext, "Variant", CancellationToken.None);
+            NullLogger, _versionContext, "Variant", TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Contains("Text", result);
@@ -66,7 +66,7 @@ public class ApiReferenceToolsTests
     {
         // Act - use lowercase
         var result = await ApiReferenceTools.GetEnumValuesAsync(
-            NullLogger, _versionContext, "color", CancellationToken.None);
+            NullLogger, _versionContext, "color", TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Contains("Primary", result);
@@ -77,7 +77,7 @@ public class ApiReferenceToolsTests
     {
         // Act & Assert
         var ex = await Assert.ThrowsAsync<ModelContextProtocol.McpException>(async () =>
-            await ApiReferenceTools.GetEnumValuesAsync(NullLogger, _versionContext, "", CancellationToken.None));
+            await ApiReferenceTools.GetEnumValuesAsync(NullLogger, _versionContext, "", TestContext.Current.CancellationToken));
 
         Assert.Contains("enumName", ex.Message);
     }
@@ -87,7 +87,7 @@ public class ApiReferenceToolsTests
     {
         // Act & Assert
         var ex = await Assert.ThrowsAsync<ModelContextProtocol.McpException>(async () =>
-            await ApiReferenceTools.GetEnumValuesAsync(NullLogger, _versionContext, null!, CancellationToken.None));
+            await ApiReferenceTools.GetEnumValuesAsync(NullLogger, _versionContext, null!, TestContext.Current.CancellationToken));
 
         Assert.Contains("enumName", ex.Message);
     }
@@ -97,7 +97,7 @@ public class ApiReferenceToolsTests
     {
         // Act & Assert
         var ex = await Assert.ThrowsAsync<ModelContextProtocol.McpException>(async () =>
-            await ApiReferenceTools.GetEnumValuesAsync(NullLogger, _versionContext, "UnknownEnum", CancellationToken.None));
+            await ApiReferenceTools.GetEnumValuesAsync(NullLogger, _versionContext, "UnknownEnum", TestContext.Current.CancellationToken));
 
         Assert.Contains("not found", ex.Message);
     }
@@ -111,7 +111,7 @@ public class ApiReferenceToolsTests
     {
         // Act
         var result = await ApiReferenceTools.GetEnumValuesAsync(
-            NullLogger, _versionContext, enumName, CancellationToken.None);
+            NullLogger, _versionContext, enumName, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(result);
@@ -124,7 +124,7 @@ public class ApiReferenceToolsTests
     {
         // Act - For any enum, the usage example should show EnumType.Value syntax
         var result = await ApiReferenceTools.GetEnumValuesAsync(
-            NullLogger, _versionContext, "AlignItems", CancellationToken.None);
+            NullLogger, _versionContext, "AlignItems", TestContext.Current.CancellationToken);
 
         // Assert - Usage example must show the enum type prefix (e.g., AlignItems.Center)
         Assert.Contains("Usage Example", result);
@@ -141,7 +141,7 @@ public class ApiReferenceToolsTests
     {
         // Act
         var result = await ApiReferenceTools.GetEnumValuesAsync(
-            NullLogger, _versionContext, enumName, CancellationToken.None);
+            NullLogger, _versionContext, enumName, TestContext.Current.CancellationToken);
 
         // Assert - Usage example must show the correct enum type prefix
         Assert.Contains(expectedPrefix, result);
@@ -159,7 +159,7 @@ public class ApiReferenceToolsTests
 
         // Act
         var result = await ApiReferenceTools.GetApiReferenceAsync(
-            indexer, NullLogger, _versionContext, "MudButton", "all", CancellationToken.None);
+            indexer, NullLogger, _versionContext, "MudButton", "all", TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Contains("MudButton", result);
@@ -177,7 +177,7 @@ public class ApiReferenceToolsTests
         // Act & Assert
         var ex = await Assert.ThrowsAsync<ModelContextProtocol.McpException>(async () =>
             await ApiReferenceTools.GetApiReferenceAsync(
-                indexer.Object, NullLogger, _versionContext, "Unknown", "all", CancellationToken.None));
+                indexer.Object, NullLogger, _versionContext, "Unknown", "all", TestContext.Current.CancellationToken));
 
         Assert.Contains("not found", ex.Message);
     }
@@ -191,7 +191,7 @@ public class ApiReferenceToolsTests
         // Act & Assert
         var ex = await Assert.ThrowsAsync<ModelContextProtocol.McpException>(async () =>
             await ApiReferenceTools.GetApiReferenceAsync(
-                indexer.Object, NullLogger, _versionContext, "", "all", CancellationToken.None));
+                indexer.Object, NullLogger, _versionContext, "", "all", TestContext.Current.CancellationToken));
 
         Assert.Contains("typeName", ex.Message);
     }
@@ -205,7 +205,7 @@ public class ApiReferenceToolsTests
         // Act & Assert
         var ex = await Assert.ThrowsAsync<ModelContextProtocol.McpException>(async () =>
             await ApiReferenceTools.GetApiReferenceAsync(
-                indexer, NullLogger, _versionContext, "MudButton", "invalid", CancellationToken.None));
+                indexer, NullLogger, _versionContext, "MudButton", "invalid", TestContext.Current.CancellationToken));
 
         Assert.Contains("memberType", ex.Message);
     }
@@ -218,7 +218,7 @@ public class ApiReferenceToolsTests
 
         // Act
         var result = await ApiReferenceTools.GetApiReferenceAsync(
-            indexer, NullLogger, _versionContext, "MudButton", "properties", CancellationToken.None);
+            indexer, NullLogger, _versionContext, "MudButton", "properties", TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Contains("Properties", result);

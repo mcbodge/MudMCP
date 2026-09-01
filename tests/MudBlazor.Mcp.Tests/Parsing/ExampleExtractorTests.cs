@@ -58,12 +58,12 @@ public class ExampleExtractorTests : IDisposable
                 }
             }
             """;
-        await File.WriteAllTextAsync(tempFile, content);
+        await File.WriteAllTextAsync(tempFile, content, TestContext.Current.CancellationToken);
 
         try
         {
             // Act
-            var result = await _extractor.ParseExampleFileAsync(tempFile, "MudButton", CancellationToken.None);
+            var result = await _extractor.ParseExampleFileAsync(tempFile, "MudButton", TestContext.Current.CancellationToken);
 
             // Assert
             Assert.NotNull(result);
@@ -86,12 +86,12 @@ public class ExampleExtractorTests : IDisposable
                 Simple Button
             </MudButton>
             """;
-        await File.WriteAllTextAsync(tempFile, content);
+        await File.WriteAllTextAsync(tempFile, content, TestContext.Current.CancellationToken);
 
         try
         {
             // Act
-            var result = await _extractor.ParseExampleFileAsync(tempFile, "MudButton", CancellationToken.None);
+            var result = await _extractor.ParseExampleFileAsync(tempFile, "MudButton", TestContext.Current.CancellationToken);
 
             // Assert
             Assert.NotNull(result);
@@ -118,12 +118,12 @@ public class ExampleExtractorTests : IDisposable
                 private void HandleClick() { }
             }
             """;
-        await File.WriteAllTextAsync(tempFile, content);
+        await File.WriteAllTextAsync(tempFile, content, TestContext.Current.CancellationToken);
 
         try
         {
             // Act
-            var result = await _extractor.ParseExampleFileAsync(tempFile, "MudButton", CancellationToken.None);
+            var result = await _extractor.ParseExampleFileAsync(tempFile, "MudButton", TestContext.Current.CancellationToken);
 
             // Assert
             Assert.NotNull(result);
@@ -148,12 +148,12 @@ public class ExampleExtractorTests : IDisposable
 
             <MudButton>Test</MudButton>
             """;
-        await File.WriteAllTextAsync(tempFile, content);
+        await File.WriteAllTextAsync(tempFile, content, TestContext.Current.CancellationToken);
 
         try
         {
             // Act
-            var result = await _extractor.ParseExampleFileAsync(tempFile, "MudButton", CancellationToken.None);
+            var result = await _extractor.ParseExampleFileAsync(tempFile, "MudButton", TestContext.Current.CancellationToken);
 
             // Assert
             Assert.NotNull(result);
@@ -171,7 +171,7 @@ public class ExampleExtractorTests : IDisposable
     public async Task ParseExampleFileAsync_NonExistentFile_ReturnsNull()
     {
         // Act
-        var result = await _extractor.ParseExampleFileAsync("/nonexistent/path.razor", "MudButton", CancellationToken.None);
+        var result = await _extractor.ParseExampleFileAsync("/nonexistent/path.razor", "MudButton", TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Null(result);
@@ -195,10 +195,10 @@ public class ExampleExtractorTests : IDisposable
             @code {
                 private bool @checked = false;
             }
-            """);
+            """, TestContext.Current.CancellationToken);
 
         // Act - pass "MudCheckBox" which strips to "CheckBox" (capital B)
-        var examples = await _extractor.ExtractExamplesAsync(tempDir, "MudCheckBox", CancellationToken.None);
+        var examples = await _extractor.ExtractExamplesAsync(tempDir, "MudCheckBox", TestContext.Current.CancellationToken);
 
         // Assert - should find the example despite casing mismatch
         Assert.Single(examples);
@@ -216,10 +216,10 @@ public class ExampleExtractorTests : IDisposable
 
         await File.WriteAllTextAsync(Path.Combine(exampleDir, "ButtonBasicExample.razor"), """
             <MudButton>Click</MudButton>
-            """);
+            """, TestContext.Current.CancellationToken);
 
         // Act
-        var examples = await _extractor.ExtractExamplesAsync(tempDir, "MudButton", CancellationToken.None);
+        var examples = await _extractor.ExtractExamplesAsync(tempDir, "MudButton", TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Single(examples);

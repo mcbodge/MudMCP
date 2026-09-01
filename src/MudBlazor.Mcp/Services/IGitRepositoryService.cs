@@ -35,11 +35,4 @@ public interface IGitRepositoryService
     /// </summary>
     /// <param name="cancellationToken">Cancellation token.</param>
     Task ForceRefreshAsync(CancellationToken cancellationToken = default);
-
-    /// <summary>
-    /// Gets the path to a specific directory within the repository.
-    /// </summary>
-    /// <param name="relativePath">Relative path from repository root.</param>
-    /// <returns>Full path to the directory.</returns>
-    string GetPath(string relativePath);
 }

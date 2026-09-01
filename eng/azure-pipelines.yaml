@@ -127,24 +127,32 @@ stages:
               projects: '**/*.csproj'
               arguments: '--configuration $(buildConfiguration) --no-restore'
 
-          # Run unit tests with code coverage
-          # IMPORTANT: Do NOT add --logger or --results-directory arguments manually.
-          # The DotNetCoreCLI@2 task with publishTestResults: true automatically adds:
-          #   --logger trx --results-directory $(Agent.TempDirectory)
-          # Adding these manually causes "expects a single argument but 2 were provided" errors.
-          - task: DotNetCoreCLI@2
-            displayName: 'Run unit tests'
+          # Run unit tests via Microsoft Testing Platform (xunit.v3).
+          # MTP mode is enabled by global.json ("test": { "runner": "Microsoft.Testing.Platform" }).
+          # Coverage (cobertura) is produced by Microsoft.Testing.Extensions.CodeCoverage and the
+          # TRX report by Microsoft.Testing.Extensions.TrxReport; both are written into
+          # $(Agent.TempDirectory)/TestResults. A raw 'dotnet test' invocation is used on purpose:
+          # the DotNetCoreCLI@2 'test' task with publishTestResults auto-injects VSTest-only
+          # '--logger trx --results-directory' arguments that MTP does not understand.
+          - pwsh: |
+              dotnet test "$(testProjectPath)" --configuration $(buildConfiguration) --no-build --coverage --coverage-output-format cobertura --coverage-output coverage.cobertura.xml --report-trx --report-trx-filename test-results.trx --results-directory "$(Agent.TempDirectory)/TestResults"
+              if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+            displayName: 'Run unit tests (MTP)'
+
+          - task: PublishTestResults@2
+            displayName: 'Publish unit test results'
+            condition: succeededOrFailed()
             inputs:
-              command: 'test'
-              projects: '$(testProjectPath)'
-              arguments: '--configuration $(buildConfiguration) --no-build --collect:"XPlat Code Coverage"'
-              publishTestResults: true
+              testResultsFormat: 'VSTest'
+              testResultsFiles: '$(Agent.TempDirectory)/TestResults/test-results.trx'
               testRunTitle: 'MudBlazor.Mcp Unit Tests'
+              failTaskOnFailedTests: true
 
           - task: PublishCodeCoverageResults@2
             displayName: 'Publish code coverage'
+            condition: succeededOrFailed()
             inputs:
-              summaryFileLocation: '$(Agent.TempDirectory)/*/coverage.cobertura.xml'
+              summaryFileLocation: '$(Agent.TempDirectory)/TestResults/coverage.cobertura.xml'
               failIfCoverageEmpty: false
 
           # Run Pester tests for PowerShell deployment scripts

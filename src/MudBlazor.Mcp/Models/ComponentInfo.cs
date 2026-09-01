@@ -33,18 +33,7 @@ public sealed record ComponentInfo(
     IReadOnlyList<string> RelatedComponents,
     string? DocumentationUrl,
     string? SourceUrl
-)
-{
-    /// <summary>
-    /// The display name for documentation (e.g., "Button" from "MudButton").
-    /// </summary>
-    public string DisplayName => Name.StartsWith("Mud") ? Name[3..] : Name;
-
-    /// <summary>
-    /// The full type name (e.g., "MudBlazor.MudButton").
-    /// </summary>
-    public string FullName => $"{Namespace}.{Name}";
-}
+);
 
 /// <summary>
 /// Represents a component parameter (property with [Parameter] attribute).
@@ -76,15 +65,7 @@ public sealed record ComponentEvent(
     string Name,
     string? EventArgsType,
     string? Description
-)
-{
-    /// <summary>
-    /// The full event callback type.
-    /// </summary>
-    public string Type => EventArgsType is not null
-        ? $"EventCallback<{EventArgsType}>"
-        : "EventCallback";
-}
+);
 
 /// <summary>
 /// Represents a public method on a component.
@@ -132,20 +113,7 @@ public sealed record ComponentExample(
     string? CSharpCode,
     string? SourceFile,
     IReadOnlyList<string> Features
-)
-{
-    /// <summary>
-    /// The complete code for this example.
-    /// </summary>
-    public string Code => string.IsNullOrEmpty(CSharpCode) 
-        ? RazorMarkup ?? "" 
-        : $"{RazorMarkup}\n\n@code {{\n{CSharpCode}\n}}";
-
-    /// <summary>
-    /// Display title for the example.
-    /// </summary>
-    public string Title => Name;
-};
+);
 
 /// <summary>
 /// Represents a component category.
@@ -159,13 +127,7 @@ public sealed record ComponentCategory(
     string? Title,
     string? Description,
     IReadOnlyList<string> ComponentNames
-)
-{
-    /// <summary>
-    /// Alias for ComponentNames for backward compatibility.
-    /// </summary>
-    public IReadOnlyList<string> Components => ComponentNames;
-};
+);
 
 /// <summary>
 /// Represents API reference for an enum, class, or interface.
@@ -175,39 +137,12 @@ public sealed record ComponentCategory(
 /// <param name="Summary">Description of this type.</param>
 /// <param name="BaseType">The base type if applicable.</param>
 /// <param name="Members">For classes/interfaces: the members.</param>
-/// <param name="Kind">The kind of type (enum, class, interface, struct). Defaults to "class".</param>
-/// <param name="EnumValues">For enums: the enum values.</param>
 public sealed record ApiReference(
     string TypeName,
     string? Namespace,
     string? Summary,
     string? BaseType,
-    IReadOnlyList<ApiMember>? Members,
-    string Kind = "class",
-    IReadOnlyList<EnumValue>? EnumValues = null
-)
-{
-    /// <summary>
-    /// The simple type name.
-    /// </summary>
-    public string Name => TypeName;
-
-    /// <summary>
-    /// The full type name with namespace.
-    /// </summary>
-    public string FullName => Namespace is not null ? $"{Namespace}.{TypeName}" : TypeName;
-}
-
-/// <summary>
-/// Represents an enum value.
-/// </summary>
-/// <param name="Name">The enum value name.</param>
-/// <param name="Value">The numeric value.</param>
-/// <param name="Description">Description of this value.</param>
-public sealed record EnumValue(
-    string Name,
-    string? Value,
-    string? Description
+    IReadOnlyList<ApiMember>? Members
 );
 
 /// <summary>

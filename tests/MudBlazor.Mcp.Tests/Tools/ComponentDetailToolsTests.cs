@@ -25,7 +25,7 @@ public class ComponentDetailToolsTests
 
         // Act
         var result = await ComponentDetailTools.GetComponentDetailAsync(
-            indexer, NullLogger, _versionContext, "MudButton", false, true, CancellationToken.None);
+            indexer, NullLogger, _versionContext, "MudButton", false, true, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Contains("MudButton", result);
@@ -45,7 +45,7 @@ public class ComponentDetailToolsTests
         // Act & Assert
         var ex = await Assert.ThrowsAsync<ModelContextProtocol.McpException>(async () =>
             await ComponentDetailTools.GetComponentDetailAsync(
-                indexer.Object, NullLogger, _versionContext, "Unknown", false, true, CancellationToken.None));
+                indexer.Object, NullLogger, _versionContext, "Unknown", false, true, TestContext.Current.CancellationToken));
 
         Assert.Contains("not found", ex.Message);
         Assert.Contains("list_components", ex.Message);
@@ -59,7 +59,7 @@ public class ComponentDetailToolsTests
 
         // Act
         var result = await ComponentDetailTools.GetComponentDetailAsync(
-            indexer, NullLogger, _versionContext, "MudButton", false, true, CancellationToken.None);
+            indexer, NullLogger, _versionContext, "MudButton", false, true, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Contains("Examples", result);
@@ -74,7 +74,7 @@ public class ComponentDetailToolsTests
 
         // Act - simulating what happens when MCP client doesn't send optional parameters
         var result = await ComponentDetailTools.GetComponentDetailAsync(
-            indexer, NullLogger, _versionContext, "MudButton", null, null, CancellationToken.None);
+            indexer, NullLogger, _versionContext, "MudButton", null, null, TestContext.Current.CancellationToken);
 
         // Assert - default is includeExamples=true, so examples should be included
         Assert.Contains("MudButton", result);
@@ -89,7 +89,7 @@ public class ComponentDetailToolsTests
 
         // Act
         var result = await ComponentDetailTools.GetComponentParametersAsync(
-            indexer, NullLogger, _versionContext, "MudButton", null, CancellationToken.None);
+            indexer, NullLogger, _versionContext, "MudButton", null, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Contains("Color", result);
@@ -104,7 +104,7 @@ public class ComponentDetailToolsTests
 
         // Act
         var result = await ComponentDetailTools.GetComponentParametersAsync(
-            indexer, NullLogger, _versionContext, "MudStack", null, CancellationToken.None);
+            indexer, NullLogger, _versionContext, "MudStack", null, TestContext.Current.CancellationToken);
 
         // Assert - Bool parameters should show usage hint with true/false
         Assert.Contains("Row", result);
@@ -120,7 +120,7 @@ public class ComponentDetailToolsTests
 
         // Act
         var result = await ComponentDetailTools.GetComponentParametersAsync(
-            indexer, NullLogger, _versionContext, "MudStack", null, CancellationToken.None);
+            indexer, NullLogger, _versionContext, "MudStack", null, TestContext.Current.CancellationToken);
 
         // Assert - Enum parameters should show usage hint with enum type prefix
         Assert.Contains("AlignItems", result);

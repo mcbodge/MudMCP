@@ -108,44 +108,6 @@ public sealed partial class XmlDocParser
         };
     }
 
-    /// <summary>
-    /// Parses an enum type and extracts its values.
-    /// </summary>
-    /// <param name="filePath">The path to the enum source file.</param>
-    /// <returns>The enum parse result, or null if the file doesn't exist or contains no enum.</returns>
-    public EnumParseResult? ParseEnumFile(string filePath)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
-
-        if (!File.Exists(filePath))
-            return null;
-
-        var sourceCode = File.ReadAllText(filePath);
-        var syntaxTree = CSharpSyntaxTree.ParseText(sourceCode);
-        var root = syntaxTree.GetRoot();
-
-        var enumDeclaration = root.DescendantNodes()
-            .OfType<EnumDeclarationSyntax>()
-            .FirstOrDefault();
-
-        if (enumDeclaration is null)
-            return null;
-
-        var values = enumDeclaration.Members.Select(m => new EnumValue(
-            Name: m.Identifier.Text,
-            Value: m.EqualsValue?.Value.ToString(),
-            Description: ExtractSummaryFromTrivia(m)
-        )).ToList();
-
-        return new EnumParseResult
-        {
-            EnumName = enumDeclaration.Identifier.Text,
-            Namespace = ExtractNamespace(root),
-            Values = values,
-            Summary = ExtractSummaryFromTrivia(enumDeclaration)
-        };
-    }
-
     private XmlDocumentation ExtractXmlDocumentation(MemberDeclarationSyntax member)
     {
         var trivia = member.GetLeadingTrivia()
@@ -166,20 +128,6 @@ public sealed partial class XmlDocParser
             Summary = CleanXmlContent(summary),
             Remarks = CleanXmlContent(remarks)
         };
-    }
-
-    private string? ExtractSummaryFromTrivia(MemberDeclarationSyntax member)
-    {
-        var trivia = member.GetLeadingTrivia()
-            .Select(t => t.GetStructure())
-            .OfType<DocumentationCommentTriviaSyntax>()
-            .FirstOrDefault();
-
-        if (trivia is null)
-            return null;
-
-        var summary = ExtractXmlElement(trivia, "summary");
-        return CleanXmlContent(summary);
     }
 
     private static string? ExtractXmlElement(DocumentationCommentTriviaSyntax trivia, string elementName)
@@ -394,17 +342,6 @@ public record ComponentParseResult
     public List<ComponentParameter> Parameters { get; init; } = [];
     public List<ComponentEvent> Events { get; init; } = [];
     public List<ComponentMethod> Methods { get; init; } = [];
-}
-
-/// <summary>
-/// Result of parsing an enum file.
-/// </summary>
-public record EnumParseResult
-{
-    public required string EnumName { get; init; }
-    public string? Namespace { get; init; }
-    public string? Summary { get; init; }
-    public List<EnumValue> Values { get; init; } = [];
 }
 
 /// <summary>

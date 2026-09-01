@@ -33,7 +33,7 @@ Mud MCP follows these testing principles:
 
 | Package | Purpose |
 |---------|---------|
-| **xUnit** | Test framework and assertions |
+| **xUnit.net v3** | Test framework and assertions (runs on Microsoft Testing Platform) |
 | **Moq** | Mocking framework for interfaces |
 | **Microsoft.Extensions.Logging.Abstractions** | `NullLogger<T>` for testing |
 
@@ -41,10 +41,11 @@ Mud MCP follows these testing principles:
 
 ```xml
 <PackageReference Include="Microsoft.NET.Test.Sdk" />
-<PackageReference Include="xunit" />
+<PackageReference Include="xunit.v3" />
 <PackageReference Include="xunit.runner.visualstudio" />
 <PackageReference Include="Moq" />
-<PackageReference Include="coverlet.collector" />
+<PackageReference Include="Microsoft.Testing.Extensions.CodeCoverage" />
+<PackageReference Include="Microsoft.Testing.Extensions.TrxReport" />
 ```
 
 ---
@@ -62,8 +63,7 @@ tests/
     │   ├── ComponentExampleToolsTests.cs
     │   └── ApiReferenceToolsTests.cs
     ├── Services/
-    │   ├── ComponentIndexerTests.cs
-    │   └── DocumentationCacheTests.cs
+    │   └── ComponentIndexerTests.cs
     └── Parsing/
         ├── XmlDocParserTests.cs
         ├── RazorDocParserTests.cs
@@ -88,13 +88,13 @@ dotnet test --verbosity normal
 dotnet test tests/MudBlazor.Mcp.Tests
 
 # Run specific test class
-dotnet test --filter "FullyQualifiedName~ComponentListToolsTests"
+dotnet test --filter-class "*ComponentListToolsTests"
 
 # Run specific test method
-dotnet test --filter "FullyQualifiedName~ListComponentsAsync_ReturnsAllComponents"
+dotnet test --filter-method "*ListComponentsAsync_ReturnsAllComponents*"
 
-# Run with code coverage
-dotnet test --collect:"XPlat Code Coverage"
+# Run with code coverage (cobertura output under TestResults/)
+dotnet test --coverage --coverage-output-format cobertura
 ```
 
 ### Visual Studio / Rider
@@ -296,7 +296,6 @@ public class ComponentIndexerTests
         gitService.Setup(x => x.EnsureRepositoryAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(false);
 
-        var cache = new Mock<IDocumentationCache>();
         var xmlParser = new XmlDocParser(NullLogger<XmlDocParser>.Instance);
         var razorParser = new RazorDocParser(NullLogger<RazorDocParser>.Instance);
         var exampleExtractor = new ExampleExtractor(NullLogger<ExampleExtractor>.Instance);
@@ -306,7 +305,6 @@ public class ComponentIndexerTests
 
         var indexer = new ComponentIndexer(
             gitService.Object,
-            cache.Object,
             xmlParser,
             razorParser,
             exampleExtractor,
@@ -347,57 +345,6 @@ public class ComponentIndexerTests
         // Assert
         Assert.NotNull(result);
         Assert.Equal("MudButton", result.Name);
-    }
-}
-```
-
-### Testing DocumentationCache
-
-```csharp
-public class DocumentationCacheTests
-{
-    [Fact]
-    public async Task GetOrCreateAsync_WithCachedValue_ReturnsCached()
-    {
-        // Arrange
-        var memoryCache = new MemoryCache(new MemoryCacheOptions());
-        var options = Options.Create(new CacheOptions
-        {
-            ComponentCacheDurationMinutes = 30
-        });
-        var logger = NullLogger<DocumentationCache>.Instance;
-        var cache = new DocumentationCache(memoryCache, options, logger);
-
-        var component = CreateTestComponent("MudButton");
-        await cache.SetComponentAsync("MudButton", component);
-
-        // Act
-        var result = await cache.GetComponentAsync("MudButton");
-
-        // Assert
-        Assert.NotNull(result);
-        Assert.Equal("MudButton", result.Name);
-    }
-
-    [Fact]
-    public async Task GetComponentAsync_WithExpiredCache_ReturnsNull()
-    {
-        // Arrange with very short expiration for testing
-        var memoryCache = new MemoryCache(new MemoryCacheOptions());
-        var options = Options.Create(new CacheOptions
-        {
-            ComponentCacheDurationMinutes = 0,
-            SlidingExpirationMinutes = 0,
-            AbsoluteExpirationMinutes = 0
-        });
-        var logger = NullLogger<DocumentationCache>.Instance;
-        var cache = new DocumentationCache(memoryCache, options, logger);
-
-        // Act
-        var result = await cache.GetComponentAsync("MudButton");
-
-        // Assert
-        Assert.Null(result);
     }
 }
 ```
