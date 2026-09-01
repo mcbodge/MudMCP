@@ -109,42 +109,6 @@ Controls how the MudBlazor repository is cloned and updated.
 
 ---
 
-## Cache Options
-
-Controls caching behavior for parsed documentation.
-
-```json
-{
-  "MudBlazor": {
-    "Cache": {
-      "RefreshIntervalMinutes": 60,
-      "ComponentCacheDurationMinutes": 30,
-      "ExampleCacheDurationMinutes": 120,
-      "SlidingExpirationMinutes": 60,
-      "AbsoluteExpirationMinutes": 1440
-    }
-  }
-}
-```
-
-### Options Reference
-
-| Option | Type | Default | Description |
-|--------|------|---------|-------------|
-| `RefreshIntervalMinutes` | int | `60` | Auto-refresh interval |
-| `ComponentCacheDurationMinutes` | int | `30` | Component cache TTL |
-| `ExampleCacheDurationMinutes` | int | `120` | Example cache TTL |
-| `SlidingExpirationMinutes` | int | `60` | Sliding expiration |
-| `AbsoluteExpirationMinutes` | int | `1440` | Max cache lifetime |
-
-### Cache Behavior
-
-- **Sliding expiration**: Cache expires if not accessed within this period
-- **Absolute expiration**: Cache expires regardless of access (max 24 hours default)
-- **Auto-refresh**: Background refresh of repository (if implemented)
-
----
-
 ## Parsing Options
 
 Controls what gets indexed and how.
@@ -398,10 +362,6 @@ ENV Logging__LogLevel__Default=Warning
     "Repository": {
       "Branch": "main",
       "LocalPath": "/app/data/mudblazor-repo"
-    },
-    "Cache": {
-      "RefreshIntervalMinutes": 120,
-      "AbsoluteExpirationMinutes": 2880
     },
     "Parsing": {
       "IncludeInternalComponents": false,

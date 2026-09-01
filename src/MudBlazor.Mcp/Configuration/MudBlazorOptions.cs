@@ -19,11 +19,6 @@ public sealed class MudBlazorOptions
     public RepositoryOptions Repository { get; set; } = new();
 
     /// <summary>
-    /// Cache configuration options.
-    /// </summary>
-    public CacheOptions Cache { get; set; } = new();
-
-    /// <summary>
     /// Parsing configuration options.
     /// </summary>
     public ParsingOptions Parsing { get; set; } = new();
@@ -48,37 +43,6 @@ public sealed class RepositoryOptions
     /// Maximum number of cached repository versions to keep on disk.
     /// </summary>
     public int MaxCachedVersions { get; set; } = 3;
-}
-
-/// <summary>
-/// Configuration for documentation caching.
-/// </summary>
-public sealed class CacheOptions
-{
-    /// <summary>
-    /// Interval in minutes between automatic cache refreshes.
-    /// </summary>
-    public int RefreshIntervalMinutes { get; set; } = 60;
-
-    /// <summary>
-    /// Duration in minutes to cache component documentation.
-    /// </summary>
-    public int ComponentCacheDurationMinutes { get; set; } = 30;
-
-    /// <summary>
-    /// Duration in minutes to cache code examples.
-    /// </summary>
-    public int ExampleCacheDurationMinutes { get; set; } = 120;
-
-    /// <summary>
-    /// Sliding expiration in minutes - cache expires if not accessed within this time.
-    /// </summary>
-    public int SlidingExpirationMinutes { get; set; } = 60;
-
-    /// <summary>
-    /// Absolute expiration in minutes - cache expires after this time regardless of access.
-    /// </summary>
-    public int AbsoluteExpirationMinutes { get; set; } = 1440; // 24 hours
 }
 
 /// <summary>

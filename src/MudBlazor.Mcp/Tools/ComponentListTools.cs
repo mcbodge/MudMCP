@@ -90,7 +90,7 @@ public sealed class ComponentListTools
             {
                 if (effectiveIncludeDetails)
                 {
-                    sb.AppendLine($"- **{component.Name}**: {TruncateText(component.Summary, 80)}");
+                    sb.AppendLine($"- **{component.Name}**: {ToolFormatting.Truncate(component.Summary, 80, "No description available")}");
                     sb.AppendLine($"  - Parameters: {component.Parameters.Count}, Events: {component.Events.Count}, Examples: {component.Examples.Count}");
                 }
                 else
@@ -153,16 +153,5 @@ public sealed class ComponentListTools
         sb.AppendLine("*Use `list_components` with a category filter to see components in a specific category.*");
 
         return sb.ToString();
-    }
-
-    private static string TruncateText(string? text, int maxLength)
-    {
-        if (string.IsNullOrEmpty(text))
-            return "No description available";
-
-        if (text.Length <= maxLength)
-            return text;
-
-        return text[..(maxLength - 3)] + "...";
     }
 }

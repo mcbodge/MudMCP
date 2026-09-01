@@ -50,7 +50,7 @@ This document provides a deep technical dive into the Mud MCP architecture, incl
 │  ┌─────────────────────────────────────────────────────────────────┐   │
 │  │                     Service Layer                                 │   │
 │  │                    ComponentIndexer                               │   │
-│  │         IDocumentationCache │ IGitRepositoryService              │   │
+│  │        IVersionCacheManager │ IGitRepositoryService              │   │
 │  └─────────────────────────────────────────────────────────────────┘   │
 │                                 │                                       │
 │  ┌─────────────────────────────────────────────────────────────────┐   │
@@ -138,7 +138,7 @@ Business logic and data management:
 | Service | Responsibility |
 |---------|----------------|
 | `IComponentIndexer` | Builds and queries the component index |
-| `IDocumentationCache` | Caches parsed documentation |
+| `IVersionCacheManager` | LRU cache of per-version repo clones and indexes |
 | `IGitRepositoryService` | Manages Git operations |
 
 ### Parsing Layer
@@ -480,29 +480,6 @@ private readonly ConcurrentDictionary<string, ComponentInfo> _components;
 - Thread-safe for concurrent reads
 - Rebuilt on server restart
 - ~85 components, minimal memory footprint
-
-### Documentation Cache
-
-`IDocumentationCache` provides additional caching:
-
-```csharp
-public interface IDocumentationCache
-{
-    Task<T?> GetOrCreateAsync<T>(string key, Func<Task<T>> factory, TimeSpan? expiration = null);
-    void Remove(string key);
-    void Clear();
-}
-```
-
-**Configuration:**
-```json
-{
-  "Cache": {
-    "SlidingExpirationMinutes": 60,
-    "AbsoluteExpirationMinutes": 1440
-  }
-}
-```
 
 ---
 

@@ -71,21 +71,15 @@ public sealed partial class RazorDocParser
         ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
 
         var componentName = ExtractComponentName(filePath);
-        var title = ExtractPageTitle(content);
         var description = ExtractSubTitle(content);
-        var sections = ExtractSections(content);
         var relatedComponents = ExtractRelatedComponents(content);
-        var usageNotes = ExtractUsageNotes(content);
 
         return new RazorDocResult
         {
             FilePath = filePath,
             ComponentName = componentName,
-            Title = title,
             Description = description,
-            Sections = sections,
-            RelatedComponents = relatedComponents,
-            UsageNotes = usageNotes
+            RelatedComponents = relatedComponents
         };
     }
 
@@ -103,13 +97,6 @@ public sealed partial class RazorDocParser
         return null;
     }
 
-    private static string? ExtractPageTitle(string content)
-    {
-        // Match: <DocsPage title="Button">
-        var match = TitleAttributeRegex().Match(content);
-        return match.Success ? match.Groups[1].Value : null;
-    }
-
     private static string? ExtractSubTitle(string content)
     {
         // Match: <DocsPageHeader Title="..." SubTitle="...">
@@ -120,50 +107,6 @@ public sealed partial class RazorDocParser
         // Alternative: <MudText> in header section
         match = HeaderTextRegex().Match(content);
         return match.Success ? match.Groups[1].Value : null;
-    }
-
-    private List<DocumentationSection> ExtractSections(string content)
-    {
-        var sections = new List<DocumentationSection>();
-
-        // Match DocsPageSection components
-        var sectionMatches = DocsSectionRegex().Matches(content);
-        
-        foreach (Match match in sectionMatches)
-        {
-            var title = match.Groups[1].Value;
-            var sectionContent = match.Groups[2].Value;
-
-            sections.Add(new DocumentationSection
-            {
-                Title = title,
-                Content = ExtractTextContent(sectionContent),
-                HasExample = sectionContent.Contains("SectionSource") || 
-                            sectionContent.Contains("Example")
-            });
-        }
-
-        return sections;
-    }
-
-    private static string ExtractTextContent(string razorContent)
-    {
-        // Remove Razor markup and extract readable text
-        var text = razorContent;
-        
-        // Remove component tags
-        text = ComponentTagRegex().Replace(text, "");
-        
-        // Remove code blocks
-        text = CodeBlockRegex().Replace(text, "");
-        
-        // Remove @ directives
-        text = DirectiveRegex().Replace(text, "");
-        
-        // Clean up whitespace
-        text = WhitespaceRegex().Replace(text, " ");
-        
-        return text.Trim();
     }
 
     private static List<string> ExtractRelatedComponents(string content)
@@ -194,56 +137,17 @@ public sealed partial class RazorDocParser
         return related.ToList();
     }
 
-    private static List<string> ExtractUsageNotes(string content)
-    {
-        var notes = new List<string>();
-
-        // Extract MudAlert content (often used for important notes)
-        var alertMatches = AlertContentRegex().Matches(content);
-        foreach (Match match in alertMatches)
-        {
-            var alertText = ExtractTextContent(match.Groups[1].Value);
-            if (!string.IsNullOrWhiteSpace(alertText))
-            {
-                notes.Add(alertText);
-            }
-        }
-
-        return notes;
-    }
-
-    [GeneratedRegex(@"Title\s*=\s*""([^""]+)""", RegexOptions.IgnoreCase)]
-    private static partial Regex TitleAttributeRegex();
-
     [GeneratedRegex(@"SubTitle\s*=\s*""([^""]+)""", RegexOptions.IgnoreCase)]
     private static partial Regex SubTitleAttributeRegex();
 
     [GeneratedRegex(@"<MudText[^>]*>\s*([^<]+)\s*</MudText>")]
     private static partial Regex HeaderTextRegex();
 
-    [GeneratedRegex(@"<DocsPageSection\s+Title\s*=\s*""([^""]+)""[^>]*>(.*?)</DocsPageSection>", RegexOptions.Singleline)]
-    private static partial Regex DocsSectionRegex();
-
-    [GeneratedRegex(@"<[A-Z][^>]*>.*?</[A-Z][^>]*>|<[A-Z][^/]*/>", RegexOptions.Singleline)]
-    private static partial Regex ComponentTagRegex();
-
-    [GeneratedRegex(@"<code>.*?</code>|@\{.*?\}", RegexOptions.Singleline)]
-    private static partial Regex CodeBlockRegex();
-
-    [GeneratedRegex(@"@[a-zA-Z]+(\.[a-zA-Z]+)*")]
-    private static partial Regex DirectiveRegex();
-
-    [GeneratedRegex(@"\s+")]
-    private static partial Regex WhitespaceRegex();
-
     [GeneratedRegex(@"href\s*=\s*""/components/([^""]+)""", RegexOptions.IgnoreCase)]
     private static partial Regex ComponentLinkRegex();
 
     [GeneratedRegex(@"<(Mud[A-Z][a-zA-Z]+)")]
     private static partial Regex MudComponentRefRegex();
-
-    [GeneratedRegex(@"<MudAlert[^>]*>(.*?)</MudAlert>", RegexOptions.Singleline)]
-    private static partial Regex AlertContentRegex();
 }
 
 /// <summary>
@@ -253,19 +157,6 @@ public record RazorDocResult
 {
     public required string FilePath { get; init; }
     public string? ComponentName { get; init; }
-    public string? Title { get; init; }
     public string? Description { get; init; }
-    public List<DocumentationSection> Sections { get; init; } = [];
     public List<string> RelatedComponents { get; init; } = [];
-    public List<string> UsageNotes { get; init; } = [];
-}
-
-/// <summary>
-/// A section in the documentation.
-/// </summary>
-public record DocumentationSection
-{
-    public required string Title { get; init; }
-    public string? Content { get; init; }
-    public bool HasExample { get; init; }
 }

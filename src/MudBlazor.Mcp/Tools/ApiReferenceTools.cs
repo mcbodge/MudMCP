@@ -103,7 +103,7 @@ public sealed class ApiReferenceTools
             
             foreach (var prop in properties.OrderBy(p => p.Name))
             {
-                var desc = TruncateText(prop.Description, 60);
+                var desc = ToolFormatting.Truncate(prop.Description, 60, collapseNewlines: true);
                 sb.AppendLine($"| `{prop.Name}` | `{prop.ReturnType}` | {desc} |");
             }
             sb.AppendLine();
@@ -119,7 +119,7 @@ public sealed class ApiReferenceTools
             
             foreach (var evt in events.OrderBy(e => e.Name))
             {
-                var desc = TruncateText(evt.Description, 60);
+                var desc = ToolFormatting.Truncate(evt.Description, 60, collapseNewlines: true);
                 sb.AppendLine($"| `{evt.Name}` | `{evt.ReturnType}` | {desc} |");
             }
             sb.AppendLine();
@@ -321,18 +321,5 @@ public sealed class ApiReferenceTools
             ],
             _ => null
         };
-    }
-
-    private static string TruncateText(string? text, int maxLength)
-    {
-        if (string.IsNullOrEmpty(text))
-            return "-";
-
-        text = text.Replace("\n", " ").Replace("\r", "");
-        
-        if (text.Length <= maxLength)
-            return text;
-
-        return text[..(maxLength - 3)] + "...";
     }
 }

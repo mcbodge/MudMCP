@@ -99,11 +99,7 @@ if (useStdio)
     // All logs must go to stderr so stdout remains clean for MCP protocol frames.
     var builder = Host.CreateApplicationBuilder(filteredArgs);
 
-    builder.Logging.ClearProviders();
-    builder.Logging.AddConsole(options =>
-    {
-        options.LogToStandardErrorThreshold = LogLevel.Trace;
-    });
+    ConfigureLogging(builder.Logging);
 
     RegisterCoreServices(builder.Services, builder.Configuration, mudBlazorVersion);
 
@@ -127,11 +123,7 @@ else
     // HTTP mode: full ASP.NET Core web host with health checks and streamable HTTP transport.
     var builder = WebApplication.CreateBuilder(filteredArgs);
 
-    builder.Logging.ClearProviders();
-    builder.Logging.AddConsole(options =>
-    {
-        options.LogToStandardErrorThreshold = LogLevel.Trace;
-    });
+    ConfigureLogging(builder.Logging);
 
     RegisterCoreServices(builder.Services, builder.Configuration, mudBlazorVersion);
 
@@ -202,15 +194,21 @@ static string[] StripCustomArgs(string[] args)
     return [.. filtered];
 }
 
+static void ConfigureLogging(ILoggingBuilder logging)
+{
+    // All logs go to stderr so stdout stays clean for MCP protocol frames in stdio mode.
+    logging.ClearProviders();
+    logging.AddConsole(options => options.LogToStandardErrorThreshold = LogLevel.Trace);
+}
+
 static void RegisterCoreServices(IServiceCollection services, IConfiguration configuration, string version)
 {
-    services.Configure<MudBlazorOptions>(configuration.GetSection("MudBlazor"));
-    services.Configure<RepositoryOptions>(configuration.GetSection("MudBlazor:Repository"));
-    services.Configure<CacheOptions>(configuration.GetSection("MudBlazor:Cache"));
-    services.Configure<ParsingOptions>(configuration.GetSection("MudBlazor:Parsing"));
+    services.Configure<MudBlazorOptions>(configuration.GetSection(MudBlazorOptions.SectionName));
+    services.Configure<RepositoryOptions>(configuration.GetSection($"{MudBlazorOptions.SectionName}:Repository"));
+    services.Configure<ParsingOptions>(configuration.GetSection($"{MudBlazorOptions.SectionName}:Parsing"));
 
     // Read config to derive shared data path
-    var repoOptions = configuration.GetSection("MudBlazor:Repository").Get<RepositoryOptions>() ?? new RepositoryOptions();
+    var repoOptions = configuration.GetSection($"{MudBlazorOptions.SectionName}:Repository").Get<RepositoryOptions>() ?? new RepositoryOptions();
     services.AddSingleton(new VersionContext(version, repoOptions.DataPath));
     services.AddSingleton<IVersionCacheManager>(sp =>
         new VersionCacheManager(
@@ -218,10 +216,7 @@ static void RegisterCoreServices(IServiceCollection services, IConfiguration con
             repoOptions.MaxCachedVersions,
             logger: sp.GetRequiredService<ILogger<VersionCacheManager>>()));
 
-    services.AddMemoryCache();
-
     services.AddSingleton<IGitRepositoryService, GitRepositoryService>();
-    services.AddSingleton<IDocumentationCache, DocumentationCache>();
     services.AddSingleton<IComponentIndexer, ComponentIndexer>();
 
     services.AddSingleton<XmlDocParser>();

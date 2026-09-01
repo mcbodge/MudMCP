@@ -496,7 +496,6 @@ public sealed class MudBlazorOptions
     public const string SectionName = "MudBlazor";
     
     public RepositoryOptions Repository { get; set; } = new();
-    public CacheOptions Cache { get; set; } = new();
     public ParsingOptions Parsing { get; set; } = new();
 }
 

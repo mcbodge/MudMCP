@@ -44,20 +44,6 @@ internal static class ToolValidation
     }
 
     /// <summary>
-    /// Validates that a number is positive (greater than zero).
-    /// </summary>
-    /// <param name="value">The value to validate.</param>
-    /// <param name="parameterName">The parameter name for the error message.</param>
-    /// <exception cref="McpException">Thrown when the value is not positive.</exception>
-    public static void RequirePositive(int value, string parameterName)
-    {
-        if (value <= 0)
-        {
-            throw new McpException($"Parameter '{parameterName}' must be greater than zero. Got: {value}");
-        }
-    }
-
-    /// <summary>
     /// Validates that a value is one of the allowed options (case-insensitive).
     /// </summary>
     /// <param name="value">The value to validate.</param>

@@ -525,17 +525,6 @@ Alternatively append the flag after the separator: `dnx MudBlazor.Mcp --yes -- -
    dotnet publish -c Release -r win-x64 --self-contained
    ```
 
-3. **Increase cache duration:**
-   ```json
-   {
-     "MudBlazor": {
-       "Cache": {
-         "AbsoluteExpirationMinutes": 2880
-       }
-     }
-   }
-   ```
-
 ### Issue: High memory usage
 
 **Solutions:**
