@@ -435,7 +435,7 @@ Or use short paths:
 
 ## dnx Issues
 
-Issues specific to launching the packaged tool with `dnx MudBlazor.Mcp`.
+Issues specific to launching the packaged tool with `dnx MudMCP`.
 
 ### Issue: `dnx` command not found
 
@@ -452,11 +452,11 @@ dotnet --version   # must report 10.0.xxx
 # Install the .NET 10 SDK if missing: https://dotnet.microsoft.com/download/dotnet/10.0
 ```
 
-### Issue: Package `MudBlazor.Mcp` could not be found
+### Issue: Package `MudMCP` could not be found
 
 **Error:**
 ```
-error NU1101: Unable to find package MudBlazor.Mcp. No packages exist with this id...
+error NU1101: Unable to find package MudMCP. No packages exist with this id...
 ```
 
 **Cause:** The package is not published to a public feed yet, so `dnx` cannot restore it from nuget.org.
@@ -465,7 +465,7 @@ error NU1101: Unable to find package MudBlazor.Mcp. No packages exist with this 
 
 ```bash
 dotnet pack src/MudBlazor.Mcp/MudBlazor.Mcp.csproj -c Release -o ./nupkg
-dnx MudBlazor.Mcp --source C:/Mapei/MudBlazor/Mcp/MudBlazor.Mcp/nupkg --yes -- --stdio
+dnx MudMCP --source C:/Mapei/MudBlazor/Mcp/MudBlazor.Mcp/nupkg --yes -- --stdio
 ```
 
 Once the package is published (nuget.org or a private feed in `NuGet.config`), remove `--source`.
@@ -480,13 +480,13 @@ Once the package is published (nuget.org or a private feed in `NuGet.config`), r
 
 ```bash
 # PowerShell
-$env:MUDBLAZOR_VERSION = "9.0.0"; dnx MudBlazor.Mcp --yes -- --stdio
+$env:MUDBLAZOR_VERSION = "9.0.0"; dnx MudMCP --yes -- --stdio
 
 # bash
-MUDBLAZOR_VERSION=9.0.0 dnx MudBlazor.Mcp --yes -- --stdio
+MUDBLAZOR_VERSION=9.0.0 dnx MudMCP --yes -- --stdio
 ```
 
-Alternatively append the flag after the separator: `dnx MudBlazor.Mcp --yes -- --stdio --version 9.0.0`.
+Alternatively append the flag after the separator: `dnx MudMCP --yes -- --stdio --version 9.0.0`.
 
 ### Issue: `data/` clone appears in an unexpected folder
 

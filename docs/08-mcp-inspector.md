@@ -108,7 +108,7 @@ dotnet pack src/MudBlazor.Mcp/MudBlazor.Mcp.csproj -c Release -o ./nupkg
 # Launch the Inspector against the dnx-hosted server
 npx @modelcontextprotocol/inspector \
   --command "dnx" \
-  --args "MudBlazor.Mcp --source ./nupkg --yes -- --stdio"
+  --args "MudMCP --source ./nupkg --yes -- --stdio"
 ```
 
 Set the docs version via the `MUDBLAZOR_VERSION` environment variable before launching (for example `export MUDBLAZOR_VERSION=9.0.0` or `$env:MUDBLAZOR_VERSION="9.0.0"`), because `dnx` reserves `--version` for the package version. Drop `--source ./nupkg` once the package is published to a feed.

@@ -238,7 +238,7 @@ docker compose down -v
 
 ### Option D — dnx (one-off, no install)
 
-[`dnx`](https://learn.microsoft.com/dotnet/core/tools/dotnet-tool-exec) ships with the .NET 10 SDK and downloads + runs a tool package on demand — no global install and no manually cloned repo. This project is packaged as the .NET tool **`MudBlazor.Mcp`** (command `mudblazor-mcp`).
+[`dnx`](https://learn.microsoft.com/dotnet/core/tools/dotnet-tool-exec) ships with the .NET 10 SDK and downloads + runs a tool package on demand — no global install and no manually cloned repo. This project is packaged as the .NET tool **`MudMCP`** (command `mudmcp`).
 
 > **Prerequisite:** The package is not published to a public feed yet, so build a local NuGet package first and point `dnx` at it with `--source`. Once it is published to nuget.org (or a private feed), drop the `--source` flag.
 
@@ -248,9 +248,9 @@ dotnet pack src/MudBlazor.Mcp/MudBlazor.Mcp.csproj -c Release -o ./nupkg
 
 # 2. Run it one-off — MUDBLAZOR_VERSION selects the docs version
 #    PowerShell:
-$env:MUDBLAZOR_VERSION = "9.0.0"; dnx MudBlazor.Mcp --source ./nupkg --yes -- --stdio
+$env:MUDBLAZOR_VERSION = "9.0.0"; dnx MudMCP --source ./nupkg --yes -- --stdio
 #    bash:
-MUDBLAZOR_VERSION=9.0.0 dnx MudBlazor.Mcp --source ./nupkg --yes -- --stdio
+MUDBLAZOR_VERSION=9.0.0 dnx MudMCP --source ./nupkg --yes -- --stdio
 ```
 
 MCP client configuration (also provided as `mcp.dnx.json` in the repo root). If you're using a locally packed package (not a published feed yet), add `"--source", "<absolute-path>/nupkg"` to `args` before `"--yes"`:
@@ -260,7 +260,7 @@ MCP client configuration (also provided as `mcp.dnx.json` in the repo root). If 
   "mcpServers": {
     "mudblazor": {
       "command": "dnx",
-      "args": ["MudBlazor.Mcp@1.0.0", "--yes", "--", "--stdio"],
+      "args": ["MudMCP@1.0.0", "--yes", "--", "--stdio"],
       "env": { "MUDBLAZOR_VERSION": "9.0.0" }
     }
   }
@@ -297,7 +297,7 @@ When a 4th version is requested, the least recently used version is evicted auto
 | `--stdio` | `dotnet run -- --stdio --version X.Y.Z` or `.exe --stdio --version X.Y.Z` | No | Cursor, Claude Code, Claude Desktop, local clients |
 | HTTP (default) | `dotnet run -- --version X.Y.Z` | Yes (`:8000`) | VS Code HTTP, MCP Inspector, remote |
 | Docker | `docker compose up` | Yes (`:8000→8080`) | Containerised / persistent cache |
-| `dnx` | `dnx MudBlazor.Mcp --yes -- --stdio` (env `MUDBLAZOR_VERSION`) | No | One-off, no install (needs .NET 10 SDK) |
+| `dnx` | `dnx MudMCP --yes -- --stdio` (env `MUDBLAZOR_VERSION`) | No | One-off, no install (needs .NET 10 SDK) |
 
 ---
 

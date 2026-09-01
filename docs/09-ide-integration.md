@@ -30,7 +30,7 @@ The HTTP URL shown here is the local `dotnet run` default. IIS deployments use t
 
 ## Launching via dnx
 
-`dnx` (bundled with the **.NET 10 SDK**) downloads and runs a tool package on demand — no global install and no manually cloned repo. This project is packaged as the .NET tool **`MudBlazor.Mcp`** (command `mudblazor-mcp`), so every client below can launch it the same way.
+`dnx` (bundled with the **.NET 10 SDK**) downloads and runs a tool package on demand — no global install and no manually cloned repo. This project is packaged as the .NET tool **`MudMCP`** (command `mudmcp`), so every client below can launch it the same way.
 
 ### Prerequisites
 
@@ -54,7 +54,7 @@ The HTTP URL shown here is the local `dotnet run` default. IIS deployments use t
   "servers": {
     "mudblazor-mcp": {
       "command": "dnx",
-      "args": ["MudBlazor.Mcp@1.0.0", "--yes", "--", "--stdio"],
+      "args": ["MudMCP@1.0.0", "--yes", "--", "--stdio"],
       "env": {
         "MUDBLAZOR_VERSION": "9.0.0",
         "MudBlazor__Repository__DataPath": "C:/mud-mcp-cache"
@@ -71,7 +71,7 @@ The HTTP URL shown here is the local `dotnet run` default. IIS deployments use t
   "mcpServers": {
     "mudblazor-mcp": {
       "command": "dnx",
-      "args": ["MudBlazor.Mcp@1.0.0", "--yes", "--", "--stdio"],
+      "args": ["MudMCP@1.0.0", "--yes", "--", "--stdio"],
       "env": { "MUDBLAZOR_VERSION": "9.0.0" }
     }
   }
@@ -88,7 +88,7 @@ The HTTP URL shown here is the local `dotnet run` default. IIS deployments use t
         "transport": {
           "type": "stdio",
           "command": "dnx",
-          "args": ["MudBlazor.Mcp@1.0.0", "--yes", "--", "--stdio"]
+          "args": ["MudMCP@1.0.0", "--yes", "--", "--stdio"]
         },
         "env": { "MUDBLAZOR_VERSION": "9.0.0" }
       }

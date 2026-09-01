@@ -11,17 +11,17 @@
     <DefaultItemExcludes>$(DefaultItemExcludes);data\**\*</DefaultItemExcludes>
   </PropertyGroup>
 
-  <!-- Pack as a .NET tool so the server can be launched one-off with `dnx MudBlazor.Mcp`.
+  <!-- Pack as a .NET tool so the server can be launched one-off with `dnx MudMCP`.
        The target MudBlazor version is supplied at runtime via the MUDBLAZOR_VERSION
        environment variable (or the version flag passed after the argument separator). -->
   <PropertyGroup>
     <IsPackable>true</IsPackable>
     <PackAsTool>true</PackAsTool>
-    <ToolCommandName>mudblazor-mcp</ToolCommandName>
-    <PackageId>MudBlazor.Mcp</PackageId>
+    <ToolCommandName>mudmcp</ToolCommandName>
+    <PackageId>MudMCP</PackageId>
     <Version>1.0.0</Version>
     <Authors>Mud MCP Contributors</Authors>
-    <Description>MCP server that exposes MudBlazor component documentation, parameters, and code examples to AI assistants. Launch one-off with `dnx MudBlazor.Mcp`; set the target MudBlazor version via the MUDBLAZOR_VERSION environment variable (or `--version` after `--`).</Description>
+    <Description>MCP server that exposes MudBlazor component documentation, parameters, and code examples to AI assistants. Launch one-off with `dnx MudMCP`; set the target MudBlazor version via the MUDBLAZOR_VERSION environment variable (or `--version` after `--`).</Description>
     <PackageTags>mcp;modelcontextprotocol;mudblazor;blazor;ai;dotnet-tool;dnx</PackageTags>
     <PackageLicenseFile>LICENSE</PackageLicenseFile>
     <PackageReadmeFile>README.md</PackageReadmeFile>
