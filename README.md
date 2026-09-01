@@ -253,7 +253,7 @@ $env:MUDBLAZOR_VERSION = "9.0.0"; dnx MudBlazor.Mcp --source ./nupkg --yes -- --
 MUDBLAZOR_VERSION=9.0.0 dnx MudBlazor.Mcp --source ./nupkg --yes -- --stdio
 ```
 
-MCP client configuration (also provided as `mcp.dnx.json` in the repo root):
+MCP client configuration (also provided as `mcp.dnx.json` in the repo root). If you're using a locally packed package (not a published feed yet), add `"--source", "<absolute-path>/nupkg"` to `args` before `"--yes"`:
 
 ```json
 {

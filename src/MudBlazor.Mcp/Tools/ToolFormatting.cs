@@ -23,6 +23,12 @@ internal static class ToolFormatting
         if (collapseNewlines)
             text = text.Replace("\n", " ").Replace("\r", "");
 
-        return text.Length <= maxLength ? text : text[..(maxLength - 3)] + "...";
+        if (text.Length <= maxLength)
+            return text;
+
+        if (maxLength <= 3)
+            return maxLength <= 0 ? string.Empty : new string('.', maxLength);
+
+        return text[..(maxLength - 3)] + "...";
     }
 }

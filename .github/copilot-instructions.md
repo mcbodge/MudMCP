@@ -2,7 +2,7 @@
 
 MCP (Model Context Protocol) server that gives AI assistants **version-accurate** MudBlazor component documentation. It clones the MudBlazor repo at a specific tag, parses source with Roslyn, builds an in-memory index of ~85 components, and exposes it via 12 MCP tools.
 
-**Tech Stack:** .NET 10, ASP.NET Core, Roslyn (`Microsoft.CodeAnalysis.CSharp`), LibGit2Sharp, Aspire 13.1, xunit.v3 + Moq on Microsoft Testing Platform.
+**Tech Stack:** .NET 10, ASP.NET Core, Roslyn (`Microsoft.CodeAnalysis.CSharp`), LibGit2Sharp, Aspire 13.5.3, xunit.v3 + Moq on Microsoft Testing Platform.
 
 ## Documentation Map (read these before duplicating knowledge)
 
@@ -113,4 +113,4 @@ public static async Task<string> GetComponentDetailAsync(
 ## Related Customizations
 
 - Domain agents in [.github/agents/](agents/): `mudblazor-expert` (teaches Copilot to query MCP tools before answering), `csharp-expert`, `csharp-mcp-expert`.
-- Health checks: `/health`, `/health/ready`, `/health/live`. Aspire SDK pinned in [Directory.Packages.props](../Directory.Packages.props) (`Aspire.AppHost.Sdk` 13.1.0).
+- Health checks: `/health`, `/health/ready`, `/health/live`. Aspire SDK pinned in [Directory.Packages.props](../Directory.Packages.props) (`Aspire.AppHost.Sdk` 13.5.3).
