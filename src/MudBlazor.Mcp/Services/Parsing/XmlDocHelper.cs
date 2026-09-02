@@ -86,7 +86,8 @@ internal static partial class XmlDocHelper
     }
 
     /// <summary>
-    /// Strips the <c>///</c> comment prefixes and collapses whitespace in extracted XML doc content.
+    /// Strips the <c>///</c> comment prefixes and converts inline XML doc elements
+    /// (<c>&lt;see&gt;</c>, <c>&lt;c&gt;</c>, <c>&lt;br/&gt;</c>, etc.) to readable plain text.
     /// </summary>
     public static string? Clean(string? content)
     {
@@ -96,6 +97,18 @@ internal static partial class XmlDocHelper
         }
 
         var cleaned = XmlCommentPrefixRegex().Replace(content, "");
+
+        // Convert inline XML documentation elements to readable text (paired forms before self-closing).
+        cleaned = SeeCrefWithTextRegex().Replace(cleaned, "$1");   // <see cref="X">text</see> -> text
+        cleaned = SeeHrefWithTextRegex().Replace(cleaned, "$1");   // <see href="url">text</see> -> text
+        cleaned = SeeCrefRegex().Replace(cleaned, "$1");           // <see cref="X"/> -> X
+        cleaned = SeeLangwordRegex().Replace(cleaned, "$1");       // <see langword="null"/> -> null
+        cleaned = SeeHrefRegex().Replace(cleaned, "$1");           // <see href="url"/> -> url
+        cleaned = RefNameRegex().Replace(cleaned, "$1");           // <paramref/typeparamref name="X"/> -> X
+        cleaned = LineBreakRegex().Replace(cleaned, " ");          // <br/> -> space
+        cleaned = RemainingTagRegex().Replace(cleaned, "");        // strip any other tags, keep inner text
+
+        cleaned = System.Net.WebUtility.HtmlDecode(cleaned);
         cleaned = WhitespaceRegex().Replace(cleaned, " ");
         return cleaned.Trim();
     }
@@ -105,4 +118,28 @@ internal static partial class XmlDocHelper
 
     [GeneratedRegex(@"\s+")]
     private static partial Regex WhitespaceRegex();
+
+    [GeneratedRegex(@"<see\s+cref\s*=\s*""[^""]*""\s*>(.*?)</see>", RegexOptions.IgnoreCase | RegexOptions.Singleline)]
+    private static partial Regex SeeCrefWithTextRegex();
+
+    [GeneratedRegex(@"<see\s+href\s*=\s*""[^""]*""\s*>(.*?)</see>", RegexOptions.IgnoreCase | RegexOptions.Singleline)]
+    private static partial Regex SeeHrefWithTextRegex();
+
+    [GeneratedRegex(@"<see\s+cref\s*=\s*""([^""]*)""\s*/?>", RegexOptions.IgnoreCase)]
+    private static partial Regex SeeCrefRegex();
+
+    [GeneratedRegex(@"<see\s+langword\s*=\s*""([^""]*)""\s*/?>", RegexOptions.IgnoreCase)]
+    private static partial Regex SeeLangwordRegex();
+
+    [GeneratedRegex(@"<see\s+href\s*=\s*""([^""]*)""\s*/?>", RegexOptions.IgnoreCase)]
+    private static partial Regex SeeHrefRegex();
+
+    [GeneratedRegex(@"<(?:paramref|typeparamref)\s+name\s*=\s*""([^""]*)""\s*/?>", RegexOptions.IgnoreCase)]
+    private static partial Regex RefNameRegex();
+
+    [GeneratedRegex(@"<br\s*/?>", RegexOptions.IgnoreCase)]
+    private static partial Regex LineBreakRegex();
+
+    [GeneratedRegex(@"</?[a-zA-Z][^>]*>")]
+    private static partial Regex RemainingTagRegex();
 }

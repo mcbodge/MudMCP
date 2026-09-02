@@ -600,9 +600,16 @@ public sealed partial class SemanticComponentParser
             .SelectMany(list => list.Attributes)
             .FirstOrDefault(a => a.Name.ToString() is "Category" or "CategoryAttribute");
 
-        if (categoryAttribute?.ArgumentList?.Arguments.FirstOrDefault() is { } argument)
+        if (categoryAttribute?.ArgumentList?.Arguments.FirstOrDefault()?.Expression is { } expression)
         {
-            var match = CategoryTypesRegex().Match(argument.ToString());
+            // Support both string-literal categories and the CategoryTypes.Group.Name constant form,
+            // taking the final segment (e.g., CategoryTypes.Button.Appearance -> "Appearance").
+            if (expression is LiteralExpressionSyntax { Token.Value: string literal })
+            {
+                return literal;
+            }
+
+            var match = CategoryTypesRegex().Match(expression.ToString());
             return match.Success ? match.Groups[1].Value : null;
         }
 
@@ -641,7 +648,7 @@ public sealed partial class SemanticComponentParser
         return match.Success ? match.Groups[1].Value : null;
     }
 
-    [GeneratedRegex(@"CategoryTypes\.(\w+)")]
+    [GeneratedRegex(@"CategoryTypes(?:\.\w+)*\.(\w+)")]
     private static partial Regex CategoryTypesRegex();
 
     [GeneratedRegex(@"<(.+)>")]

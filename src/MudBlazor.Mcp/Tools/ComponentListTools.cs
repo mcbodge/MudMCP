@@ -32,7 +32,7 @@ public sealed class ComponentListTools
         IComponentIndexer indexer,
         ILogger<ComponentListTools> logger,
         VersionContext versionContext,
-        [Description("Optional category to filter by (e.g., 'Buttons', 'Form Inputs', 'Navigation')")] 
+        [Description("Optional category to filter by (e.g., 'Buttons', 'Form & Inputs', 'Pickers', 'Charts', 'Functional', 'Components'). Use list_categories to see all.")] 
         string? category = null,
         [Description("Include parameter counts and brief descriptions (default: true)")]
         bool? includeDetails = null,

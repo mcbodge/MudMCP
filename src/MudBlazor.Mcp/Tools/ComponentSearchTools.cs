@@ -111,7 +111,7 @@ public sealed class ComponentSearchTools
         IComponentIndexer indexer,
         ILogger<ComponentSearchTools> logger,
         VersionContext versionContext,
-        [Description("The category name (e.g., 'Buttons', 'Form Inputs & Controls', 'Navigation', 'Layout', 'Data Display', 'Feedback', 'Charts')")]
+        [Description("The category name (e.g., 'Buttons', 'Form & Inputs', 'Pickers', 'Charts', 'Functional', 'Components'). Use list_categories to see all.")]
         string category,
         CancellationToken cancellationToken = default)
     {

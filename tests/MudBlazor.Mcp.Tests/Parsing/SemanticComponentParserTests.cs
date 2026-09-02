@@ -205,6 +205,60 @@ public class SemanticComponentParserTests
     }
 
     [Fact]
+    public void ExtractComponent_CleansInlineXmlDocTags()
+    {
+        var source = _parser.CompileFromSource(
+            """
+            namespace MudBlazor;
+            /// <summary>Creates a <see href="https://x/button">button</see> element, or a <see cref="MudLink"/> when <c>Href</c> is set.<br/> Done.</summary>
+            public partial class MudButton
+            {
+                /// <summary>The URL. Defaults to <see langword="null"/>.</summary>
+                [Parameter] public string? Href { get; set; }
+            }
+            """);
+
+        var result = _parser.ExtractComponent(source, source.TypesByName["MudButton"]);
+
+        Assert.DoesNotContain("<see", result.Summary);
+        Assert.DoesNotContain("<c>", result.Summary);
+        Assert.DoesNotContain("<br", result.Summary);
+        Assert.Contains("button", result.Summary);   // inner text of <see href>
+        Assert.Contains("MudLink", result.Summary);   // cref value
+        Assert.Contains("Href", result.Summary);      // <c>Href</c> inner text
+
+        var href = result.Parameters.Single(p => p.Name == "Href");
+        Assert.DoesNotContain("<see", href.Description);
+        Assert.Contains("null", href.Description);    // <see langword="null"/>
+    }
+
+    [Fact]
+    public void ExtractComponent_ExtractsParameterCategoryLastSegment()
+    {
+        var source = _parser.CompileFromSource(
+            """
+            namespace MudBlazor;
+            public partial class MudButton
+            {
+                /// <summary>Color.</summary>
+                [Parameter]
+                [Category(CategoryTypes.Button.Appearance)]
+                public Color Color { get; set; }
+
+                /// <summary>Href.</summary>
+                [Parameter]
+                [Category(CategoryTypes.Button.ClickAction)]
+                public string? Href { get; set; }
+            }
+            """);
+
+        var result = _parser.ExtractComponent(source, source.TypesByName["MudButton"]);
+
+        Assert.Equal("Appearance", result.Parameters.Single(p => p.Name == "Color").Category);
+        Assert.Equal("ClickAction", result.Parameters.Single(p => p.Name == "Href").Category);
+    }
+
+    [Fact]
     public void ExtractEnums_ReturnsPublicEnumsPreferringSummaryOverDescription()
     {
         var source = _parser.CompileFromSource(
