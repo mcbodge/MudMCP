@@ -17,10 +17,11 @@ namespace MudBlazor.Mcp.Services;
 public sealed class ComponentIndexer : IComponentIndexer
 {
     private readonly IGitRepositoryService _gitService;
+    private readonly SemanticComponentParser _semanticParser;
     private readonly XmlDocParser _xmlParser;
     private readonly RazorDocParser _razorParser;
     private readonly ExampleExtractor _exampleExtractor;
-    private readonly CategoryMapper _categoryMapper;
+    private readonly MenuCategoryParser _menuCategoryParser;
     private readonly ILogger<ComponentIndexer> _logger;
     private readonly MudBlazorOptions _options;
     private readonly VersionContext _versionContext;
@@ -30,6 +31,7 @@ public sealed class ComponentIndexer : IComponentIndexer
 
     private readonly ConcurrentDictionary<string, ComponentInfo> _components = new(StringComparer.OrdinalIgnoreCase);
     private readonly ConcurrentDictionary<string, ApiReference> _apiReferences = new(StringComparer.OrdinalIgnoreCase);
+    private readonly ConcurrentDictionary<string, EnumInfo> _enums = new(StringComparer.OrdinalIgnoreCase);
     private readonly SemaphoreSlim _indexLock = new(1, 1);
     
     private bool _isIndexed;
@@ -40,19 +42,21 @@ public sealed class ComponentIndexer : IComponentIndexer
 
     public ComponentIndexer(
         IGitRepositoryService gitService,
+        SemanticComponentParser semanticParser,
         XmlDocParser xmlParser,
         RazorDocParser razorParser,
         ExampleExtractor exampleExtractor,
-        CategoryMapper categoryMapper,
+        MenuCategoryParser menuCategoryParser,
         VersionContext versionContext,
         IOptions<MudBlazorOptions> options,
         ILogger<ComponentIndexer> logger)
     {
         _gitService = gitService;
+        _semanticParser = semanticParser;
         _xmlParser = xmlParser;
         _razorParser = razorParser;
         _exampleExtractor = exampleExtractor;
-        _categoryMapper = categoryMapper;
+        _menuCategoryParser = menuCategoryParser;
         _versionContext = versionContext;
         _logger = logger;
         _options = options.Value;
@@ -70,13 +74,8 @@ public sealed class ComponentIndexer : IComponentIndexer
                 _logger.LogInformation("Loaded cached index for v{Version} with {Count} components",
                     _versionContext.Version, _components.Count);
 
-                // Ensure the CategoryMapper is initialized so category queries work
-                // even when the component data was restored from the on-disk cache.
-                //
-                // CategoryMapper.InitializeAsync does not currently use the repository path, so we avoid
-                // forcing a repository clone/update here to keep the cached path fast and offline-capable.
-                await _categoryMapper.InitializeAsync(string.Empty, cancellationToken).ConfigureAwait(false);
-
+                // Categories are baked into each cached ComponentInfo and reconstructed on demand,
+                // so no repository clone or menu parse is required on the fast cached-load path.
                 _isIndexed = true;
                 _lastIndexed = DateTimeOffset.UtcNow;
                 return;
@@ -89,6 +88,7 @@ public sealed class ComponentIndexer : IComponentIndexer
             // removed components/API refs from a previous run don't leak into the new index.
             _components.Clear();
             _apiReferences.Clear();
+            _enums.Clear();
 
             await _gitService.EnsureRepositoryAsync(cancellationToken).ConfigureAwait(false);
 
@@ -99,8 +99,11 @@ public sealed class ComponentIndexer : IComponentIndexer
 
             var repoPath = _gitService.RepositoryPath!;
 
-            await _categoryMapper.InitializeAsync(repoPath, cancellationToken).ConfigureAwait(false);
-            await IndexComponentsAsync(repoPath, cancellationToken).ConfigureAwait(false);
+            await _menuCategoryParser.InitializeAsync(repoPath, cancellationToken).ConfigureAwait(false);
+            var compiledSource = await _semanticParser.CompileAsync(repoPath, cancellationToken).ConfigureAwait(false);
+
+            await IndexComponentsAsync(repoPath, compiledSource, cancellationToken).ConfigureAwait(false);
+            IndexEnums(compiledSource);
             await IndexDocumentationAsync(repoPath, cancellationToken).ConfigureAwait(false);
             await IndexExamplesAsync(repoPath, cancellationToken).ConfigureAwait(false);
 
@@ -111,8 +114,8 @@ public sealed class ComponentIndexer : IComponentIndexer
             await SaveCachedIndexAsync(cancellationToken).ConfigureAwait(false);
 
             sw.Stop();
-            _logger.LogInformation("Index build completed in {ElapsedMs}ms. Indexed {Count} components",
-                sw.ElapsedMilliseconds, _components.Count);
+            _logger.LogInformation("Index build completed in {ElapsedMs}ms. Indexed {Count} components, {EnumCount} enums",
+                sw.ElapsedMilliseconds, _components.Count, _enums.Count);
         }
         finally
         {
@@ -125,7 +128,7 @@ public sealed class ComponentIndexer : IComponentIndexer
     /// <see cref="CachedIndex"/> record structure changes or the serialization format
     /// is updated in a backward-incompatible way, so stale caches are automatically rebuilt.
     /// </summary>
-    private const int CacheSchemaVersion = 3;
+    private const int CacheSchemaVersion = 4;
 
     private async Task<bool> TryLoadCachedIndexAsync(CancellationToken cancellationToken)
     {
@@ -157,6 +160,10 @@ public sealed class ComponentIndexer : IComponentIndexer
             foreach (var apiRef in cached.ApiReferences)
                 _apiReferences[apiRef.TypeName] = apiRef;
 
+            _enums.Clear();
+            foreach (var enumInfo in cached.Enums)
+                _enums[enumInfo.Name] = enumInfo;
+
             return true;
         }
         catch (OperationCanceledException)
@@ -181,7 +188,8 @@ public sealed class ComponentIndexer : IComponentIndexer
                 _options.Parsing.IncludeDeprecatedComponents,
                 _options.Parsing.MaxExamplesPerComponent,
                 _components.Values.ToList(),
-                _apiReferences.Values.ToList());
+                _apiReferences.Values.ToList(),
+                _enums.Values.ToList());
 
             var dir = Path.GetDirectoryName(_versionContext.IndexPath);
             if (!string.IsNullOrEmpty(dir)) Directory.CreateDirectory(dir);
@@ -224,9 +232,10 @@ public sealed class ComponentIndexer : IComponentIndexer
         bool IncludeDeprecatedComponents,
         int MaxExamplesPerComponent,
         List<ComponentInfo> Components,
-        List<ApiReference> ApiReferences);
+        List<ApiReference> ApiReferences,
+        List<EnumInfo> Enums);
 
-    private async Task IndexComponentsAsync(string repoPath, CancellationToken cancellationToken)
+    private async Task IndexComponentsAsync(string repoPath, CompiledSource source, CancellationToken cancellationToken)
     {
         var componentsPath = Path.Combine(repoPath, "src", "MudBlazor", "Components");
         
@@ -239,11 +248,11 @@ public sealed class ComponentIndexer : IComponentIndexer
         var componentDirs = Directory.GetDirectories(componentsPath);
         _logger.LogDebug("Found {Count} component directories", componentDirs.Length);
 
-        var tasks = componentDirs.Select(dir => IndexComponentDirectoryAsync(dir, cancellationToken));
+        var tasks = componentDirs.Select(dir => IndexComponentDirectoryAsync(dir, source, cancellationToken));
         await Task.WhenAll(tasks).ConfigureAwait(false);
     }
 
-    private async Task IndexComponentDirectoryAsync(string componentDir, CancellationToken cancellationToken)
+    private async Task IndexComponentDirectoryAsync(string componentDir, CompiledSource source, CancellationToken cancellationToken)
     {
         var dirName = Path.GetFileName(componentDir);
         
@@ -263,24 +272,26 @@ public sealed class ComponentIndexer : IComponentIndexer
 
         foreach (var file in allFiles)
         {
-            await IndexSingleComponentFileAsync(file, dirName, cancellationToken).ConfigureAwait(false);
+            await IndexSingleComponentFileAsync(file, dirName, source, cancellationToken).ConfigureAwait(false);
         }
     }
 
-    private async Task IndexSingleComponentFileAsync(string filePath, string dirName, CancellationToken cancellationToken)
+    private async Task IndexSingleComponentFileAsync(string filePath, string dirName, CompiledSource source, CancellationToken cancellationToken)
     {
         try
         {
-            var parseResult = await _xmlParser.ParseComponentFileAsync(filePath, cancellationToken).ConfigureAwait(false);
-            
+            var parseResult = await ExtractComponentAsync(filePath, source, cancellationToken).ConfigureAwait(false);
+
             if (parseResult is null)
             {
                 return;
             }
 
             var componentName = parseResult.ClassName;
-            var category = _categoryMapper.GetCategoryName(componentName) 
-                ?? _categoryMapper.InferCategoryFromName(componentName);
+
+            // Categories are derived from the version's documentation menu; a null result means the
+            // component is not listed in the menu (per version-accurate parsing decision D4).
+            var category = _menuCategoryParser.GetCategoryName(componentName);
 
             var componentInfo = new ComponentInfo(
                 Name: componentName,
@@ -316,6 +327,55 @@ public sealed class ComponentIndexer : IComponentIndexer
         {
             _logger.LogWarning(ex, "Failed to index component in: {Dir}", dirName);
         }
+    }
+
+    /// <summary>
+    /// Extracts component information using the semantic compilation (full base-chain merge and
+    /// <c>&lt;inheritdoc/&gt;</c> resolution). If the component's type symbol cannot be resolved or the
+    /// semantic extraction fails, falls back to the syntax-only <see cref="XmlDocParser"/> which yields
+    /// a degraded, own-declared-members-only result.
+    /// </summary>
+    private async Task<ComponentParseResult?> ExtractComponentAsync(string filePath, CompiledSource source, CancellationToken cancellationToken)
+    {
+        var componentName = GetComponentNameFromFile(filePath);
+
+        if (source.TypesByName.TryGetValue(componentName, out var typeSymbol))
+        {
+            try
+            {
+                return _semanticParser.ExtractComponent(source, typeSymbol);
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                _logger.LogWarning(ex,
+                    "Semantic extraction failed for {Component}; falling back to XmlDocParser", componentName);
+            }
+        }
+
+        return await _xmlParser.ParseComponentFileAsync(filePath, cancellationToken).ConfigureAwait(false);
+    }
+
+    private static string GetComponentNameFromFile(string filePath)
+    {
+        var fileName = Path.GetFileName(filePath);
+
+        if (fileName.EndsWith(RazorCsExtension, StringComparison.OrdinalIgnoreCase))
+            return fileName[..^RazorCsExtension.Length];
+
+        if (fileName.EndsWith(CsExtension, StringComparison.OrdinalIgnoreCase))
+            return fileName[..^CsExtension.Length];
+
+        return fileName;
+    }
+
+    private void IndexEnums(CompiledSource source)
+    {
+        foreach (var enumInfo in _semanticParser.ExtractEnums(source))
+        {
+            _enums[enumInfo.Name] = enumInfo;
+        }
+
+        _logger.LogDebug("Indexed {Count} enums", _enums.Count);
     }
 
     private static ApiReference CreateApiReference(ComponentParseResult parseResult)
@@ -486,7 +546,21 @@ public sealed class ComponentIndexer : IComponentIndexer
     public Task<IReadOnlyList<ComponentCategory>> GetCategoriesAsync(CancellationToken cancellationToken = default)
     {
         EnsureIndexed();
-        return Task.FromResult<IReadOnlyList<ComponentCategory>>(_categoryMapper.GetCategories().ToList());
+
+        // Reconstruct categories from the indexed components (categories are menu-derived and stored
+        // on each ComponentInfo), so this works identically on both fresh and cached-load paths.
+        var categories = _components.Values
+            .Where(c => !string.IsNullOrEmpty(c.Category))
+            .GroupBy(c => c.Category!, StringComparer.OrdinalIgnoreCase)
+            .Select(g => new ComponentCategory(
+                Name: g.Key,
+                Title: g.Key,
+                Description: null,
+                ComponentNames: g.Select(c => c.Name).OrderBy(n => n, StringComparer.OrdinalIgnoreCase).ToList()))
+            .OrderBy(c => c.Name, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        return Task.FromResult<IReadOnlyList<ComponentCategory>>(categories);
     }
 
     /// <inheritdoc />
@@ -610,6 +684,22 @@ public sealed class ComponentIndexer : IComponentIndexer
     }
 
     /// <inheritdoc />
+    public Task<EnumInfo?> GetEnumAsync(string enumName, CancellationToken cancellationToken = default)
+    {
+        EnsureIndexed();
+
+        return Task.FromResult(_enums.GetValueOrDefault(enumName));
+    }
+
+    /// <inheritdoc />
+    public Task<IReadOnlyList<EnumInfo>> GetAllEnumsAsync(CancellationToken cancellationToken = default)
+    {
+        EnsureIndexed();
+
+        return Task.FromResult<IReadOnlyList<EnumInfo>>(_enums.Values.ToList());
+    }
+
+    /// <inheritdoc />
     public Task<IReadOnlyList<ComponentInfo>> GetRelatedComponentsAsync(
         string componentName,
         RelationshipType relationshipType = RelationshipType.All,
@@ -635,10 +725,12 @@ public sealed class ComponentIndexer : IComponentIndexer
         {
             if (component.Category is not null)
             {
-                var categoryComponents = _categoryMapper.GetComponentsInCategory(component.Category);
-                foreach (var cat in categoryComponents.Where(c => !c.Equals(componentName, StringComparison.OrdinalIgnoreCase)))
+                var siblings = _components.Values
+                    .Where(c => c.Category?.Equals(component.Category, StringComparison.OrdinalIgnoreCase) == true
+                                && !c.Name.Equals(componentName, StringComparison.OrdinalIgnoreCase));
+                foreach (var sibling in siblings)
                 {
-                    related.Add(cat);
+                    related.Add(sibling.Name);
                 }
             }
         }

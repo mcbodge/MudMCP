@@ -33,7 +33,7 @@ Every request is scoped to one MudBlazor version. Indexes persist to disk so sub
 - `VersionCacheManager` — LRU cache of up to 3 version indexes; evicts least-recently-used
 - `VersionContext` ([Configuration/VersionContext.cs](../src/MudBlazor.Mcp/Configuration/VersionContext.cs)) — resolves per-version paths (`data/v{version}/...`)
 - `GitRepositoryService` — clones the MudBlazor repo and checks out the `v{version}` tag
-- `Parsing/` — `XmlDocParser`, `RazorDocParser`, `ExampleExtractor`, `CategoryMapper` (see [docs/03](../docs/03-architecture.md))
+- `Parsing/` — `SemanticComponentParser` (primary: one Roslyn `CSharpCompilation`, inheritance merge + `<inheritdoc/>` + enums), `XmlDocParser` (degraded fallback), `RazorDocParser`, `ExampleExtractor`, `MenuCategoryParser` (menu-derived categories) (see [docs/03](../docs/03-architecture.md))
 
 ## Build & Test Commands
 
