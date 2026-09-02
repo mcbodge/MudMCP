@@ -332,4 +332,32 @@ public class SemanticComponentParserTests
         Assert.Equal(1, sizes.Values.Single(v => v.Name == "Small").Value);
         Assert.Equal(2, sizes.Values.Single(v => v.Name == "Large").Value);
     }
+
+    [Fact]
+    public void ExtractEnums_CapturesConstantExpressionValues()
+    {
+        var source = _parser.CompileFromSource(
+            """
+            namespace MudBlazor;
+            [System.Flags]
+            public enum Flags
+            {
+                None = 0,
+                A = 1 << 0,
+                B = 1 << 1,
+                C = 1 << 2,
+                High = (1 << 4) | (1 << 5),
+                Neg = -2,
+            }
+            """);
+
+        var enums = _parser.ExtractEnums(source);
+
+        var flags = Assert.Single(enums, e => e.Name == "Flags");
+        Assert.Equal(1, flags.Values.Single(v => v.Name == "A").Value);
+        Assert.Equal(2, flags.Values.Single(v => v.Name == "B").Value);
+        Assert.Equal(4, flags.Values.Single(v => v.Name == "C").Value);
+        Assert.Equal(48, flags.Values.Single(v => v.Name == "High").Value); // (1<<4)|(1<<5) = 16|32
+        Assert.Equal(-2, flags.Values.Single(v => v.Name == "Neg").Value);
+    }
 }

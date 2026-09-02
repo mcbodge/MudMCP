@@ -633,13 +633,41 @@ public sealed partial class SemanticComponentParser
 
     private static long? ParseExplicitValue(ExpressionSyntax? expression)
     {
-        if (expression is LiteralExpressionSyntax { Token.Value: { } tokenValue }
-            && tokenValue is int or long or uint or short or byte)
+        switch (expression)
         {
-            return Convert.ToInt64(tokenValue, CultureInfo.InvariantCulture);
-        }
+            case null:
+                return null;
 
-        return null;
+            case LiteralExpressionSyntax { Token.Value: { } tokenValue }
+                when tokenValue is sbyte or byte or short or ushort or int or uint or long:
+                return Convert.ToInt64(tokenValue, CultureInfo.InvariantCulture);
+
+            case ParenthesizedExpressionSyntax parenthesized:
+                return ParseExplicitValue(parenthesized.Expression);
+
+            case PrefixUnaryExpressionSyntax unary when unary.IsKind(SyntaxKind.UnaryMinusExpression)
+                && ParseExplicitValue(unary.Operand) is { } unaryValue:
+                return -unaryValue;
+
+            case BinaryExpressionSyntax binary
+                when ParseExplicitValue(binary.Left) is { } left && ParseExplicitValue(binary.Right) is { } right:
+                return binary.Kind() switch
+                {
+                    SyntaxKind.LeftShiftExpression => left << (int)right,
+                    SyntaxKind.RightShiftExpression => left >> (int)right,
+                    SyntaxKind.BitwiseOrExpression => left | right,
+                    SyntaxKind.BitwiseAndExpression => left & right,
+                    SyntaxKind.ExclusiveOrExpression => left ^ right,
+                    SyntaxKind.AddExpression => left + right,
+                    SyntaxKind.SubtractExpression => left - right,
+                    SyntaxKind.MultiplyExpression => left * right,
+                    SyntaxKind.DivideExpression => right == 0 ? null : left / right,
+                    _ => null,
+                };
+
+            default:
+                return null;
+        }
     }
 
     private static string? ExtractGenericArgument(string typeName)

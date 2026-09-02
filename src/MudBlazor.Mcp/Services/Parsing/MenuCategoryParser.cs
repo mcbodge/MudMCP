@@ -92,8 +92,9 @@ public sealed class MenuCategoryParser
 
         var initializer = root.DescendantNodes()
             .OfType<FieldDeclarationSyntax>()
-            .FirstOrDefault(f => f.Declaration.Variables.Any(v => v.Identifier.Text == DocsComponentsFieldName))
-            ?.Declaration.Variables.First().Initializer?.Value;
+            .SelectMany(f => f.Declaration.Variables)
+            .FirstOrDefault(v => v.Identifier.Text == DocsComponentsFieldName)
+            ?.Initializer?.Value;
 
         if (initializer is null)
         {

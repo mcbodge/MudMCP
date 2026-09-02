@@ -5,6 +5,7 @@ using System.Collections.Concurrent;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using ModelContextProtocol;
 using MudBlazor.Mcp.Configuration;
 using MudBlazor.Mcp.Models;
 using MudBlazor.Mcp.Services.Parsing;
@@ -128,7 +129,7 @@ public sealed class ComponentIndexer : IComponentIndexer
     /// <see cref="CachedIndex"/> record structure changes or the serialization format
     /// is updated in a backward-incompatible way, so stale caches are automatically rebuilt.
     /// </summary>
-    private const int CacheSchemaVersion = 5;
+    private const int CacheSchemaVersion = 6;
 
     private async Task<bool> TryLoadCachedIndexAsync(CancellationToken cancellationToken)
     {
@@ -769,7 +770,9 @@ public sealed class ComponentIndexer : IComponentIndexer
     {
         if (!_isIndexed)
         {
-            throw new InvalidOperationException("Index has not been built. Call BuildIndexAsync first.");
+            // Surfaced to MCP clients as a user-correctable "try again" while the background build runs,
+            // so every indexer-backed tool reports startup readiness the same way.
+            throw new McpException("Component index is not ready. The server may still be initializing. Please try again in a moment.");
         }
     }
 

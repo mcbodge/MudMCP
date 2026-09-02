@@ -44,12 +44,6 @@ public sealed class ComponentListTools
         logger.LogDebug("Listing components with category filter: {Category}, includeDetails: {IncludeDetails}",
             category ?? "none", effectiveIncludeDetails);
 
-        if (!indexer.IsIndexed)
-        {
-            logger.LogWarning("Index not ready when listing components");
-            ToolValidation.ThrowIndexNotReady();
-        }
-
         var components = string.IsNullOrWhiteSpace(category)
             ? await indexer.GetAllComponentsAsync(cancellationToken)
             : await indexer.GetComponentsByCategoryAsync(category, cancellationToken);
@@ -119,12 +113,6 @@ public sealed class ComponentListTools
         CancellationToken cancellationToken = default)
     {
         logger.LogDebug("Listing all component categories");
-
-        if (!indexer.IsIndexed)
-        {
-            logger.LogWarning("Index not ready when listing categories");
-            ToolValidation.ThrowIndexNotReady();
-        }
 
         var categories = await indexer.GetCategoriesAsync(cancellationToken);
         var allComponents = await indexer.GetAllComponentsAsync(cancellationToken);

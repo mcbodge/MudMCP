@@ -121,46 +121,46 @@ public class ComponentIndexerTests : IDisposable
     }
 
     [Fact]
-    public async Task GetAllComponentsAsync_WhenNotIndexed_ThrowsInvalidOperationException()
+    public async Task GetAllComponentsAsync_WhenNotIndexed_ThrowsMcpException()
     {
         // Arrange
         var indexer = CreateIndexer();
 
         // Act & Assert
-        await Assert.ThrowsAsync<InvalidOperationException>(() => 
+        await Assert.ThrowsAsync<ModelContextProtocol.McpException>(() => 
             indexer.GetAllComponentsAsync(TestContext.Current.CancellationToken));
     }
 
     [Fact]
-    public async Task GetComponentAsync_WhenNotIndexed_ThrowsInvalidOperationException()
+    public async Task GetComponentAsync_WhenNotIndexed_ThrowsMcpException()
     {
         // Arrange
         var indexer = CreateIndexer();
 
         // Act & Assert
-        await Assert.ThrowsAsync<InvalidOperationException>(() => 
+        await Assert.ThrowsAsync<ModelContextProtocol.McpException>(() => 
             indexer.GetComponentAsync("MudButton", TestContext.Current.CancellationToken));
     }
 
     [Fact]
-    public async Task GetCategoriesAsync_WhenNotIndexed_ThrowsInvalidOperationException()
+    public async Task GetCategoriesAsync_WhenNotIndexed_ThrowsMcpException()
     {
         // Arrange
         var indexer = CreateIndexer();
 
         // Act & Assert
-        await Assert.ThrowsAsync<InvalidOperationException>(() => 
+        await Assert.ThrowsAsync<ModelContextProtocol.McpException>(() => 
             indexer.GetCategoriesAsync(TestContext.Current.CancellationToken));
     }
 
     [Fact]
-    public async Task SearchComponentsAsync_WhenNotIndexed_ThrowsInvalidOperationException()
+    public async Task SearchComponentsAsync_WhenNotIndexed_ThrowsMcpException()
     {
         // Arrange
         var indexer = CreateIndexer();
 
         // Act & Assert
-        await Assert.ThrowsAsync<InvalidOperationException>(() => 
+        await Assert.ThrowsAsync<ModelContextProtocol.McpException>(() => 
             indexer.SearchComponentsAsync("button", cancellationToken: TestContext.Current.CancellationToken));
     }
 
