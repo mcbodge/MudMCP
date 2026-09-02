@@ -55,7 +55,8 @@ This document provides a deep technical dive into the Mud MCP architecture, incl
 │                                 │                                       │
 │  ┌─────────────────────────────────────────────────────────────────┐   │
 │  │                     Parsing Layer                                 │   │
-│  │  XmlDocParser │ RazorDocParser │ ExampleExtractor │ CategoryMapper│   │
+│  │  SemanticComponentParser │ RazorDocParser │ ExampleExtractor      │   │
+│  │  MenuCategoryParser │ XmlDocParser (degraded fallback)            │   │
 │  └─────────────────────────────────────────────────────────────────┘   │
 │                                 │                                       │
 │  ┌─────────────────────────────────────────────────────────────────┐   │
@@ -147,10 +148,11 @@ Roslyn-based source code analysis:
 
 | Parser | Input | Output |
 |--------|-------|--------|
-| `XmlDocParser` | `.cs` files | Parameters, events, methods |
+| `SemanticComponentParser` | `src/MudBlazor/**/*.cs` (one reference-free `CSharpCompilation`) | Components and enums from type symbols: full base-chain member merge, partial-class merge, `<inheritdoc/>` resolution |
+| `XmlDocParser` | `.cs` files | Degraded fallback (own-declared members only) when a component's type symbol can't be resolved |
 | `RazorDocParser` | `*Page.razor` files | Descriptions, sections |
 | `ExampleExtractor` | `*Example.razor` files | Code examples |
-| `CategoryMapper` | Component names | Category assignments |
+| `MenuCategoryParser` | `MudBlazor.Docs/Services/Menu/MenuService.cs` | Menu-derived category assignments |
 
 ---
 

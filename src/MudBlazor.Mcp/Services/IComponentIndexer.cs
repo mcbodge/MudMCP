@@ -78,6 +78,19 @@ public interface IComponentIndexer
     Task<ApiReference?> GetApiReferenceAsync(string typeName, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Gets a specific enum by name (e.g., "Color").
+    /// </summary>
+    /// <param name="enumName">The enum name.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    Task<EnumInfo?> GetEnumAsync(string enumName, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets all enums in the index.
+    /// </summary>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    Task<IReadOnlyList<EnumInfo>> GetAllEnumsAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Gets components related to a specific component.
     /// </summary>
     /// <param name="componentName">The component name.</param>

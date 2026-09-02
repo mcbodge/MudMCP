@@ -47,22 +47,24 @@ public class ComponentIndexerTests : IDisposable
 
     private ComponentIndexer CreateIndexer(
         IGitRepositoryService? gitService = null,
+        SemanticComponentParser? semanticParser = null,
         XmlDocParser? xmlParser = null,
         RazorDocParser? razorParser = null,
         ExampleExtractor? exampleExtractor = null,
-        CategoryMapper? categoryMapper = null,
+        MenuCategoryParser? menuCategoryParser = null,
         string? dataPath = null)
     {
-        var (indexer, _) = CreateIndexerWithContext(gitService, xmlParser, razorParser, exampleExtractor, categoryMapper, dataPath);
+        var (indexer, _) = CreateIndexerWithContext(gitService, semanticParser, xmlParser, razorParser, exampleExtractor, menuCategoryParser, dataPath);
         return indexer;
     }
 
     private (ComponentIndexer Indexer, VersionContext Context) CreateIndexerWithContext(
         IGitRepositoryService? gitService = null,
+        SemanticComponentParser? semanticParser = null,
         XmlDocParser? xmlParser = null,
         RazorDocParser? razorParser = null,
         ExampleExtractor? exampleExtractor = null,
-        CategoryMapper? categoryMapper = null,
+        MenuCategoryParser? menuCategoryParser = null,
         string? dataPath = null,
         MudBlazorOptions? mudBlazorOptions = null)
     {
@@ -70,10 +72,11 @@ public class ComponentIndexerTests : IDisposable
             s.IsAvailable == true && 
             s.RepositoryPath == "/fake/repo");
         
+        semanticParser ??= new SemanticComponentParser(Mock.Of<ILogger<SemanticComponentParser>>());
         xmlParser ??= new XmlDocParser(Mock.Of<ILogger<XmlDocParser>>());
         razorParser ??= new RazorDocParser(Mock.Of<ILogger<RazorDocParser>>());
         exampleExtractor ??= new ExampleExtractor(Mock.Of<ILogger<ExampleExtractor>>());
-        categoryMapper ??= new CategoryMapper(Mock.Of<ILogger<CategoryMapper>>());
+        menuCategoryParser ??= new MenuCategoryParser(Mock.Of<ILogger<MenuCategoryParser>>());
         
         var options = Options.Create(mudBlazorOptions ?? new MudBlazorOptions());
         var logger = Mock.Of<ILogger<ComponentIndexer>>();
@@ -85,10 +88,11 @@ public class ComponentIndexerTests : IDisposable
 
         var indexer = new ComponentIndexer(
             gitService,
+            semanticParser,
             xmlParser,
             razorParser,
             exampleExtractor,
-            categoryMapper,
+            menuCategoryParser,
             versionContext,
             options,
             logger);
@@ -117,46 +121,46 @@ public class ComponentIndexerTests : IDisposable
     }
 
     [Fact]
-    public async Task GetAllComponentsAsync_WhenNotIndexed_ThrowsInvalidOperationException()
+    public async Task GetAllComponentsAsync_WhenNotIndexed_ThrowsMcpException()
     {
         // Arrange
         var indexer = CreateIndexer();
 
         // Act & Assert
-        await Assert.ThrowsAsync<InvalidOperationException>(() => 
+        await Assert.ThrowsAsync<ModelContextProtocol.McpException>(() => 
             indexer.GetAllComponentsAsync(TestContext.Current.CancellationToken));
     }
 
     [Fact]
-    public async Task GetComponentAsync_WhenNotIndexed_ThrowsInvalidOperationException()
+    public async Task GetComponentAsync_WhenNotIndexed_ThrowsMcpException()
     {
         // Arrange
         var indexer = CreateIndexer();
 
         // Act & Assert
-        await Assert.ThrowsAsync<InvalidOperationException>(() => 
+        await Assert.ThrowsAsync<ModelContextProtocol.McpException>(() => 
             indexer.GetComponentAsync("MudButton", TestContext.Current.CancellationToken));
     }
 
     [Fact]
-    public async Task GetCategoriesAsync_WhenNotIndexed_ThrowsInvalidOperationException()
+    public async Task GetCategoriesAsync_WhenNotIndexed_ThrowsMcpException()
     {
         // Arrange
         var indexer = CreateIndexer();
 
         // Act & Assert
-        await Assert.ThrowsAsync<InvalidOperationException>(() => 
+        await Assert.ThrowsAsync<ModelContextProtocol.McpException>(() => 
             indexer.GetCategoriesAsync(TestContext.Current.CancellationToken));
     }
 
     [Fact]
-    public async Task SearchComponentsAsync_WhenNotIndexed_ThrowsInvalidOperationException()
+    public async Task SearchComponentsAsync_WhenNotIndexed_ThrowsMcpException()
     {
         // Arrange
         var indexer = CreateIndexer();
 
         // Act & Assert
-        await Assert.ThrowsAsync<InvalidOperationException>(() => 
+        await Assert.ThrowsAsync<ModelContextProtocol.McpException>(() => 
             indexer.SearchComponentsAsync("button", cancellationToken: TestContext.Current.CancellationToken));
     }
 

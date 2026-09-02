@@ -45,6 +45,8 @@ public sealed record ComponentInfo(
 /// <param name="IsRequired">Whether this parameter is required.</param>
 /// <param name="IsCascading">Whether this parameter is a cascading parameter.</param>
 /// <param name="Category">The category this parameter belongs to (e.g., "Appearance", "Behavior").</param>
+/// <param name="IsInherited">Whether this parameter is declared on a base type rather than the component itself.</param>
+/// <param name="DeclaringType">The type that declares this parameter (set when inherited from a base class).</param>
 public sealed record ComponentParameter(
     string Name,
     string Type,
@@ -52,7 +54,9 @@ public sealed record ComponentParameter(
     string? DefaultValue,
     bool IsRequired,
     bool IsCascading,
-    string? Category
+    string? Category,
+    bool IsInherited = false,
+    string? DeclaringType = null
 );
 
 /// <summary>
@@ -61,10 +65,14 @@ public sealed record ComponentParameter(
 /// <param name="Name">The event name.</param>
 /// <param name="EventArgsType">The type of event arguments (null for simple EventCallback).</param>
 /// <param name="Description">Description of when this event fires.</param>
+/// <param name="IsInherited">Whether this event is declared on a base type rather than the component itself.</param>
+/// <param name="DeclaringType">The type that declares this event (set when inherited from a base class).</param>
 public sealed record ComponentEvent(
     string Name,
     string? EventArgsType,
-    string? Description
+    string? Description,
+    bool IsInherited = false,
+    string? DeclaringType = null
 );
 
 /// <summary>
@@ -75,12 +83,16 @@ public sealed record ComponentEvent(
 /// <param name="Description">Description of what the method does.</param>
 /// <param name="Parameters">Method parameters.</param>
 /// <param name="IsAsync">Whether this method is async.</param>
+/// <param name="IsInherited">Whether this method is declared on a base type rather than the component itself.</param>
+/// <param name="DeclaringType">The type that declares this method (set when inherited from a base class).</param>
 public sealed record ComponentMethod(
     string Name,
     string ReturnType,
     string? Description,
     IReadOnlyList<MethodParameter> Parameters,
-    bool IsAsync
+    bool IsAsync,
+    bool IsInherited = false,
+    string? DeclaringType = null
 );
 
 /// <summary>
@@ -159,4 +171,30 @@ public sealed record ApiMember(
     string ReturnType,
     string? Description,
     string? ParameterSignature = null
+);
+
+/// <summary>
+/// Represents a MudBlazor enum type and its values, parsed from the versioned source.
+/// </summary>
+/// <param name="Name">The enum type name (e.g., "Color").</param>
+/// <param name="Namespace">The namespace containing this enum.</param>
+/// <param name="Summary">A brief description of the enum from its XML documentation.</param>
+/// <param name="Values">The values defined by this enum.</param>
+public sealed record EnumInfo(
+    string Name,
+    string? Namespace,
+    string? Summary,
+    IReadOnlyList<EnumValueInfo> Values
+);
+
+/// <summary>
+/// Represents a single value of an enum.
+/// </summary>
+/// <param name="Name">The value name (e.g., "Primary").</param>
+/// <param name="Value">The explicit numeric value, when declared in source.</param>
+/// <param name="Description">Description of this value (preferring the XML summary, falling back to <c>[Description]</c>).</param>
+public sealed record EnumValueInfo(
+    string Name,
+    long? Value,
+    string? Description
 );

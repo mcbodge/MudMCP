@@ -219,10 +219,11 @@ static void RegisterCoreServices(IServiceCollection services, IConfiguration con
     // handshake immediately; tools report "not ready" until the first build completes.
     services.AddHostedService<IndexInitializationService>();
 
+    services.AddSingleton<SemanticComponentParser>();
     services.AddSingleton<XmlDocParser>();
     services.AddSingleton<RazorDocParser>();
     services.AddSingleton<ExampleExtractor>();
-    services.AddSingleton<CategoryMapper>();
+    services.AddSingleton<MenuCategoryParser>();
 }
 
 static Task WriteHealthCheckResponse(HttpContext context, HealthReport report)

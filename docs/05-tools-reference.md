@@ -215,7 +215,7 @@ Gets comprehensive details about a specific component.
 | Parameter | Type | Required | Default | Description |
 |-----------|------|----------|---------|-------------|
 | `componentName` | string | Yes | - | Component name (e.g., "MudButton" or "Button") |
-| `includeInheritedMembers` | bool | No | `false` | Include inherited members |
+| `includeInheritedMembers` | bool | No | `true` | Include members inherited from base classes (annotated with the declaring type); set `false` for own-declared members only |
 | `includeExamples` | bool | No | `true` | Include code examples |
 
 **Example Request:**
@@ -579,6 +579,8 @@ Gets full API reference for a component or type.
 | `typeName` | string | Yes | - | Type name (e.g., "MudButton", "Color") |
 | `memberType` | string | No | `"all"` | Filter: "all", "properties", "methods", "events" |
 
+> If `typeName` is not a component but a known enum, this tool falls back to the enum reference (equivalent to `get_enum_values`).
+
 **Example Request:**
 ```json
 {
@@ -608,15 +610,8 @@ Gets all values for a MudBlazor enum type.
 | `enumName` | string | Yes | - | Enum name (e.g., "Color", "Variant", "Size") |
 
 **Supported Enums:**
-- `Color` - Theme colors (Primary, Secondary, Success, etc.)
-- `Size` - Component sizes (Small, Medium, Large)
-- `Variant` - Visual variants (Text, Filled, Outlined)
-- `Align` - Alignment (Start, Center, End, Justify)
-- `Position` - Positioning (Top, Right, Bottom, Left)
-- `Typo` - Typography (h1-h6, body1, body2, etc.)
-- `InputType` - Input types (Text, Password, Email, etc.)
-- `Adornment` - Adornment position (None, Start, End)
-- `Origin` - Transform origin (TopLeft, CenterCenter, etc.)
+
+All public enums declared in the configured MudBlazor version's source are available (parsed at index-build time), including `Color`, `Size`, `Variant`, `Align`, `Position`, `Typo`, `InputType`, `Adornment`, `Origin`, and many more. Value descriptions come from each member's XML `<summary>` (falling back to `[Description]`), so they are always accurate for that version.
 
 **Example Request:**
 ```json
@@ -635,27 +630,31 @@ Gets all values for a MudBlazor enum type.
 
 **Example Output:**
 ```markdown
-# Color Enum Values
+# Color Enum Values (v9.0.0)
+
+**Namespace:** `MudBlazor`
+
+The color themes available in MudBlazor, allowing components to adapt their visual style based on the selected color.
 
 | Value | Description |
 |-------|-------------|
-| `Default` | Default theme color |
-| `Primary` | Primary theme color (usually blue) |
-| `Secondary` | Secondary theme color |
-| `Tertiary` | Tertiary theme color |
-| `Info` | Informational blue color |
-| `Success` | Success green color |
-| `Warning` | Warning yellow/orange color |
-| `Error` | Error red color |
-| `Dark` | Dark color |
-| `Transparent` | Transparent (no color) |
-| `Inherit` | Inherit color from parent |
-| `Surface` | Surface background color |
+| `Default` | The default color theme. |
+| `Primary` | The primary color theme, usually the main color used in the application. |
+| `Secondary` | The secondary color theme, often used for accents and highlights. |
+| `Tertiary` | The tertiary color theme, typically used for additional accents or highlights. |
+| `Info` | The info color theme, used to indicate informational messages. |
+| `Success` | The success color theme, used to indicate successful operations. |
+| `Warning` | The warning color theme, used to indicate potential issues or warnings. |
+| `Error` | The error color theme, used to indicate errors or critical issues. |
+| `Dark` | The dark color theme, usually used for dark mode or dark-themed elements. |
+| `Transparent` | The transparent theme, making elements see-through. |
+| `Inherit` | Inherits the color from the parent element. |
+| `Surface` | The surface color theme, typically used for the background or surface elements. |
 
 ## Usage Example
 
 ```razor
-<MudComponent Color="Default" />
+<MudComponent Color="Color.Default" />
 ```
 ```
 

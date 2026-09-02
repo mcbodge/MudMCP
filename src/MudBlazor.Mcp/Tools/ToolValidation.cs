@@ -122,14 +122,4 @@ internal static class ToolValidation
 
         throw new McpException(message);
     }
-
-    /// <summary>
-    /// Throws when the component index is not ready.
-    /// </summary>
-    /// <exception cref="McpException">Always thrown.</exception>
-    [DoesNotReturn]
-    public static void ThrowIndexNotReady()
-    {
-        throw new McpException("Component index is not ready. The server may still be initializing. Please try again in a moment.");
-    }
 }

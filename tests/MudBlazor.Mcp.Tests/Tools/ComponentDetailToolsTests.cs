@@ -128,6 +128,103 @@ public class ComponentDetailToolsTests
         Assert.Contains("AlignItems.", result);
     }
 
+    [Fact]
+    public async Task GetComponentDetailAsync_IncludeInheritedTrue_ShowsAnnotatedInheritedMembers()
+    {
+        // Arrange
+        var indexer = CreateMockIndexerWithInheritedMembers();
+
+        // Act
+        var result = await ComponentDetailTools.GetComponentDetailAsync(
+            indexer, NullLogger, _versionContext, "MudButton", true, false, TestContext.Current.CancellationToken);
+
+        // Assert - inherited members are shown and annotated with their declaring type
+        Assert.Contains("Color", result);
+        Assert.Contains("Href", result);
+        Assert.Contains("(inherited from MudBaseButton)", result);
+    }
+
+    [Fact]
+    public async Task GetComponentDetailAsync_IncludeInheritedFalse_HidesInheritedMembers()
+    {
+        // Arrange
+        var indexer = CreateMockIndexerWithInheritedMembers();
+
+        // Act
+        var result = await ComponentDetailTools.GetComponentDetailAsync(
+            indexer, NullLogger, _versionContext, "MudButton", false, false, TestContext.Current.CancellationToken);
+
+        // Assert - only own-declared members remain
+        Assert.Contains("Color", result);
+        Assert.DoesNotContain("Href", result);
+        Assert.DoesNotContain("(inherited from", result);
+    }
+
+    [Fact]
+    public async Task GetComponentDetailAsync_DefaultIncludeInherited_ShowsInheritedMembers()
+    {
+        // Arrange
+        var indexer = CreateMockIndexerWithInheritedMembers();
+
+        // Act - null includeInheritedMembers defaults to true
+        var result = await ComponentDetailTools.GetComponentDetailAsync(
+            indexer, NullLogger, _versionContext, "MudButton", null, false, TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.Contains("Href", result);
+        Assert.Contains("(inherited from MudBaseButton)", result);
+    }
+
+    [Fact]
+    public async Task GetComponentParametersAsync_AnnotatesInheritedParameters()
+    {
+        // Arrange
+        var indexer = CreateMockIndexerWithInheritedMembers();
+
+        // Act
+        var result = await ComponentDetailTools.GetComponentParametersAsync(
+            indexer, NullLogger, _versionContext, "MudButton", null, TestContext.Current.CancellationToken);
+
+        // Assert - inherited parameters are shown with their declaring type
+        Assert.Contains("Href", result);
+        Assert.Contains("Inherited from:", result);
+    }
+
+    private static IComponentIndexer CreateMockIndexerWithInheritedMembers()
+    {
+        var indexer = new Mock<IComponentIndexer>();
+
+        var component = new ComponentInfo(
+            Name: "MudButton",
+            Namespace: "MudBlazor",
+            Summary: "A Material Design button component",
+            Description: null,
+            Category: "Buttons",
+            BaseType: "MudBaseButton",
+            Parameters:
+            [
+                new ComponentParameter("Color", "Color", "The button color", "Color.Default", false, false, "Appearance"),
+                new ComponentParameter("Href", "string?", "The navigation URL", null, false, false, "ClickAction", IsInherited: true, DeclaringType: "MudBaseButton"),
+            ],
+            Events:
+            [
+                new ComponentEvent("OnClick", "MouseEventArgs", "Occurs on click", IsInherited: true, DeclaringType: "MudBaseButton"),
+            ],
+            Methods:
+            [
+                new ComponentMethod("FocusAsync", "Task", "Focuses the button", [], true, IsInherited: true, DeclaringType: "MudBaseButton"),
+            ],
+            Examples: [],
+            RelatedComponents: [],
+            DocumentationUrl: null,
+            SourceUrl: null);
+
+        indexer.Setup(x => x.GetComponentAsync("MudButton", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(component);
+
+        return indexer.Object;
+    }
+
     private static IComponentIndexer CreateMockIndexerWithBoolParam()
     {
         var indexer = new Mock<IComponentIndexer>();

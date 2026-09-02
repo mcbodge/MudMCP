@@ -99,13 +99,10 @@ public sealed partial class RazorDocParser
 
     private static string? ExtractSubTitle(string content)
     {
-        // Match: <DocsPageHeader Title="..." SubTitle="...">
+        // Only use the explicit DocsPageHeader SubTitle. A generic <MudText> fallback grabbed
+        // unrelated page text (e.g. a "Note" callout or a nav label), so when no SubTitle is
+        // present we return null and let the authoritative source XML summary/remarks stand.
         var match = SubTitleAttributeRegex().Match(content);
-        if (match.Success)
-            return match.Groups[1].Value;
-
-        // Alternative: <MudText> in header section
-        match = HeaderTextRegex().Match(content);
         return match.Success ? match.Groups[1].Value : null;
     }
 
@@ -139,9 +136,6 @@ public sealed partial class RazorDocParser
 
     [GeneratedRegex(@"SubTitle\s*=\s*""([^""]+)""", RegexOptions.IgnoreCase)]
     private static partial Regex SubTitleAttributeRegex();
-
-    [GeneratedRegex(@"<MudText[^>]*>\s*([^<]+)\s*</MudText>")]
-    private static partial Regex HeaderTextRegex();
 
     [GeneratedRegex(@"href\s*=\s*""/components/([^""]+)""", RegexOptions.IgnoreCase)]
     private static partial Regex ComponentLinkRegex();

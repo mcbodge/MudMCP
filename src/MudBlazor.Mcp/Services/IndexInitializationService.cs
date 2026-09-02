@@ -24,20 +24,46 @@ public sealed class IndexInitializationService : BackgroundService
         // Yield so host startup completes before the (potentially long) first-run clone/build.
         await Task.Yield();
 
-        try
+        // Bounded retry so a transient failure (e.g. a flaky clone) doesn't leave the index
+        // permanently unbuilt for the process lifetime.
+        var delays = new[] { TimeSpan.FromSeconds(10), TimeSpan.FromSeconds(30) };
+
+        for (var attempt = 0; ; attempt++)
         {
-            _logger.LogInformation("Building MudBlazor component index in the background...");
-            await _indexer.BuildIndexAsync(stoppingToken);
-            var count = (await _indexer.GetAllComponentsAsync(stoppingToken)).Count;
-            _logger.LogInformation("Index built successfully with {ComponentCount} components", count);
-        }
-        catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
-        {
-            _logger.LogInformation("Index build cancelled during shutdown.");
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to build the component index. Tools will report the index as not ready until a successful build.");
+            try
+            {
+                _logger.LogInformation("Building MudBlazor component index in the background (attempt {Attempt})...", attempt + 1);
+                await _indexer.BuildIndexAsync(stoppingToken);
+                var count = (await _indexer.GetAllComponentsAsync(stoppingToken)).Count;
+                _logger.LogInformation("Index built successfully with {ComponentCount} components", count);
+                return;
+            }
+            catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+            {
+                _logger.LogInformation("Index build cancelled during shutdown.");
+                return;
+            }
+            catch (Exception ex)
+            {
+                if (attempt >= delays.Length)
+                {
+                    _logger.LogError(ex,
+                        "Failed to build the component index after {Attempts} attempts. Tools will report the index as " +
+                        "not ready; restart the server to retry.", attempt + 1);
+                    return;
+                }
+
+                var delay = delays[attempt];
+                _logger.LogWarning(ex, "Index build attempt {Attempt} failed; retrying in {Delay}s.", attempt + 1, delay.TotalSeconds);
+                try
+                {
+                    await Task.Delay(delay, stoppingToken);
+                }
+                catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+                {
+                    return;
+                }
+            }
         }
     }
 }

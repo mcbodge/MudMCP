@@ -28,7 +28,7 @@ public sealed class ComponentDetailTools
         VersionContext versionContext,
         [Description("The component name (e.g., 'MudButton' or 'Button')")]
         string componentName,
-        [Description("Include inherited members from base classes (default: false)")]
+        [Description("Include inherited members from base classes (default: true)")]
         bool? includeInheritedMembers = null,
         [Description("Include code examples (default: true)")]
         bool? includeExamples = null,
@@ -37,7 +37,7 @@ public sealed class ComponentDetailTools
         ToolValidation.RequireNonEmpty(componentName, nameof(componentName));
 
         // Apply default values if not provided (MCP clients may send null for optional parameters)
-        var effectiveIncludeInherited = includeInheritedMembers ?? false;
+        var effectiveIncludeInherited = includeInheritedMembers ?? true;
         var effectiveIncludeExamples = includeExamples ?? true;
 
         logger.LogDebug("Getting component detail for: {ComponentName}, includeInherited: {IncludeInherited}, includeExamples: {IncludeExamples}",
@@ -53,6 +53,17 @@ public sealed class ComponentDetailTools
 
         logger.LogDebug("Found component {ComponentName} with {ParamCount} parameters, {EventCount} events, {ExampleCount} examples",
             component.Name, component.Parameters.Count, component.Events.Count, component.Examples.Count);
+
+        // When inherited members are excluded, show only members declared on the component itself.
+        var visibleParameters = effectiveIncludeInherited
+            ? component.Parameters
+            : component.Parameters.Where(p => !p.IsInherited).ToList();
+        var visibleEvents = effectiveIncludeInherited
+            ? component.Events
+            : component.Events.Where(e => !e.IsInherited).ToList();
+        var visibleMethods = effectiveIncludeInherited
+            ? component.Methods
+            : component.Methods.Where(m => !m.IsInherited).ToList();
 
         var sb = new StringBuilder();
         
@@ -86,57 +97,60 @@ public sealed class ComponentDetailTools
         sb.AppendLine();
 
         // Parameters
-        if (component.Parameters.Count > 0)
+        if (visibleParameters.Count > 0)
         {
             sb.AppendLine("## Parameters");
             sb.AppendLine();
             sb.AppendLine("| Parameter | Type | Description | Default |");
             sb.AppendLine("|-----------|------|-------------|---------|");
             
-            foreach (var param in component.Parameters.OrderBy(p => p.Name))
+            foreach (var param in visibleParameters.OrderBy(p => p.Name))
             {
                 var required = param.IsRequired ? " *(required)*" : "";
                 var cascading = param.IsCascading ? " *(cascading)*" : "";
+                var inherited = param.IsInherited ? $" *(inherited from {param.DeclaringType})*" : "";
                 var defaultVal = param.DefaultValue ?? "-";
                 var desc = ToolFormatting.Truncate(param.Description, 60, collapseNewlines: true);
                 
-                sb.AppendLine($"| `{param.Name}`{required}{cascading} | `{param.Type}` | {desc} | `{defaultVal}` |");
+                sb.AppendLine($"| `{param.Name}`{required}{cascading}{inherited} | `{param.Type}` | {desc} | `{defaultVal}` |");
             }
             sb.AppendLine();
         }
 
         // Events
-        if (component.Events.Count > 0)
+        if (visibleEvents.Count > 0)
         {
             sb.AppendLine("## Events");
             sb.AppendLine();
             sb.AppendLine("| Event | Type | Description |");
             sb.AppendLine("|-------|------|-------------|");
             
-            foreach (var evt in component.Events.OrderBy(e => e.Name))
+            foreach (var evt in visibleEvents.OrderBy(e => e.Name))
             {
                 var eventType = evt.EventArgsType is not null 
                     ? $"EventCallback<{evt.EventArgsType}>" 
                     : "EventCallback";
+                var inherited = evt.IsInherited ? $" *(inherited from {evt.DeclaringType})*" : "";
                 var desc = ToolFormatting.Truncate(evt.Description, 80, collapseNewlines: true);
                 
-                sb.AppendLine($"| `{evt.Name}` | `{eventType}` | {desc} |");
+                sb.AppendLine($"| `{evt.Name}`{inherited} | `{eventType}` | {desc} |");
             }
             sb.AppendLine();
         }
 
         // Methods
-        if (component.Methods.Count > 0)
+        if (visibleMethods.Count > 0)
         {
             sb.AppendLine("## Public Methods");
             sb.AppendLine();
             
-            foreach (var method in component.Methods.OrderBy(m => m.Name))
+            foreach (var method in visibleMethods.OrderBy(m => m.Name))
             {
                 var asyncMarker = method.IsAsync ? "async " : "";
                 var parameters = string.Join(", ", method.Parameters.Select(p => $"{p.Type} {p.Name}"));
+                var inherited = method.IsInherited ? $" *(inherited from {method.DeclaringType})*" : "";
                 
-                sb.AppendLine($"### `{asyncMarker}{method.ReturnType} {method.Name}({parameters})`");
+                sb.AppendLine($"### `{asyncMarker}{method.ReturnType} {method.Name}({parameters})`{inherited}");
                 
                 if (!string.IsNullOrEmpty(method.Description))
                 {
@@ -280,6 +294,9 @@ public sealed class ComponentDetailTools
                     
                 if (param.IsCascading)
                     sb.AppendLine("- **Cascading:** Yes");
+
+                if (param.IsInherited)
+                    sb.AppendLine($"- **Inherited from:** `{param.DeclaringType}`");
                     
                 if (param.DefaultValue is not null)
                     sb.AppendLine($"- **Default:** `{param.DefaultValue}`");
