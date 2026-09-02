@@ -14,7 +14,8 @@ An enterprise-grade Model Context Protocol (MCP) server that provides AI assista
 
 - [Overview](#overview)
 - [Features](#features)
-- [Quick Start](#quick-start)
+- [Quick Start](#quick-start) — for consumers (dnx, no install)
+- [Running from Source](#running-from-source-developers) — for contributors
 - [Documentation](#documentation)
 - [Available MCP Tools](#available-mcp-tools)
 - [Project Structure](#project-structure)
@@ -82,48 +83,98 @@ Agent:
 
 ## Quick Start
 
+The fastest way to use Mud MCP — **no clone, no build, no global install**. [`dnx`](https://learn.microsoft.com/dotnet/core/tools/dotnet-tool-exec) (bundled with the **.NET 10 SDK**) downloads and runs the published **[`MudMCP`](https://www.nuget.org/packages/MudMCP)** tool on demand, so your AI assistant launches it directly.
+
+> Want to run from a local clone to contribute or customize the server? See [Running from Source](#running-from-source-developers).
+
 ### Prerequisites
 
-- [.NET 10 SDK](https://dotnet.microsoft.com/download)
-- [Git](https://git-scm.com/)
+- **[.NET 10 SDK](https://dotnet.microsoft.com/download)** — provides the `dnx` command. Nothing else to install; `dnx` restores `MudMCP` from nuget.org on first run.
 
-### 1. Clone and Build
+### 1. Find your MudBlazor version
 
-```bash
-dotnet build
-```
-
-### 2. Find Your MudBlazor Version
-
-Check your project's `.csproj` file for the MudBlazor version:
+Check your project's `.csproj` for the MudBlazor version — the server serves documentation for this exact version:
 
 ```xml
 <PackageReference Include="MudBlazor" Version="9.0.0" />
 ```
 
-### 3. Run the Server
+### 2. Add Mud MCP to your AI assistant
 
-The `--version` argument is **required** and must match your project's MudBlazor version:
+Add the snippet below to your MCP client configuration (also provided as [`mcp.dnx.json`](./mcp.dnx.json) in the repo root), replacing `9.0.0` with your version from step 1.
+
+**VS Code — `.vscode/mcp.json`:**
+```json
+{
+  "servers": {
+    "mudblazor": {
+      "command": "dnx",
+      "args": ["MudMCP", "--yes", "--", "--stdio"],
+      "env": {
+        "MUDBLAZOR_VERSION": "9.0.0",
+        "MudBlazor__Repository__DataPath": "${userHome}/.mudmcp"
+      }
+    }
+  }
+}
+```
+
+**Claude Desktop / Cursor — `claude_desktop_config.json` / `.cursor/mcp.json`:**
+```json
+{
+  "mcpServers": {
+    "mudblazor": {
+      "command": "dnx",
+      "args": ["MudMCP", "--yes", "--", "--stdio"],
+      "env": {
+        "MUDBLAZOR_VERSION": "9.0.0",
+        "MudBlazor__Repository__DataPath": "C:/Users/<you>/.mudmcp"
+      }
+    }
+  }
+}
+```
+
+Restart your assistant and ask it something like *"List all MudBlazor button components"*.
+
+> The first run per version clones the MudBlazor repository (~500 MB) and builds the index, so it takes a little longer. Subsequent runs load from a cached `index.json` and start instantly.
+
+### Notes
+
+- **Latest vs pinned version:** `MudMCP` (no suffix) always fetches the **latest** published tool. For a reproducible setup, pin a release by appending `@<version>` — e.g. `"args": ["MudMCP@1.0.2", "--yes", "--", "--stdio"]`. Browse released versions on [nuget.org](https://www.nuget.org/packages/MudMCP).
+- **`MUDBLAZOR_VERSION` vs `--version`:** `dnx` reserves its own `--version` flag for the *package* version, so the MudBlazor docs version is supplied through the `MUDBLAZOR_VERSION` environment variable. Everything after `--` is forwarded to the server, so you may append `"--version", "9.0.0"` there instead of the env var.
+- **`MudBlazor__Repository__DataPath` (shared cache):** where cloned repos and indexes are stored. Point every project at one fixed folder so they share a single cache instead of each cloning ~500 MB into its own working-directory `./data`. Omit it to use `./data` relative to the client's working directory.
+- **What to use for `${userHome}`:** VS Code expands `${userHome}` to your home directory automatically — `C:\Users\<you>` (Windows), `/home/<you>` (Linux), `/Users/<you>` (macOS). Clients that don't expand variables (Claude Desktop, Cursor) need a **literal absolute path** instead, e.g. `C:/Users/<you>/.mudmcp` or `/home/<you>/.mudmcp`.
+
+---
+
+## Running from Source (Developers)
+
+Prefer to run the server from a local clone — to contribute, debug, or customize it? Build it yourself and point your MCP client at the local build. The server communicates over stdin/stdout (the native mode for Cursor, Claude Code, Claude Desktop, and most MCP clients) or over HTTP.
+
+### Prerequisites
+
+- **[.NET 10 SDK](https://dotnet.microsoft.com/download)**
+- **[Git](https://git-scm.com/)** — to clone this repository.
+
+### Clone and build
+
+```bash
+git clone https://github.com/mcbodge/MudMCP.git
+cd MudMCP
+dotnet build
+```
+
+> **Important:** The `--version` argument (or the `MUDBLAZOR_VERSION` env var) is required in every transport below. It must match the MudBlazor version in your project's `.csproj` file (e.g., `<PackageReference Include="MudBlazor" Version="9.0.0" />`).
+
+### Run the HTTP server
 
 ```bash
 dotnet run --project src/MudBlazor.Mcp/MudBlazor.Mcp.csproj -- --version 9.0.0
 ```
 
-The server will:
-1. Clone the MudBlazor repository and checkout the matching tag (`v9.0.0`)
-2. Parse all components using Roslyn and build an index
-3. Cache the index to disk — subsequent runs load instantly
-4. Start the MCP server on `http://localhost:8000`
+The server clones the MudBlazor repository at tag `v9.0.0`, parses it with Roslyn, builds the index (cached to disk for instant subsequent starts), and listens on `http://localhost:8000`. Verify with `curl http://localhost:8000/health`, then connect an HTTP client:
 
-### 4. Verify
-
-```bash
-curl http://localhost:8000/health
-```
-
-### 5. Connect Your AI Assistant
-
-**VS Code / Cursor (HTTP mode, mcp.json):**
 ```json
 {
   "servers": {
@@ -134,14 +185,6 @@ curl http://localhost:8000/health
   }
 }
 ```
-
----
-
-## Local MCP (stdio — no frontend required)
-
-Run the MCP server locally without starting a web server or the Aspire dashboard. The server communicates directly through stdin/stdout, which is the native mode for Cursor, Claude Code, Claude Desktop, and most MCP clients.
-
-> **Important:** The `--version` argument is required. It must match the MudBlazor version in your project's `.csproj` file (e.g., `<PackageReference Include="MudBlazor" Version="9.0.0" />`).
 
 ### Option A — dotnet run (development)
 
@@ -236,41 +279,6 @@ docker compose down -v
 }
 ```
 
-### Option D — dnx (one-off, no install)
-
-[`dnx`](https://learn.microsoft.com/dotnet/core/tools/dotnet-tool-exec) ships with the .NET 10 SDK and downloads + runs a tool package on demand — no global install and no manually cloned repo. This project is published to nuget.org as the .NET tool **[`MudMCP`](https://www.nuget.org/packages/MudMCP)** (command `mudmcp`).
-
-```bash
-# MUDBLAZOR_VERSION selects the docs version to serve
-#    PowerShell:
-$env:MUDBLAZOR_VERSION = "9.0.0"; dnx MudMCP@1.0.2 --yes -- --stdio
-#    bash:
-MUDBLAZOR_VERSION=9.0.0 dnx MudMCP@1.0.2 --yes -- --stdio
-```
-
-MCP client configuration (also provided as `mcp.dnx.json` in the repo root):
-
-```json
-{
-  "mcpServers": {
-    "mudblazor": {
-      "command": "dnx",
-      "args": ["MudMCP@1.0.2", "--yes", "--", "--stdio"],
-      "env": {
-        "MUDBLAZOR_VERSION": "9.0.0",
-        "MudBlazor__Repository__DataPath": "${userHome}/.mudmcp"
-      }
-    }
-  }
-}
-```
-
-> **Building from source instead?** Pack locally and point `dnx` at it: `dotnet pack src/MudBlazor.Mcp/MudBlazor.Mcp.csproj -c Release -o ./nupkg`, then `dnx MudMCP --source ./nupkg --yes -- --stdio` (use an absolute `--source` path in MCP client configs).
->
-> **Why the `--` and the env var?** `dnx` has its own `--version` flag (the *package* version), so the MudBlazor docs version is supplied via the `MUDBLAZOR_VERSION` environment variable to avoid a collision. Everything after `--` (here `--stdio`) is forwarded to the server — you can append `--version 9.0.0` there instead of the env var if you prefer.
->
-> **Shared cache (recommended):** by default each `dnx` run clones MudBlazor (~500 MB) into a `./data` folder in the working directory, so every project gets its own copy. Point `MudBlazor__Repository__DataPath` at one fixed folder (as in the config above) so all projects share a single cache. `${userHome}` is expanded by VS Code; for other clients use a literal absolute path (e.g. `C:/Users/you/.mudmcp` or `/home/you/.mudmcp`).
-
 ### Version Caching
 
 The server caches up to **3 MudBlazor versions** simultaneously. Each version gets its own git clone and serialized index:
@@ -294,10 +302,10 @@ When a 4th version is requested, the least recently used version is evicted auto
 
 | Mode | Command | Kestrel | Use case |
 |------|---------|---------|----------|
-| `--stdio` | `dotnet run -- --stdio --version X.Y.Z` or `.exe --stdio --version X.Y.Z` | No | Cursor, Claude Code, Claude Desktop, local clients |
+| `dnx` | `dnx MudMCP --yes -- --stdio` (env `MUDBLAZOR_VERSION`) | No | **Recommended** — one-off, no install (needs .NET 10 SDK) |
+| `--stdio` | `dotnet run -- --stdio --version X.Y.Z` or `.exe --stdio --version X.Y.Z` | No | Running from source: Cursor, Claude Code, Claude Desktop |
 | HTTP (default) | `dotnet run -- --version X.Y.Z` | Yes (`:8000`) | VS Code HTTP, MCP Inspector, remote |
 | Docker | `docker compose up` | Yes (`:8000→8080`) | Containerised / persistent cache |
-| `dnx` | `dnx MudMCP --yes -- --stdio` (env `MUDBLAZOR_VERSION`) | No | One-off, no install (needs .NET 10 SDK) |
 
 ---
 
