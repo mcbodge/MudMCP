@@ -101,7 +101,7 @@ Check your project's `.csproj` for the MudBlazor version — the server serves d
 
 ### 2. Add Mud MCP to your AI assistant
 
-Add the snippet below to your MCP client configuration (also provided as [`mcp.dnx.json`](./mcp.dnx.json) in the repo root), replacing `9.0.0` with your version from step 1.
+Add the snippet below to your MCP client configuration, replacing `9.0.0` with your version from step 1. A pinned example is provided as [`mcp.dnx.json`](./mcp.dnx.json) in the repo root.
 
 **VS Code — `.vscode/mcp.json`:**
 ```json
