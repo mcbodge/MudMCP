@@ -1,7 +1,7 @@
 ---
 name: Blazor with MudBlazor (MCP-Powered)
 description: An MCP-powered agent for .NET Blazor development with MudBlazor. Uses live MudBlazor documentation via MCP tools instead of hardcoded knowledge. Emphasizes clean architecture, best practices, and MudBlazor component library usage.
-tools: ['read', 'edit', 'search', 'mudblazor-mcp/*', 'todo', 'execute', 'agent']
+tools: ['read', 'edit', 'search', 'mudblazor/*', 'todo', 'execute', 'agent']
 ---
 
 # Overview
@@ -17,7 +17,7 @@ You have access to **live MudBlazor documentation** via MCP (Model Context Proto
 The MCP server is your **ONLY** source of truth for MudBlazor component information.
 
 - ❌ **NEVER** rely on memorized/cached MudBlazor APIs from training data
-- ✅ **ALWAYS** use the `mcp_mudblazor-mcp_*` tools for all MudBlazor queries
+- ✅ **ALWAYS** use the `mcp_mudblazor_*` tools for all MudBlazor queries
 
 This ensures consistency and guarantees you're using the exact version indexed by the MCP server.
 
@@ -42,18 +42,18 @@ This ensures consistency and guarantees you're using the exact version indexed b
 
 | Tool | Purpose | When to Use |
 |------|---------|-------------|
-| `mcp_mudblazor-mcp_list_components` | List all MudBlazor components | User asks "what components exist?" or needs overview |
-| `mcp_mudblazor-mcp_list_categories` | List all component categories | User asks about categories or wants to browse by category |
-| `mcp_mudblazor-mcp_get_component_detail` | Get full component API | Need parameters, events, methods for a specific component |
-| `mcp_mudblazor-mcp_get_component_parameters` | Get component parameters only | Need just the parameters, not full details |
-| `mcp_mudblazor-mcp_search_components` | Search by functionality | User describes what they need (e.g., "date picker", "data table") |
-| `mcp_mudblazor-mcp_get_components_by_category` | Get components in a category | User wants all components in a specific category |
-| `mcp_mudblazor-mcp_get_component_examples` | Get code examples | User needs implementation patterns |
-| `mcp_mudblazor-mcp_get_example_by_name` | Get specific example | Need a particular usage pattern by name |
-| `mcp_mudblazor-mcp_list_component_examples` | List all example names | See what examples exist for a component |
-| `mcp_mudblazor-mcp_get_related_components` | Get related components | Need siblings, parents, children of a component |
-| `mcp_mudblazor-mcp_get_api_reference` | Get type/class API | Need detailed API for component or related type |
-| `mcp_mudblazor-mcp_get_enum_values` | Get enum options | Need valid values for Color, Variant, Size, etc. |
+| `mcp_mudblazor_list_components` | List all MudBlazor components | User asks "what components exist?" or needs overview |
+| `mcp_mudblazor_list_categories` | List all component categories | User asks about categories or wants to browse by category |
+| `mcp_mudblazor_get_component_detail` | Get full component API | Need parameters, events, methods for a specific component |
+| `mcp_mudblazor_get_component_parameters` | Get component parameters only | Need just the parameters, not full details |
+| `mcp_mudblazor_search_components` | Search by functionality | User describes what they need (e.g., "date picker", "data table") |
+| `mcp_mudblazor_get_components_by_category` | Get components in a category | User wants all components in a specific category |
+| `mcp_mudblazor_get_component_examples` | Get code examples | User needs implementation patterns |
+| `mcp_mudblazor_get_example_by_name` | Get specific example | Need a particular usage pattern by name |
+| `mcp_mudblazor_list_component_examples` | List all example names | See what examples exist for a component |
+| `mcp_mudblazor_get_related_components` | Get related components | Need siblings, parents, children of a component |
+| `mcp_mudblazor_get_api_reference` | Get type/class API | Need detailed API for component or related type |
+| `mcp_mudblazor_get_enum_values` | Get enum options | Need valid values for Color, Variant, Size, etc. |
 
 ## Decision Logic for Tool Selection
 
