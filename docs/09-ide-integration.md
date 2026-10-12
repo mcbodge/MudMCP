@@ -50,7 +50,7 @@ The HTTP URL shown here is the local `dotnet run` default. IIS deployments use t
 ```json
 {
   "servers": {
-    "mudblazor-mcp": {
+    "mudblazor": {
       "command": "dnx",
       "args": ["MudMCP@1.0.2", "--yes", "--", "--stdio"],
       "env": {
@@ -67,7 +67,7 @@ The HTTP URL shown here is the local `dotnet run` default. IIS deployments use t
 ```json
 {
   "mcpServers": {
-    "mudblazor-mcp": {
+    "mudblazor": {
       "command": "dnx",
       "args": ["MudMCP@1.0.2", "--yes", "--", "--stdio"],
       "env": {
@@ -85,7 +85,7 @@ The HTTP URL shown here is the local `dotnet run` default. IIS deployments use t
 {
   "experimental": {
     "mcpServers": {
-      "mudblazor-mcp": {
+      "mudblazor": {
         "transport": {
           "type": "stdio",
           "command": "dnx",
@@ -122,7 +122,7 @@ The HTTP URL shown here is the local `dotnet run` default. IIS deployments use t
 ```json
 {
   "github.copilot.chat.experimental.mcpServers": {
-    "mudblazor-mcp": {
+    "mudblazor": {
       "command": "dotnet",
       "args": [
         "run",
@@ -143,7 +143,7 @@ Create `.vscode/mcp.json` in your project:
 ```json
 {
   "servers": {
-    "mudblazor-mcp": {
+    "mudblazor": {
       "command": "dotnet",
       "args": [
         "run",
@@ -170,7 +170,7 @@ dotnet publish -c Release -o ./publish
 ```json
 {
   "github.copilot.chat.experimental.mcpServers": {
-    "mudblazor-mcp": {
+    "mudblazor": {
       "command": "C:/MudBlazor/Mcp/MudBlazor.Mcp/src/MudBlazor.Mcp/publish/MudBlazor.Mcp.exe",
       "args": ["--stdio"]
     }
@@ -217,7 +217,7 @@ Create or edit `claude_desktop_config.json`:
 ```json
 {
   "mcpServers": {
-    "mudblazor-mcp": {
+    "mudblazor": {
       "command": "dotnet",
       "args": [
         "run",
@@ -239,7 +239,7 @@ Create or edit `claude_desktop_config.json`:
 ```json
 {
   "mcpServers": {
-    "mudblazor-mcp": {
+    "mudblazor": {
       "command": "dotnet",
       "args": [
         "run",
@@ -261,7 +261,7 @@ Create or edit `claude_desktop_config.json`:
 ```json
 {
   "mcpServers": {
-    "mudblazor-mcp": {
+    "mudblazor": {
       "command": "C:\\MudBlazor\\Mcp\\MudBlazor.Mcp\\src\\MudBlazor.Mcp\\publish\\MudBlazor.Mcp.exe",
       "args": ["--stdio"],
       "env": {
@@ -291,7 +291,7 @@ Edit `~/.continue/config.json`:
 {
   "experimental": {
     "mcpServers": {
-      "mudblazor-mcp": {
+      "mudblazor": {
         "transport": {
           "type": "stdio",
           "command": "dotnet",
@@ -397,7 +397,7 @@ Pass environment variables to configure the server:
 ```json
 {
   "github.copilot.chat.experimental.mcpServers": {
-    "mudblazor-mcp": {
+    "mudblazor": {
       "command": "dotnet",
       "args": ["run", "--project", "...", "--", "--stdio"],
       "env": {
@@ -414,7 +414,7 @@ Pass environment variables to configure the server:
 ```json
 {
   "mcpServers": {
-    "mudblazor-mcp": {
+    "mudblazor": {
       "command": "...",
       "args": ["--stdio"],
       "env": {
@@ -433,7 +433,7 @@ Set the working directory for the server:
 ```json
 {
   "mcpServers": {
-    "mudblazor-mcp": {
+    "mudblazor": {
       "command": "dotnet",
       "args": ["run", "--", "--stdio"],
       "cwd": "C:\\MudBlazor\\Mcp\\MudBlazor.Mcp\\src\\MudBlazor.Mcp"

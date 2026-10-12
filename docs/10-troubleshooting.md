@@ -371,7 +371,7 @@ TimeoutException: The operation has timed out
    // settings.json
    {
      "github.copilot.chat.experimental.mcpServers": {
-       "mudblazor-mcp": {
+       "mudblazor": {
          "command": "dotnet",
          "args": ["run", "--project", "FULL_PATH", "--", "--stdio"]
        }
@@ -397,7 +397,7 @@ TimeoutException: The operation has timed out
    ```json
    {
      "mcpServers": {
-       "mudblazor-mcp": {
+       "mudblazor": {
          "command": "C:\\full\\path\\to\\MudBlazor.Mcp.exe",
          "args": ["--stdio"]
        }
