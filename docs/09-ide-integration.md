@@ -184,33 +184,19 @@ dotnet publish -c Release -o ./publish
 2. Type: `@mudblazor list components`
 3. Verify MudBlazor tools are available in tool picker
 
-### Using the MudBlazor Expert Agent
+### Recommended Copilot Agents (Clowder)
 
-To maximize the value of the MCP server, we provide a specialized agent file that teaches GitHub Copilot how to effectively use the MudBlazor MCP tools.
+Drive this server with the **[Clowder](https://github.com/mcbodge/clowder)** MudBlazor agents, which query the `mudblazor/*` MCP tools effectively:
 
-**Location:** `.github/agents/mudblazor-expert.agent.md`
+- **[CAT MudBlazor Engineer](https://github.com/mcbodge/clowder/blob/main/agents/cat-mudblazor-engineer.agent.md)** — Blazor Server + MudBlazor UI, every component API confirmed through this server.
+- **[CAT Planner (MudBlazor)](https://github.com/mcbodge/clowder/blob/main/agents/cat-planner-mudblazor.agent.md)** and **[CAT Planner (DevOps, MudBlazor)](https://github.com/mcbodge/clowder/blob/main/agents/cat-planner-devops-mudblazor.agent.md)** — plan MudBlazor work, researching APIs here first.
+- **[CAT Plan Executor (MudBlazor)](https://github.com/mcbodge/clowder/blob/main/agents/cat-plan-executor-mudblazor.agent.md)** — executes those plans, consulting this server before writing MudBlazor markup.
 
-This agent file:
-- Provides decision logic for selecting the right MCP tool
-- Enforces best practices (always query before answering)
-- Includes Blazor and MudBlazor development guidelines
-- Prevents hallucination by requiring tool-backed responses
+**Setup:**
 
-**Usage in VS Code:**
-
-1. Ensure the `.github/agents/` folder exists in your project
-2. Copy or reference `mudblazor-expert.agent.md`
-3. In Copilot Chat, the agent will automatically be available
-4. Use `@workspace` to activate the agent context
-
-**Agent Capabilities:**
-- Component discovery and search
-- Parameter and API reference lookup
-- Code example retrieval
-- Enum value queries
-- Best practice guidance for Blazor development
-
-> **Credits:** This agent file is derived from work in the [github/awesome-copilot](https://github.com/github/awesome-copilot) repository.
+1. Configure this server under the name `mudblazor` in your MCP client (see [VS Code with GitHub Copilot](#vs-code-with-github-copilot) above).
+2. Install the agents from [github.com/mcbodge/clowder](https://github.com/mcbodge/clowder) into `.github/agents/` or your user profile.
+3. Select an agent in Copilot Chat; it queries the live documentation through `mudblazor/*`.
 
 ---
 

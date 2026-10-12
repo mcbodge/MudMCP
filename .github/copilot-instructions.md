@@ -112,5 +112,5 @@ public static async Task<string> GetComponentDetailAsync(
 
 ## Related Customizations
 
-- Domain agents in [.github/agents/](agents/): `mudblazor-expert` (teaches Copilot to query MCP tools before answering), `csharp-expert`, `csharp-mcp-expert`.
+- Local domain agent in [.github/agents/](agents/): `csharp-expert`. To consume this server, and for MudBlazor or MCP-server engineering, use the [Clowder](https://github.com/mcbodge/clowder) agents — **CAT MudBlazor Engineer**, **CAT C# MCP Engineer**, and the `(MudBlazor)` planner and executor variants — which query the `mudblazor/*` MCP tools.
 - Health checks: `/health`, `/health/ready`, `/health/live`. Aspire SDK pinned in [Directory.Packages.props](../Directory.Packages.props) (`Aspire.AppHost.Sdk` 13.5.3).

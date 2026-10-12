@@ -49,35 +49,20 @@ Mud MCP bridges the gap between AI assistants and MudBlazor component documentat
 | **API Reference** | Full API reference for components and enum types |
 | **Related Components** | Discover related components through inheritance and categories |
 | **Health Monitoring** | Built-in health checks with detailed status reporting |
-| **Expert Agent** | Pre-built agent file for optimal MCP tool usage with GitHub Copilot |
+| **Recommended Agents** | Works with the [Clowder](https://github.com/mcbodge/clowder) MudBlazor Copilot agents for optimal MCP tool usage |
 
 ---
 
-## MudBlazor Expert Agent
+## Recommended Copilot Agents
 
-To maximize the value of the MCP server, this project includes a specialized GitHub Copilot agent file:
+Mud MCP is designed to be driven by the **[Clowder](https://github.com/mcbodge/clowder)** MudBlazor agents — maintained GitHub Copilot agents that query this server's `mudblazor/*` MCP tools instead of relying on memorized component APIs. Install the ones that match your workflow:
 
-**Location:** `.github/agents/mudblazor-expert.agent.md`
+- **[CAT MudBlazor Engineer](https://github.com/mcbodge/clowder/blob/main/agents/cat-mudblazor-engineer.agent.md)** — builds Blazor Server + MudBlazor UI, confirming every component API through this server.
+- **[CAT Planner (MudBlazor)](https://github.com/mcbodge/clowder/blob/main/agents/cat-planner-mudblazor.agent.md)** — plans MudBlazor features and fixes, researching component APIs here first.
+- **[CAT Planner (DevOps, MudBlazor)](https://github.com/mcbodge/clowder/blob/main/agents/cat-planner-devops-mudblazor.agent.md)** — the same, for Azure DevOps work items.
+- **[CAT Plan Executor (MudBlazor)](https://github.com/mcbodge/clowder/blob/main/agents/cat-plan-executor-mudblazor.agent.md)** — executes those plans, consulting this server before writing MudBlazor markup.
 
-The agent file teaches GitHub Copilot how to effectively use the MudBlazor MCP tools by providing:
-
-- **Decision Logic**: Automatically selects the right MCP tool for each query
-- **Best Practices**: Enforces "query before answering" to prevent hallucination
-- **Blazor Guidelines**: Includes component architecture and rendering optimization patterns
-- **Tool Chaining**: Combines multiple tools for comprehensive answers
-
-**Example workflow:**
-```
-User: "How do I create a form with validation?"
-
-Agent:
-1. search_components("form input validation") → Find relevant components
-2. get_component_detail("MudForm") → Get parameters and events
-3. get_component_examples("MudTextField", filter="validation") → Get code examples
-4. Provide complete, accurate answer with working code
-```
-
-> **Credits:** This agent file is derived from work in the [github/awesome-copilot](https://github.com/github/awesome-copilot) repository.
+Name this server `mudblazor` in your MCP configuration (see [Quick Start](#quick-start)); the agents look for `mudblazor/*` tools. Clowder also ships a **[CAT C# MCP Engineer](https://github.com/mcbodge/clowder/blob/main/agents/cat-csharp-mcp-engineer.agent.md)** for developing MCP servers like this one.
 
 ---
 
@@ -362,7 +347,7 @@ Ask your AI assistant:
 MudBlazor.Mcp/
 ├── .github/
 │   └── agents/
-│       └── mudblazor-expert.agent.md  # GitHub Copilot agent file
+│       └── csharp-expert.agent.md     # Local C# agent (MudBlazor agents live in Clowder)
 ├── src/
 │   ├── MudBlazor.Mcp/              # Main MCP server
 │   │   ├── Configuration/          # Strongly-typed options
@@ -412,7 +397,7 @@ See the [LICENSE](LICENSE) file for full details.
 - [Model Context Protocol](https://modelcontextprotocol.io/) — The protocol specification
 - [.NET Aspire](https://learn.microsoft.com/dotnet/aspire/) — Cloud-native orchestration
 - [Roslyn](https://github.com/dotnet/roslyn) — The .NET Compiler Platform
-- [github/awesome-copilot](https://github.com/github/awesome-copilot) — Inspiration for the expert agent file
+- [Clowder](https://github.com/mcbodge/clowder) — Maintained GitHub Copilot agents that drive this MCP server
 
 ---
 
