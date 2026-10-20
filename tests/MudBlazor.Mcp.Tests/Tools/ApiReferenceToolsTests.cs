@@ -192,6 +192,20 @@ public class ApiReferenceToolsTests
         Assert.Contains(expectedPrefix, result);
     }
 
+    [Fact]
+    public async Task RenderEnum_EqualsGetEnumValuesAsyncOutput()
+    {
+        // Arrange
+        var indexer = CreateMockIndexerWithEnums();
+        var enumInfo = await indexer.GetEnumAsync("Color", TestContext.Current.CancellationToken);
+
+        // Act & Assert - the extracted renderer must reproduce the tool's output byte-for-byte.
+        Assert.Equal(
+            await ApiReferenceTools.GetEnumValuesAsync(
+                indexer, NullLogger, _versionContext, "Color", TestContext.Current.CancellationToken),
+            ApiReferenceTools.RenderEnum(enumInfo!, "9.0.0"));
+    }
+
     private static readonly IReadOnlyDictionary<string, EnumInfo> SampleEnums =
         new Dictionary<string, EnumInfo>(StringComparer.OrdinalIgnoreCase)
         {
@@ -339,6 +353,24 @@ public class ApiReferenceToolsTests
         // Assert
         Assert.Contains("Properties", result);
         Assert.Contains("Color", result);
+    }
+
+    [Theory]
+    [InlineData("all")]
+    [InlineData("properties")]
+    [InlineData("methods")]
+    [InlineData("events")]
+    public async Task RenderApiReference_EqualsGetApiReferenceAsyncOutput(string memberType)
+    {
+        // Arrange
+        var indexer = CreateMockIndexer();
+        var apiRef = await indexer.GetApiReferenceAsync("MudButton", TestContext.Current.CancellationToken);
+
+        // Act & Assert - the extracted renderer must reproduce the tool's output byte-for-byte.
+        Assert.Equal(
+            await ApiReferenceTools.GetApiReferenceAsync(
+                indexer, NullLogger, _versionContext, "MudButton", memberType, TestContext.Current.CancellationToken),
+            ApiReferenceTools.RenderApiReference(apiRef!, memberType, "9.0.0"));
     }
 
     #endregion

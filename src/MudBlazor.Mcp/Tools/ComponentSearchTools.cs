@@ -6,6 +6,7 @@ using System.Text;
 using Microsoft.Extensions.Logging;
 using ModelContextProtocol.Server;
 using MudBlazor.Mcp.Configuration;
+using MudBlazor.Mcp.Models;
 using MudBlazor.Mcp.Services;
 
 namespace MudBlazor.Mcp.Tools;
@@ -16,8 +17,8 @@ namespace MudBlazor.Mcp.Tools;
 [McpServerToolType]
 public sealed class ComponentSearchTools
 {
-    private static readonly string[] ValidSearchInOptions = ["name", "description", "parameters", "examples", "all"];
-    private static readonly string[] ValidRelationshipTypes = ["all", "parent", "child", "sibling", "commonly_used_with"];
+    internal static readonly string[] ValidSearchInOptions = ["name", "description", "parameters", "examples", "all"];
+    internal static readonly string[] ValidRelationshipTypes = ["all", "parent", "child", "sibling", "commonly_used_with"];
 
     /// <summary>
     /// Searches for MudBlazor components by query.
@@ -58,8 +59,16 @@ public sealed class ComponentSearchTools
             return $"No components found matching '{query}'. Try a different query or use `list_components` to see all available components.";
         }
 
+        return RenderSearchResults(query, results, searchFields, versionContext.Version);
+    }
+
+    /// <summary>
+    /// Renders the Markdown body for <c>search_components</c> from pre-fetched results.
+    /// </summary>
+    internal static string RenderSearchResults(string query, IReadOnlyList<ComponentInfo> results, SearchFields searchFields, string version)
+    {
         var sb = new StringBuilder();
-        sb.AppendLine($"# Search Results for '{query}' (v{versionContext.Version})");
+        sb.AppendLine($"# Search Results for '{query}' (v{version})");
         sb.AppendLine();
         sb.AppendLine($"Found {results.Count} component(s):");
         sb.AppendLine();
@@ -207,12 +216,20 @@ public sealed class ComponentSearchTools
         }
 
         var relationship = ParseRelationshipType(effectiveRelationshipType);
-        var related = await indexer.GetRelatedComponentsAsync(componentName, relationship, cancellationToken);
+        var related = await indexer.GetRelatedComponentsAsync(component.Name, relationship, cancellationToken);
 
         logger.LogDebug("Found {Count} related components for {ComponentName}", related.Count, componentName);
 
+        return RenderRelated(component, related, versionContext.Version);
+    }
+
+    /// <summary>
+    /// Renders the Markdown body for <c>get_related_components</c> from a resolved component and its relations.
+    /// </summary>
+    internal static string RenderRelated(ComponentInfo component, IReadOnlyList<ComponentInfo> related, string version)
+    {
         var sb = new StringBuilder();
-        sb.AppendLine($"# Components Related to {component.Name} (v{versionContext.Version})");
+        sb.AppendLine($"# Components Related to {component.Name} (v{version})");
         sb.AppendLine();
 
         if (related.Count == 0)
@@ -222,22 +239,7 @@ public sealed class ComponentSearchTools
         }
 
         // Group by relationship type
-        var parent = component.BaseType is not null 
-            ? related.FirstOrDefault(r => r.Name.Equals(component.BaseType, StringComparison.OrdinalIgnoreCase))
-            : null;
-
-        var children = related.Where(r => 
-            r.BaseType?.Equals(component.Name, StringComparison.OrdinalIgnoreCase) == true).ToList();
-
-        var siblings = related.Where(r => 
-            r.Category == component.Category && 
-            r.Name != component.Name &&
-            (parent is null || r.Name != parent.Name) &&
-            !children.Contains(r)).ToList();
-
-        var others = related.Except(children).Except(siblings)
-            .Where(r => parent is null || r.Name != parent.Name)
-            .ToList();
+        var (parent, children, siblings, others) = ComponentQueries.GroupRelated(component, related);
 
         if (parent is not null)
         {
@@ -288,7 +290,7 @@ public sealed class ComponentSearchTools
         return sb.ToString();
     }
 
-    private static SearchFields ParseSearchFields(string searchIn)
+    internal static SearchFields ParseSearchFields(string searchIn)
     {
         return searchIn.ToLowerInvariant() switch
         {
@@ -300,7 +302,7 @@ public sealed class ComponentSearchTools
         };
     }
 
-    private static RelationshipType ParseRelationshipType(string relationshipType)
+    internal static RelationshipType ParseRelationshipType(string relationshipType)
     {
         return relationshipType.ToLowerInvariant().Replace("_", "") switch
         {

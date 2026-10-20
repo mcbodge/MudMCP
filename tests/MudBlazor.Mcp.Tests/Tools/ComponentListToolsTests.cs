@@ -90,6 +90,45 @@ public class ComponentListToolsTests
         Assert.Contains("Form Inputs", result);
     }
 
+    [Fact]
+    public async Task RenderComponentList_EqualsListComponentsAsyncOutput()
+    {
+        // Arrange
+        var indexer = CreateMockIndexer();
+
+        // Act - no category filter (details included)
+        var toolOutput = await ComponentListTools.ListComponentsAsync(indexer, NullLogger, _versionContext, null, true, TestContext.Current.CancellationToken);
+        var allComponents = await indexer.GetAllComponentsAsync(TestContext.Current.CancellationToken);
+        var renderOutput = ComponentListTools.RenderComponentList(allComponents, null, true, _versionContext.Version);
+
+        // Assert
+        Assert.Equal(toolOutput, renderOutput);
+
+        // Act - category filter (details excluded)
+        var filteredTool = await ComponentListTools.ListComponentsAsync(indexer, NullLogger, _versionContext, "Buttons", false, TestContext.Current.CancellationToken);
+        var filteredComponents = await indexer.GetComponentsByCategoryAsync("Buttons", TestContext.Current.CancellationToken);
+        var filteredRender = ComponentListTools.RenderComponentList(filteredComponents, "Buttons", false, _versionContext.Version);
+
+        // Assert
+        Assert.Equal(filteredTool, filteredRender);
+    }
+
+    [Fact]
+    public async Task RenderCategories_EqualsListCategoriesAsyncOutput()
+    {
+        // Arrange
+        var indexer = CreateMockIndexer();
+
+        // Act
+        var toolOutput = await ComponentListTools.ListCategoriesAsync(indexer, NullLogger, _versionContext, TestContext.Current.CancellationToken);
+        var categories = await indexer.GetCategoriesAsync(TestContext.Current.CancellationToken);
+        var allComponents = await indexer.GetAllComponentsAsync(TestContext.Current.CancellationToken);
+        var renderOutput = ComponentListTools.RenderCategories(categories, allComponents, _versionContext.Version);
+
+        // Assert
+        Assert.Equal(toolOutput, renderOutput);
+    }
+
     private static IComponentIndexer CreateMockIndexer()
     {
         var indexer = new Mock<IComponentIndexer>();

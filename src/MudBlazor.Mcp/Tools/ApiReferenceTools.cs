@@ -17,7 +17,7 @@ namespace MudBlazor.Mcp.Tools;
 [McpServerToolType]
 public sealed class ApiReferenceTools
 {
-    private static readonly string[] ValidMemberTypes = ["all", "properties", "methods", "events"];
+    internal static readonly string[] ValidMemberTypes = ["all", "properties", "methods", "events"];
 
     /// <summary>
     /// Gets the API reference for a MudBlazor type.
@@ -52,7 +52,7 @@ public sealed class ApiReferenceTools
             if (enumFallback is not null)
             {
                 logger.LogDebug("Type {TypeName} resolved as an enum via fallback", typeName);
-                return RenderEnum(enumFallback, versionContext);
+                return RenderEnum(enumFallback, versionContext.Version);
             }
 
             logger.LogWarning("Type not found: {TypeName}", typeName);
@@ -62,8 +62,16 @@ public sealed class ApiReferenceTools
         logger.LogDebug("Found API reference for {TypeName} with {MemberCount} members",
             typeName, apiRef.Members?.Count ?? 0);
 
+        return RenderApiReference(apiRef, effectiveMemberType, versionContext.Version);
+    }
+
+    /// <summary>
+    /// Renders an <see cref="ApiReference"/> as Markdown, applying the member-type filter.
+    /// </summary>
+    internal static string RenderApiReference(ApiReference apiRef, string memberType, string version)
+    {
         var sb = new StringBuilder();
-        sb.AppendLine($"# {apiRef.TypeName} API Reference (v{versionContext.Version})");
+        sb.AppendLine($"# {apiRef.TypeName} API Reference (v{version})");
         sb.AppendLine();
         sb.AppendLine($"**Namespace:** `{apiRef.Namespace}`");
         
@@ -83,14 +91,14 @@ public sealed class ApiReferenceTools
 
         // Filter members
         var members = apiRef.Members ?? [];
-        if (!effectiveMemberType.Equals("all", StringComparison.OrdinalIgnoreCase))
+        if (!memberType.Equals("all", StringComparison.OrdinalIgnoreCase))
         {
-            var filterType = effectiveMemberType.ToLowerInvariant() switch
+            var filterType = memberType.ToLowerInvariant() switch
             {
                 "properties" => "Property",
                 "methods" => "Method",
                 "events" => "Event",
-                _ => effectiveMemberType
+                _ => memberType
             };
             
             members = members.Where(m => 
@@ -192,16 +200,16 @@ public sealed class ApiReferenceTools
 
         logger.LogDebug("Found {Count} values for enum {EnumName}", enumInfo.Values.Count, enumName);
 
-        return RenderEnum(enumInfo, versionContext);
+        return RenderEnum(enumInfo, versionContext.Version);
     }
 
     /// <summary>
     /// Renders an <see cref="EnumInfo"/> as Markdown, including a numeric column only when explicit values are declared.
     /// </summary>
-    private static string RenderEnum(EnumInfo enumInfo, VersionContext versionContext)
+    internal static string RenderEnum(EnumInfo enumInfo, string version)
     {
         var sb = new StringBuilder();
-        sb.AppendLine($"# {enumInfo.Name} Enum Values (v{versionContext.Version})");
+        sb.AppendLine($"# {enumInfo.Name} Enum Values (v{version})");
         sb.AppendLine();
 
         sb.AppendLine($"**Namespace:** `{enumInfo.Namespace ?? "MudBlazor"}`");

@@ -54,21 +54,29 @@ public sealed class ComponentDetailTools
         logger.LogDebug("Found component {ComponentName} with {ParamCount} parameters, {EventCount} events, {ExampleCount} examples",
             component.Name, component.Parameters.Count, component.Events.Count, component.Examples.Count);
 
+        return RenderDetail(component, effectiveIncludeInherited, effectiveIncludeExamples, versionContext.Version);
+    }
+
+    /// <summary>
+    /// Renders the full Markdown detail view for a component.
+    /// </summary>
+    internal static string RenderDetail(ComponentInfo component, bool includeInheritedMembers, bool includeExamples, string version)
+    {
         // When inherited members are excluded, show only members declared on the component itself.
-        var visibleParameters = effectiveIncludeInherited
+        var visibleParameters = includeInheritedMembers
             ? component.Parameters
             : component.Parameters.Where(p => !p.IsInherited).ToList();
-        var visibleEvents = effectiveIncludeInherited
+        var visibleEvents = includeInheritedMembers
             ? component.Events
             : component.Events.Where(e => !e.IsInherited).ToList();
-        var visibleMethods = effectiveIncludeInherited
+        var visibleMethods = includeInheritedMembers
             ? component.Methods
             : component.Methods.Where(m => !m.IsInherited).ToList();
 
         var sb = new StringBuilder();
         
         // Header
-        sb.AppendLine($"# {component.Name} (v{versionContext.Version})");
+        sb.AppendLine($"# {component.Name} (v{version})");
         sb.AppendLine();
         sb.AppendLine($"**Namespace:** `{component.Namespace}`");
         
@@ -162,7 +170,7 @@ public sealed class ComponentDetailTools
         }
 
         // Examples
-        if (effectiveIncludeExamples && component.Examples.Count > 0)
+        if (includeExamples && component.Examples.Count > 0)
         {
             sb.AppendLine("## Examples");
             sb.AppendLine();
@@ -269,8 +277,16 @@ public sealed class ComponentDetailTools
                 : $"{component.Name} has no parameters in category '{parameterCategory}'.";
         }
 
+        return RenderParameters(component.Name, parameters, versionContext.Version);
+    }
+
+    /// <summary>
+    /// Renders the grouped Markdown parameter reference for a component.
+    /// </summary>
+    internal static string RenderParameters(string componentName, IReadOnlyList<ComponentParameter> parameters, string version)
+    {
         var sb = new StringBuilder();
-        sb.AppendLine($"# {component.Name} Parameters (v{versionContext.Version})");
+        sb.AppendLine($"# {componentName} Parameters (v{version})");
         sb.AppendLine();
 
         // Group by category if available

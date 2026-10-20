@@ -190,6 +190,38 @@ public class ComponentDetailToolsTests
         Assert.Contains("Inherited from:", result);
     }
 
+    [Theory]
+    [InlineData(true, true)]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    [InlineData(false, false)]
+    public async Task RenderDetail_EqualsGetComponentDetailAsyncOutput(bool includeInherited, bool includeExamples)
+    {
+        // Arrange
+        var indexer = CreateMockIndexer();
+        var component = await indexer.GetComponentAsync("MudButton", TestContext.Current.CancellationToken);
+
+        // Act & Assert - the pure renderer reproduces the tool's Markdown byte-for-byte
+        Assert.Equal(
+            await ComponentDetailTools.GetComponentDetailAsync(
+                indexer, NullLogger, _versionContext, "MudButton", includeInherited, includeExamples, TestContext.Current.CancellationToken),
+            ComponentDetailTools.RenderDetail(component!, includeInherited, includeExamples, "9.0.0"));
+    }
+
+    [Fact]
+    public async Task RenderParameters_EqualsGetComponentParametersAsyncOutput()
+    {
+        // Arrange
+        var indexer = CreateMockIndexer();
+        var component = await indexer.GetComponentAsync("MudButton", TestContext.Current.CancellationToken);
+
+        // Act & Assert - the pure renderer reproduces the tool's Markdown byte-for-byte
+        Assert.Equal(
+            await ComponentDetailTools.GetComponentParametersAsync(
+                indexer, NullLogger, _versionContext, "MudButton", parameterCategory: null, cancellationToken: TestContext.Current.CancellationToken),
+            ComponentDetailTools.RenderParameters(component!.Name, component.Parameters, "9.0.0"));
+    }
+
     private static IComponentIndexer CreateMockIndexerWithInheritedMembers()
     {
         var indexer = new Mock<IComponentIndexer>();

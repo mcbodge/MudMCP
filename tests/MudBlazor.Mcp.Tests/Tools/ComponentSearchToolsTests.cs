@@ -135,6 +135,21 @@ public class ComponentSearchToolsTests
         Assert.Contains("No components found", result);
     }
 
+    [Fact]
+    public async Task RenderSearchResults_EqualsSearchComponentsAsyncOutput()
+    {
+        // Arrange
+        var indexer = CreateMockIndexer();
+        var searchFields = ComponentSearchTools.ParseSearchFields("all");
+        var results = await indexer.SearchComponentsAsync("button", searchFields, 10, TestContext.Current.CancellationToken);
+
+        // Act & Assert - the extracted renderer reproduces the tool's Markdown byte-for-byte
+        Assert.Equal(
+            await ComponentSearchTools.SearchComponentsAsync(
+                indexer, NullLogger, _versionContext, "button", "all", 10, TestContext.Current.CancellationToken),
+            ComponentSearchTools.RenderSearchResults("button", results, searchFields, "9.0.0"));
+    }
+
     #endregion
 
     #region GetComponentsByCategoryAsync Tests
@@ -236,6 +251,74 @@ public class ComponentSearchToolsTests
                 indexer.Object, NullLogger, _versionContext, "Unknown", null, TestContext.Current.CancellationToken));
 
         Assert.Contains("not found", ex.Message);
+    }
+
+    [Fact]
+    public async Task RenderRelated_EqualsGetRelatedComponentsAsyncOutput()
+    {
+        // Arrange
+        var indexer = CreateMockIndexerWithRelated();
+        var component = await indexer.GetComponentAsync("MudButton", TestContext.Current.CancellationToken);
+        var relationship = ComponentSearchTools.ParseRelationshipType("all");
+        var related = await indexer.GetRelatedComponentsAsync("MudButton", relationship, TestContext.Current.CancellationToken);
+
+        // Act & Assert - the extracted renderer reproduces the tool's Markdown byte-for-byte
+        Assert.Equal(
+            await ComponentSearchTools.GetRelatedComponentsAsync(
+                indexer, NullLogger, _versionContext, "MudButton", "all", TestContext.Current.CancellationToken),
+            ComponentSearchTools.RenderRelated(component!, related, "9.0.0"));
+    }
+
+    [Fact]
+    public async Task GetRelatedComponentsAsync_WithNameWithoutMudPrefix_UsesResolvedName()
+    {
+        // Arrange - "Button" resolves to a component whose Name is "MudButton"
+        var mock = new Mock<IComponentIndexer>();
+
+        var buttonComponent = new ComponentInfo(
+            Name: "MudButton",
+            Namespace: "MudBlazor",
+            Summary: "A Material Design button component",
+            Description: "Use buttons for primary user actions.",
+            Category: "Buttons",
+            BaseType: "MudBaseButton",
+            Parameters: [],
+            Events: [],
+            Methods: [],
+            Examples: [],
+            RelatedComponents: [],
+            DocumentationUrl: null,
+            SourceUrl: null);
+
+        var iconButtonComponent = new ComponentInfo(
+            Name: "MudIconButton",
+            Namespace: "MudBlazor",
+            Summary: "An icon button component",
+            Description: "A button that displays an icon.",
+            Category: "Buttons",
+            BaseType: "MudBaseButton",
+            Parameters: [],
+            Events: [],
+            Methods: [],
+            Examples: [],
+            RelatedComponents: [],
+            DocumentationUrl: null,
+            SourceUrl: null);
+
+        mock.Setup(x => x.GetComponentAsync("Button", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(buttonComponent);
+        mock.Setup(x => x.GetRelatedComponentsAsync("MudButton", It.IsAny<RelationshipType>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync([iconButtonComponent]);
+
+        // Act - caller passes the raw "Button"
+        var result = await ComponentSearchTools.GetRelatedComponentsAsync(
+            mock.Object, NullLogger, _versionContext, "Button", "all", TestContext.Current.CancellationToken);
+
+        // Assert - the resolved name "MudButton" (not raw "Button") drives the related lookup
+        Assert.Contains("MudIconButton", result);
+        mock.Verify(
+            x => x.GetRelatedComponentsAsync("MudButton", It.IsAny<RelationshipType>(), It.IsAny<CancellationToken>()),
+            Times.Once);
     }
 
     #endregion

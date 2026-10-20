@@ -6,6 +6,7 @@ using System.Text;
 using Microsoft.Extensions.Logging;
 using ModelContextProtocol.Server;
 using MudBlazor.Mcp.Configuration;
+using MudBlazor.Mcp.Models;
 using MudBlazor.Mcp.Services;
 
 namespace MudBlazor.Mcp.Tools;
@@ -52,17 +53,7 @@ public sealed class ComponentExampleTools
 
         logger.LogDebug("Found {ExampleCount} examples for {ComponentName}", component.Examples.Count, componentName);
 
-        var examples = component.Examples;
-        
-        // Apply filter if provided
-        if (!string.IsNullOrWhiteSpace(filter))
-        {
-            examples = examples
-                .Where(e => e.Name.Contains(filter, StringComparison.OrdinalIgnoreCase) ||
-                           (e.Description?.Contains(filter, StringComparison.OrdinalIgnoreCase) == true) ||
-                           e.Features.Any(f => f.Contains(filter, StringComparison.OrdinalIgnoreCase)))
-                .ToList();
-        }
+        var examples = FilterExamples(component.Examples, filter);
 
         if (examples.Count == 0)
         {
@@ -71,13 +62,21 @@ public sealed class ComponentExampleTools
                 : $"No examples matching '{filter}' found for {component.Name}. Try without a filter to see all examples.";
         }
 
+        return RenderExamples(component.Name, examples, effectiveMaxExamples, versionContext.Version);
+    }
+
+    /// <summary>
+    /// Builds the Markdown body returned by <see cref="GetComponentExamplesAsync"/>.
+    /// </summary>
+    internal static string RenderExamples(string componentName, IReadOnlyList<ComponentExample> examples, int maxExamples, string version)
+    {
         var sb = new StringBuilder();
-        sb.AppendLine($"# {component.Name} Examples (v{versionContext.Version})");
+        sb.AppendLine($"# {componentName} Examples (v{version})");
         sb.AppendLine();
         sb.AppendLine($"*{examples.Count} example(s) available*");
         sb.AppendLine();
 
-        var displayExamples = examples.Take(effectiveMaxExamples).ToList();
+        var displayExamples = examples.Take(maxExamples).ToList();
 
         foreach (var example in displayExamples)
         {
@@ -129,9 +128,9 @@ public sealed class ComponentExampleTools
             sb.AppendLine();
         }
 
-        if (examples.Count > effectiveMaxExamples)
+        if (examples.Count > maxExamples)
         {
-            sb.AppendLine($"*{examples.Count - effectiveMaxExamples} more example(s) available. Increase `maxExamples` to see more.*");
+            sb.AppendLine($"*{examples.Count - maxExamples} more example(s) available. Increase `maxExamples` to see more.*");
         }
 
         return sb.ToString();
@@ -167,10 +166,7 @@ public sealed class ComponentExampleTools
         }
 
         // Try to find the example (fuzzy match)
-        var example = component.Examples.FirstOrDefault(e => 
-            e.Name.Equals(exampleName, StringComparison.OrdinalIgnoreCase)) ??
-            component.Examples.FirstOrDefault(e => 
-            e.Name.Contains(exampleName, StringComparison.OrdinalIgnoreCase));
+        var example = FindExample(component.Examples, exampleName);
 
         if (example is null)
         {
@@ -180,8 +176,16 @@ public sealed class ComponentExampleTools
 
         logger.LogDebug("Found example '{ExampleName}' for {ComponentName}", example.Name, componentName);
 
+        return RenderExample(component.Name, example, versionContext.Version);
+    }
+
+    /// <summary>
+    /// Builds the Markdown body returned by <see cref="GetExampleByNameAsync"/>.
+    /// </summary>
+    internal static string RenderExample(string componentName, ComponentExample example, string version)
+    {
         var sb = new StringBuilder();
-        sb.AppendLine($"# {component.Name} - {example.Name} (v{versionContext.Version})");
+        sb.AppendLine($"# {componentName} - {example.Name} (v{version})");
         sb.AppendLine();
 
         if (!string.IsNullOrEmpty(example.Description))
@@ -223,7 +227,7 @@ public sealed class ComponentExampleTools
         {
             sb.AppendLine("## Usage Tips");
             sb.AppendLine();
-            GenerateUsageTips(sb, component.Name, example.Features);
+            GenerateUsageTips(sb, componentName, example.Features);
         }
 
         sb.AppendLine($"*Source: {example.SourceFile}*");
@@ -263,15 +267,23 @@ public sealed class ComponentExampleTools
             return $"No examples available for {component.Name}.";
         }
 
+        return RenderExampleList(component.Name, component.Examples, versionContext.Version);
+    }
+
+    /// <summary>
+    /// Builds the Markdown body returned by <see cref="ListComponentExamplesAsync"/>.
+    /// </summary>
+    internal static string RenderExampleList(string componentName, IReadOnlyList<ComponentExample> examples, string version)
+    {
         var sb = new StringBuilder();
-        sb.AppendLine($"# {component.Name} Examples (v{versionContext.Version})");
+        sb.AppendLine($"# {componentName} Examples (v{version})");
         sb.AppendLine();
-        sb.AppendLine($"*{component.Examples.Count} example(s) available*");
+        sb.AppendLine($"*{examples.Count} example(s) available*");
         sb.AppendLine();
         sb.AppendLine("| Example Name | Features | Has Code-Behind |");
         sb.AppendLine("|--------------|----------|-----------------|");
 
-        foreach (var example in component.Examples)
+        foreach (var example in examples)
         {
             var features = example.Features.Count > 0 
                 ? string.Join(", ", example.Features.Take(3)) + (example.Features.Count > 3 ? "..." : "")
@@ -285,6 +297,34 @@ public sealed class ComponentExampleTools
         sb.AppendLine("*Use `get_example_by_name` to get the full code for a specific example.*");
 
         return sb.ToString();
+    }
+
+    /// <summary>
+    /// Applies the optional case-insensitive filter over example name, description and features.
+    /// </summary>
+    internal static IReadOnlyList<ComponentExample> FilterExamples(IReadOnlyList<ComponentExample> examples, string? filter)
+    {
+        if (string.IsNullOrWhiteSpace(filter))
+        {
+            return examples;
+        }
+
+        return examples
+            .Where(e => e.Name.Contains(filter, StringComparison.OrdinalIgnoreCase) ||
+                       (e.Description?.Contains(filter, StringComparison.OrdinalIgnoreCase) == true) ||
+                       e.Features.Any(f => f.Contains(filter, StringComparison.OrdinalIgnoreCase)))
+            .ToList();
+    }
+
+    /// <summary>
+    /// Finds an example by name, preferring an exact match over a substring match.
+    /// </summary>
+    internal static ComponentExample? FindExample(IReadOnlyList<ComponentExample> examples, string exampleName)
+    {
+        return examples.FirstOrDefault(e =>
+            e.Name.Equals(exampleName, StringComparison.OrdinalIgnoreCase)) ??
+            examples.FirstOrDefault(e =>
+            e.Name.Contains(exampleName, StringComparison.OrdinalIgnoreCase));
     }
 
     private static void GenerateUsageTips(StringBuilder sb, string componentName, IReadOnlyList<string> features)

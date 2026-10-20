@@ -231,6 +231,96 @@ public class ComponentExampleToolsTests
 
     #endregion
 
+    #region Refactoring Extraction Tests (TASK-008)
+
+    [Fact]
+    public async Task RenderExamples_EqualsGetComponentExamplesAsyncOutput()
+    {
+        // Arrange
+        var indexer = CreateMockIndexerWithExamples();
+        var component = await indexer.GetComponentAsync("MudButton", TestContext.Current.CancellationToken);
+        var examples = ComponentExampleTools.FilterExamples(component!.Examples, null);
+
+        // Act & Assert
+        Assert.Equal(
+            await ComponentExampleTools.GetComponentExamplesAsync(
+                indexer, NullLogger, _versionContext, "MudButton", 5, null, TestContext.Current.CancellationToken),
+            ComponentExampleTools.RenderExamples("MudButton", examples, 5, "9.0.0"));
+    }
+
+    [Fact]
+    public async Task RenderExample_EqualsGetExampleByNameAsyncOutput()
+    {
+        // Arrange
+        var indexer = CreateMockIndexerWithExamples();
+        var component = await indexer.GetComponentAsync("MudButton", TestContext.Current.CancellationToken);
+        var example = ComponentExampleTools.FindExample(component!.Examples, "Basic Button");
+
+        // Act & Assert
+        Assert.Equal(
+            await ComponentExampleTools.GetExampleByNameAsync(
+                indexer, NullLogger, _versionContext, "MudButton", "Basic Button", TestContext.Current.CancellationToken),
+            ComponentExampleTools.RenderExample("MudButton", example!, "9.0.0"));
+    }
+
+    [Fact]
+    public async Task RenderExampleList_EqualsListComponentExamplesAsyncOutput()
+    {
+        // Arrange
+        var indexer = CreateMockIndexerWithExamples();
+        var component = await indexer.GetComponentAsync("MudButton", TestContext.Current.CancellationToken);
+
+        // Act & Assert
+        Assert.Equal(
+            await ComponentExampleTools.ListComponentExamplesAsync(
+                indexer, NullLogger, _versionContext, "MudButton", TestContext.Current.CancellationToken),
+            ComponentExampleTools.RenderExampleList("MudButton", component!.Examples, "9.0.0"));
+    }
+
+    [Fact]
+    public void FilterExamples_MatchesNameDescriptionOrFeature()
+    {
+        // Arrange - one match by Name, one by Description, one by Features, one non-matching
+        IReadOnlyList<ComponentExample> list =
+        [
+            new ComponentExample("Widget Panel", "plain description", "<x/>", null, "a.razor", []),
+            new ComponentExample("Alpha", "A widget demo", "<x/>", null, "b.razor", []),
+            new ComponentExample("Beta", "nothing special", "<x/>", null, "c.razor", ["widget"]),
+            new ComponentExample("Gamma", "no match here", "<x/>", null, "d.razor", ["other"])
+        ];
+
+        // Act
+        var filtered = ComponentExampleTools.FilterExamples(list, "widget");
+        var unfiltered = ComponentExampleTools.FilterExamples(list, null);
+
+        // Assert
+        Assert.Equal(3, filtered.Count);
+        Assert.Contains(filtered, e => e.Name == "Widget Panel");
+        Assert.Contains(filtered, e => e.Name == "Alpha");
+        Assert.Contains(filtered, e => e.Name == "Beta");
+        Assert.DoesNotContain(filtered, e => e.Name == "Gamma");
+        Assert.Equal(list.Count, unfiltered.Count);
+    }
+
+    [Fact]
+    public void FindExample_PrefersExactMatchOverContains()
+    {
+        // Arrange - "Icon Button" (contains) precedes the exact "Button" match
+        IReadOnlyList<ComponentExample> list =
+        [
+            new ComponentExample("Icon Button", "has icon", "<x/>", null, "a.razor", []),
+            new ComponentExample("Button", "plain", "<x/>", null, "b.razor", [])
+        ];
+
+        // Act
+        var found = ComponentExampleTools.FindExample(list, "Button");
+
+        // Assert
+        Assert.Equal("Button", found!.Name);
+    }
+
+    #endregion
+
     #region Helper Methods
 
     private static IComponentIndexer CreateMockIndexerWithExamples()

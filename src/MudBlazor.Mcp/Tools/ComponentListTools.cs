@@ -7,6 +7,7 @@ using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using ModelContextProtocol.Server;
 using MudBlazor.Mcp.Configuration;
+using MudBlazor.Mcp.Models;
 using MudBlazor.Mcp.Services;
 
 namespace MudBlazor.Mcp.Tools;
@@ -60,8 +61,16 @@ public sealed class ComponentListTools
             return "No components found. The index may not have been built yet.";
         }
 
+        return RenderComponentList(components, category, effectiveIncludeDetails, versionContext.Version);
+    }
+
+    /// <summary>
+    /// Renders the Markdown listing for a set of components.
+    /// </summary>
+    internal static string RenderComponentList(IReadOnlyList<ComponentInfo> components, string? category, bool includeDetails, string version)
+    {
         var sb = new StringBuilder();
-        sb.AppendLine($"# MudBlazor Components v{versionContext.Version} ({components.Count} total)");
+        sb.AppendLine($"# MudBlazor Components v{version} ({components.Count} total)");
         sb.AppendLine();
 
         if (category is not null)
@@ -82,7 +91,7 @@ public sealed class ComponentListTools
 
             foreach (var component in group.OrderBy(c => c.Name))
             {
-                if (effectiveIncludeDetails)
+                if (includeDetails)
                 {
                     sb.AppendLine($"- **{component.Name}**: {ToolFormatting.Truncate(component.Summary, 80, "No description available")}");
                     sb.AppendLine($"  - Parameters: {component.Parameters.Count}, Events: {component.Events.Count}, Examples: {component.Examples.Count}");
@@ -120,8 +129,16 @@ public sealed class ComponentListTools
         logger.LogDebug("Found {CategoryCount} categories with {ComponentCount} total components",
             categories.Count, allComponents.Count);
 
+        return RenderCategories(categories, allComponents, versionContext.Version);
+    }
+
+    /// <summary>
+    /// Renders the Markdown listing for the component categories.
+    /// </summary>
+    internal static string RenderCategories(IReadOnlyList<ComponentCategory> categories, IReadOnlyList<ComponentInfo> allComponents, string version)
+    {
         var sb = new StringBuilder();
-        sb.AppendLine($"# MudBlazor Component Categories (v{versionContext.Version})");
+        sb.AppendLine($"# MudBlazor Component Categories (v{version})");
         sb.AppendLine();
 
         foreach (var category in categories)
