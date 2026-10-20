@@ -40,6 +40,10 @@
     <ProjectReference Include="..\MudBlazor.Mcp.ServiceDefaults\MudBlazor.Mcp.ServiceDefaults.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <InternalsVisibleTo Include="MudBlazor.Mcp.Tests" />
+  </ItemGroup>
+
   <!-- Files referenced by PackageLicenseFile / PackageReadmeFile must be packed into the package root. -->
   <ItemGroup>
     <None Include="..\..\LICENSE" Pack="true" PackagePath="\" />
