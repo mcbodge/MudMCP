@@ -45,6 +45,10 @@ dotnet build
 # Use the MTP CLI (--filter-class / --filter-method), not `dotnet test --filter`.
 dotnet test tests/MudBlazor.Mcp.Tests/MudBlazor.Mcp.Tests.csproj -c Release --no-build
 
+# Run a single test class or method (MTP uses hyphenated flags with wildcard patterns)
+dotnet test --filter-class "*ComponentListToolsTests"
+dotnet test --filter-method "*ListComponentsAsync_ReturnsAllComponents*"
+
 # Run the server — `--version` is REQUIRED and must match the consumer's MudBlazor version.
 dotnet run --project src/MudBlazor.Mcp/MudBlazor.Mcp.csproj -- --version 9.0.0            # HTTP on http://localhost:8000
 dotnet run --project src/MudBlazor.Mcp/MudBlazor.Mcp.csproj -- --stdio --version 9.0.0    # stdio (CLI clients)
