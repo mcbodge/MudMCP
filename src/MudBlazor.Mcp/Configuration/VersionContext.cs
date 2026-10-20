@@ -9,4 +9,5 @@ public sealed record VersionContext(string Version, string DataPath = "./data")
     public string VersionDataPath => Path.Combine(DataPath, $"v{Version}");
     public string RepoPath => Path.Combine(VersionDataPath, "mudblazor-repo");
     public string IndexPath => Path.Combine(VersionDataPath, "index.json");
+    public string StorePath => Path.Combine(VersionDataPath, "store");
 }

@@ -100,6 +100,35 @@ public class ComponentIndexerTests : IDisposable
         return (indexer, versionContext);
     }
 
+    private static ComponentIndexer CreateIndexerForContext(VersionContext context, IGitRepositoryService gitService)
+    {
+        var semanticParser = new SemanticComponentParser(Mock.Of<ILogger<SemanticComponentParser>>());
+        var xmlParser = new XmlDocParser(Mock.Of<ILogger<XmlDocParser>>());
+        var razorParser = new RazorDocParser(Mock.Of<ILogger<RazorDocParser>>());
+        var exampleExtractor = new ExampleExtractor(Mock.Of<ILogger<ExampleExtractor>>());
+        var menuCategoryParser = new MenuCategoryParser(Mock.Of<ILogger<MenuCategoryParser>>());
+        var options = Options.Create(new MudBlazorOptions());
+        var logger = Mock.Of<ILogger<ComponentIndexer>>();
+        return new ComponentIndexer(gitService, semanticParser, xmlParser, razorParser, exampleExtractor, menuCategoryParser, context, options, logger);
+    }
+
+    private (VersionContext Context, IGitRepositoryService Git) CreateFullBuildSetup()
+    {
+        var repoPath = CreateTempRepoDir();
+        var buttonDir = Path.Combine(repoPath, "src", "MudBlazor", "Components", "Button");
+        Directory.CreateDirectory(buttonDir);
+        File.WriteAllText(Path.Combine(buttonDir, "MudButton.razor.cs"),
+            "namespace MudBlazor;\npublic partial class MudButton : MudBaseButton\n{\n    [Parameter] public string? Label { get; set; }\n}\n");
+        var git = new Mock<IGitRepositoryService>();
+        git.Setup(g => g.IsAvailable).Returns(true);
+        git.Setup(g => g.RepositoryPath).Returns(repoPath);
+        git.Setup(g => g.EnsureRepositoryAsync(It.IsAny<CancellationToken>())).ReturnsAsync(true);
+        var basePath = Path.Combine(Path.GetTempPath(), $"mudmcp-test-{Guid.NewGuid():N}");
+        _tempDirs.Add(basePath);
+        var context = new VersionContext("9.9.9-test", basePath);
+        return (context, git.Object);
+    }
+
     [Fact]
     public void IsIndexed_WhenNotBuilt_ReturnsFalse()
     {
@@ -472,5 +501,53 @@ public class ComponentIndexerTests : IDisposable
         Assert.Contains($"/tree/{context.Tag}/", component.SourceUrl);
         Assert.DoesNotContain("/tree/dev/", component.SourceUrl);
         Assert.EndsWith("/Components/Button", component.SourceUrl);
+    }
+
+    [Fact]
+    public async Task BuildIndexAsync_FullBuild_WritesCurrentStore()
+    {
+        var (context, git) = CreateFullBuildSetup();
+        var indexer = CreateIndexerForContext(context, git);
+
+        await indexer.BuildIndexAsync(TestContext.Current.CancellationToken);
+
+        var store = new IndexStore(context.StorePath);
+        Assert.True(store.IsCurrent(context.Version));
+        var manifest = store.TryReadManifest();
+        Assert.NotNull(manifest);
+        Assert.True(manifest!.ComponentCount >= 1);
+    }
+
+    [Fact]
+    public async Task BuildIndexAsync_CachedLoadWithoutStore_WritesStore()
+    {
+        var (context, git) = CreateFullBuildSetup();
+        var indexerA = CreateIndexerForContext(context, git);
+        await indexerA.BuildIndexAsync(TestContext.Current.CancellationToken);
+
+        Directory.Delete(context.StorePath, recursive: true);
+
+        var indexerB = CreateIndexerForContext(context, git);
+        await indexerB.BuildIndexAsync(TestContext.Current.CancellationToken);
+
+        Assert.True(new IndexStore(context.StorePath).IsCurrent(context.Version));
+    }
+
+    [Fact]
+    public async Task BuildIndexAsync_CachedLoadWithCurrentStore_KeepsExistingManifest()
+    {
+        var (context, git) = CreateFullBuildSetup();
+        var indexerA = CreateIndexerForContext(context, git);
+        await indexerA.BuildIndexAsync(TestContext.Current.CancellationToken);
+
+        var before = new IndexStore(context.StorePath).TryReadManifest();
+        Assert.NotNull(before);
+
+        var indexerB = CreateIndexerForContext(context, git);
+        await indexerB.BuildIndexAsync(TestContext.Current.CancellationToken);
+
+        var after = new IndexStore(context.StorePath).TryReadManifest();
+        Assert.NotNull(after);
+        Assert.Equal(before!.BuiltAtUtc, after!.BuiltAtUtc);
     }
 }

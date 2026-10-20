@@ -79,6 +79,7 @@ public sealed class ComponentIndexer : IComponentIndexer
                 // so no repository clone or menu parse is required on the fast cached-load path.
                 _isIndexed = true;
                 _lastIndexed = DateTimeOffset.UtcNow;
+                await EnsureStoreAsync(force: false, cancellationToken).ConfigureAwait(false);
                 return;
             }
 
@@ -113,6 +114,7 @@ public sealed class ComponentIndexer : IComponentIndexer
 
             // Serialize index to disk for future fast loads
             await SaveCachedIndexAsync(cancellationToken).ConfigureAwait(false);
+            await EnsureStoreAsync(force: true, cancellationToken).ConfigureAwait(false);
 
             sw.Stop();
             _logger.LogInformation("Index build completed in {ElapsedMs}ms. Indexed {Count} components, {EnumCount} enums",
@@ -129,7 +131,7 @@ public sealed class ComponentIndexer : IComponentIndexer
     /// <see cref="CachedIndex"/> record structure changes or the serialization format
     /// is updated in a backward-incompatible way, so stale caches are automatically rebuilt.
     /// </summary>
-    private const int CacheSchemaVersion = 6;
+    internal const int CacheSchemaVersion = 6;
 
     private async Task<bool> TryLoadCachedIndexAsync(CancellationToken cancellationToken)
     {
@@ -212,6 +214,42 @@ public sealed class ComponentIndexer : IComponentIndexer
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "Failed to save index cache — server will work but next startup will re-index");
+        }
+    }
+
+    private async Task EnsureStoreAsync(bool force, CancellationToken cancellationToken)
+    {
+        if (!force && new IndexStore(_versionContext.StorePath).IsCurrent(_versionContext.Version))
+        {
+            return;
+        }
+
+        try
+        {
+            var manifest = new StoreManifest(
+                IndexStore.SchemaVersion,
+                _versionContext.Version,
+                DateTimeOffset.UtcNow,
+                _components.Count,
+                _enums.Count,
+                _options.Parsing.IncludeInternalComponents,
+                _options.Parsing.IncludeDeprecatedComponents,
+                _options.Parsing.MaxExamplesPerComponent);
+
+            await IndexStore.WriteAsync(
+                _versionContext.StorePath,
+                manifest,
+                _components.Values.ToList(),
+                _enums.Values.ToList(),
+                cancellationToken).ConfigureAwait(false);
+
+            _logger.LogInformation("Wrote split index store to {StorePath}", _versionContext.StorePath);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            _logger.LogWarning(ex,
+                "Failed to write split index store to {StorePath} for v{Version}; CLI queries for that version will report not indexed",
+                _versionContext.StorePath, _versionContext.Version);
         }
     }
 
