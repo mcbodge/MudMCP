@@ -5,21 +5,27 @@ plans:
   - Delivery: local (branch develop, never push)
   - Plan N = 1 → commit trailer `plan-1 GOAL-###`
 
-current: plan-1 — PAUSED at end of Phase 4 (user requested stop; continue later). Phases 1-4 DONE & committed
-  (51ff7b5, a1e1b2b, 0ad5af1, 5e6d03e); plan-file progress committed 78f1449. Full suite 226/226, build 0 err/ASPIRE010 only.
-  Plan status stays 🟡 In progress; TASK-001..016 all ✅. Tree clean.
-  RESUME AT: Phase 5 (GOAL-005) TASK-017..023 — component; props/events/methods; api/enum; examples/example; search; list/categories; related.
-    TASK-017 component (RequiresVersion+RequiresStore; LoadComponent+Suggest; CompactFormatter.Component FMT-005; --no-inherited; json ComponentInfo no example code) → CliComponentCommandsTests (TEST-016)
-    TASK-018 props/events/methods (pipeline: --category/--required-only/--no-inherited/--filter/FMT-003/--limit; ToApiReference) → CliComponentCommandsTests (TEST-016) Depends 017
-    TASK-019 api/enum (--members validate; ToApiReference; RenderEnum) → CliComponentCommandsTests (TEST-016) Depends 018
-    TASK-020 examples/example (FilterExamples; --limit 1-20 default 3; --names-only; Dedent FMT-007) → CliExampleCommandsTests (TEST-017) Depends 017
-    TASK-021 search (ComponentQueries.Search over ReadCatalog; ComponentSummary record+From in CliJsonContext) → CliCatalogCommandsTests (TEST-018)
-    TASK-022 list/categories (--category; RenderComponentList/RenderCategories) → CliCatalogCommandsTests (TEST-018) Depends 021
-    TASK-023 related (dict from catalog; FindRelated; GroupRelated FMT-006; RenderRelated) → CliCatalogCommandsTests (TEST-018) Depends 017,021
-  Phase 5 DONE-WHEN: build 0 warn; dotnet test; manual `props MudButton --filter Color,Variant,Size --version 9.0.0` == FMT-009; `component MudButton --version 9.0.0` == FMT-010.
-  FMT specs at plan lines 75-105 (FMT-001..011); REQ-005 command surface lines 42-72; REQ-021 name res, REQ-022 filter, REQ-023 hints, REQ-025 not-indexed, REQ-027 formats. CompactFormatter + CliJsonContext + CliCommands grow per task; register each command in CliApp command table.
-  Then Phase 6 (TASK-024 Measure-CliLatency.ps1, TASK-025 csproj Description/PackageTags), Phase 7 (TASK-026 SKILL.md..TASK-030 copilot-instructions; mostly non-behavioral, may do inline).
-  FINAL: CAT Code Reviewer once over code commits 51ff7b5..HEAD (plan-1 trailers), then set plan 🟢 Completed + commit plan file alone. Delivery local — never push.
+current: plan-1 - BLOCKED at Phase 6 TASK-024 (2026-10-21). Phases 1-5 DONE and committed.
+  Phase 5 commit 0f7a632; review fix commit 9666431. Full suite 499/499, solution build exits 0.
+  Plan status stays In progress; TASK-001..023 checked. TASK-024 remains blank because its latency gate fails.
+  RESUME AT: ask user to authorize focused latency investigation/optimization or revise the performance scope.
+    eng/scripts/Measure-CliLatency.ps1 and Test-MeasureCliLatency.ps1 are implemented but UNCOMMITTED.
+    Self-checks pass, including percentiles, pipe draining, argument boundaries, exit codes, environment restoration.
+    Initial real 20-run benchmark: every command fails 50 ms p95, range 75.4..131.6 ms.
+    Independent exact 20-run verification: every command fails, range 107.0..302.3 ms.
+    Logs: logs/task-024-benchmark.txt, logs/verify-task-024-benchmark.txt, logs/verify-task-024-selfchecks.txt.
+    Diagnostics: help p95 28.5 ms, index-status p95 106 ms; startup/store overhead not yet isolated.
+    Budget and runtime configuration were NOT changed. Never claim TASK-024 complete from self-checks alone.
+  TASK-025 and Phase 7 remain untouched: required Phase 6 DONE-WHEN does not hold.
+  Independent CAT Code Reviewer ran ONCE over all five code-phase commits, verdict changes requested:
+    major: required catalog/enums missing or JSON null silently returned empty success.
+    Fixed test-first in 9666431; missing files now raise I/O errors and null payloads raise JsonException.
+    Existing component files containing null now raise JsonException; absent component lookup still returns null.
+    Red confirmed 12 failures; focused 235/235, full 499/499; own full build/test also passed.
+  Phase 5 real v9.0.0 props/component outputs passed exact FMT-009/FMT-010 assertions.
+  Delivery local: develop, never push. Review has already run; do not repeat the once-per-plan review.
+  Commit-scope deviation: 0f7a632 unexpectedly included this pre-existing handoff progress file.
+    Main plan was kept out of code commits. No history rewrite; use explicit commit pathspecs going forward.
   NOTE: 13 lingering dotnet.exe are the user's installed MudMCP dnx tool — NOT mine; leave alone. Built DLL: src/MudBlazor.Mcp/bin/Release/net10.0/MudBlazor.Mcp.dll
 
 app: n/a (CLI/library; no web UI, no Playwright)
@@ -78,6 +84,18 @@ BASELINE (2026-10-20): build -c Release EXIT 0, 0 Error(s), 1 Warning(s) = pre-e
 - (implementation plan — no work items)
 
 ## Evidence
+### Resumed execution 2026-10-21
+- TASK-017: component command; 37 cases, Red unknown command, Green37/37; own verification passed.
+- TASK-018: member commands; 42 new cases, Red expected, Green79/79; own verification passed.
+- TASK-019: api/enum; 36 new cases, Red36 failures, Green115/115; own verification passed.
+- TASK-020: examples/example; 52 cases, Red expected, Green52/52; own verification passed.
+- TASK-021: search; 28 cases, Red28 failures, Green28/28. Own first verification had a transient temp-folder rename access denial; unchanged retry passed.
+- TASK-022: list/categories; 33 added cases, Green61/61 catalog; own verification passed.
+- TASK-023: related; 32 cases, Red32 failures, Green93/93 catalog and297/297 CLI.
+- GOAL-005: full build/tests pass (logs/phase5-build.txt and logs/phase5-fullsuite.txt); exact real-cache FMT009/010 outputs pass; code commit0f7a632.
+- TASK-024: controlled-input self-checks pass, real latency gate fails; scripts left uncommitted, not marked complete.
+- Review: one major required-store corruption finding, fixed in9666431; own build/fullsuite pass (logs/review-fix-build.txt and logs/review-fix-fullsuite.txt), 499 tests.
+- Playwright: not applicable; no web UI flow in this implementation plan.
 ### Phase 1
 - TASK-001: VersionArgument.cs (new), csproj InternalsVisibleTo, VersionArgumentTests.cs (new). Red ok; 11/11 pass (verify-task-001.txt). Refactor n/a. VERIFIED by me.
 - TASK-003: McpServerHost --http alias + guard + StripCustomArgs skip; McpServerHostTests 5/5; suite 146/146.
