@@ -2,6 +2,69 @@
 
 This folder contains Azure DevOps pipeline configurations for building, testing, and deploying the MudBlazor MCP Server.
 
+## CLI Startup Benchmark
+
+From the repository root, with PowerShell 7 and an indexed MudBlazor version:
+
+```powershell
+pwsh -NoProfile -File eng\scripts\Measure-CliLatency.ps1 -Version 9.0.0
+pwsh -NoProfile -File eng\scripts\Measure-CliLatency.ps1 -Version 9.0.0 -NoBuild -StrictBudget
+pwsh -NoProfile -File eng\scripts\Test-MeasureCliLatency.ps1
+```
+
+The benchmark starts a fresh Release process for each sample (20 per command).
+It reports nearest-rank p50/p95 for `elapsed-ms` (CLI entry through stdout flush)
+and `process-ms` (including runtime startup). Warm OS file caches do not eliminate
+first-use JIT compilation or JSON metadata initialization. Timing diagnostics
+run after the measured flush and are excluded from `elapsed-ms`.
+
+The default 50 ms target is advisory: measurements above it produce an explicit
+stderr warning and exit 0 if all commands succeeded. `-StrictBudget` turns an
+overrun into exit 1; `-BudgetMs` changes the target. Build failures, failed
+queries, or invalid/missing timing data always exit 1. An unindexed version exits
+2 with an indexing hint. `-DataPath` selects a different cache, and the script
+restores the caller's `MUDMCP_TIMING` value even on failure.
+
+### Profiling Findings (2026-10-21)
+
+- A startup CPU trace identified JSON type-info creation/configuration in the
+  manifest and component reads. In a separate stage probe, the first manifest
+  read took 80.85 ms and the first component read 38.92 ms; later reads were
+  approximately 1 ms. These are individual diagnostic samples, not p95 results.
+- The same in-process props query took 192.80 ms initially and 3.79/2.12 ms on
+  subsequent calls. The benchmark intentionally retains fresh-process samples;
+  it does not use those warm-process results to claim the 50 ms target is met.
+- The query probe observed no loaded ASP.NET Core, MCP, Roslyn, or LibGit2Sharp
+  assemblies. Buffered output flush cost 5.36-7.98 ms in three separate runs;
+  replacing asynchronous output was not justified.
+- A 20-pair experiment with parameterless JSON record constructors showed no
+  material median improvement (53.95 versus 53.62 ms). A partial-manifest reader
+  offered only a small median gain and changed validation behavior. Neither
+  experiment was adopted; source-generated JSON and the store schema stay intact.
+- The adopted changes capture elapsed time at the actual flush boundary and
+  avoid building an unused API-reference model for compact `api` output.
+  The timing correction improves measurement accuracy, not the query algorithm.
+  No GC, globalization, AOT, ReadyToRun, or package configuration was changed.
+
+The following comparison alternated the original and updated binaries, changing
+execution order on each iteration, for 20 fresh-process samples per command.
+Every paired stdout result was byte-for-byte identical. Timings on this shared
+machine varied substantially, so median improvements are modest and tail improvements
+are not consistent; these figures do not establish a general startup speedup.
+
+| Command | Before p50 | After p50 | Before p95 | After p95 |
+|---------|-----------:|----------:|-----------:|----------:|
+| `props MudButton --filter Color,Variant,Size` | 121.7 ms | 121.3 ms | 180.1 ms | 159.6 ms |
+| `api MudButton` | 137.5 ms | 127.7 ms | 169.5 ms | 190.1 ms |
+| `list` | 144.4 ms | 141.4 ms | 170.5 ms | 201.8 ms |
+
+A separate complete 13-command, 20-sample strict run reported p95 values from
+130.7 to 257.2 ms and correctly exited 1; the default benchmark completed with
+exit 0 and above-target warnings. The overruns are accepted under the revised
+TASK-024 scope: cold metadata/JIT and process costs remain visible, while more
+invasive format or distribution changes are deferred rather than introduced
+solely to satisfy an arbitrary threshold.
+
 ## Pipeline Structure
 
 ```

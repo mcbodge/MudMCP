@@ -131,28 +131,30 @@ internal static class CliApp
         async Task<int> FinishSuccessAsync(int exit)
         {
             await stdout.FlushAsync(cancellationToken).ConfigureAwait(false);
-            await EmitTimingAsync().ConfigureAwait(false);
+            var elapsedMs = Stopwatch.GetElapsedTime(startTimestamp).TotalMilliseconds;
+            await EmitTimingAsync(elapsedMs).ConfigureAwait(false);
             return exit;
         }
 
         async Task<int> FailAsync(int exit, string errorMessage, string? hint)
         {
             await stdout.FlushAsync(CancellationToken.None).ConfigureAwait(false);
+            var elapsedMs = Stopwatch.GetElapsedTime(startTimestamp).TotalMilliseconds;
             await stderr.WriteLineAsync($"error: {errorMessage}".AsMemory(), CancellationToken.None).ConfigureAwait(false);
             if (hint is not null)
             {
                 await stderr.WriteLineAsync($"hint: {hint}".AsMemory(), CancellationToken.None).ConfigureAwait(false);
             }
 
-            await EmitTimingAsync().ConfigureAwait(false);
+            await EmitTimingAsync(elapsedMs).ConfigureAwait(false);
             return exit;
         }
 
-        async Task EmitTimingAsync()
+        async Task EmitTimingAsync(double elapsedMs)
         {
             if (getEnvironmentVariable("MUDMCP_TIMING") == "1")
             {
-                await WriteTimingAsync(stderr, startTimestamp).ConfigureAwait(false);
+                await WriteTimingAsync(stderr, elapsedMs).ConfigureAwait(false);
             }
         }
 
@@ -517,9 +519,8 @@ internal static class CliApp
         await writer.WriteAsync(builder.ToString().AsMemory(), cancellationToken).ConfigureAwait(false);
     }
 
-    private static async Task WriteTimingAsync(TextWriter stderr, long startTimestamp)
+    private static async Task WriteTimingAsync(TextWriter stderr, double elapsedMs)
     {
-        var elapsedMs = Stopwatch.GetElapsedTime(startTimestamp).TotalMilliseconds;
         using var process = Process.GetCurrentProcess();
         var processMs = (DateTime.Now - process.StartTime).TotalMilliseconds;
 

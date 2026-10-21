@@ -1,6 +1,8 @@
 // Copyright (c) 2026 Mud MCP Contributors
 // Licensed under the GNU General Public License v2.0. See LICENSE file in the project root for full license information.
 
+using System.Diagnostics;
+using System.Globalization;
 using MudBlazor.Mcp.Cli;
 
 namespace MudBlazor.Mcp.Tests.Cli;
@@ -272,5 +274,39 @@ public class CliAppTests
         var output = stdout.ToString();
         Assert.DoesNotContain("error:", output);
         Assert.DoesNotContain("hint:", output);
+    }
+
+    [Theory]
+    [InlineData("help", 0)]
+    [InlineData("bogus", 2)]
+    public async Task Timing_ExcludesDiagnosticsEnvironmentCallback(string command, int expectedExit)
+    {
+        var stdout = new StringWriter();
+        var stderr = new StringWriter();
+        var timingCalls = 0;
+        string? EnvironmentWithSlowTiming(string key)
+        {
+            if (key != "MUDMCP_TIMING")
+            {
+                return null;
+            }
+
+            timingCalls++;
+            Thread.Sleep(300);
+            return "1";
+        }
+
+        var stopwatch = Stopwatch.StartNew();
+        var exit = await CliApp.RunAsync(
+            [command], stdout, stderr, EnvironmentWithSlowTiming, TestContext.Current.CancellationToken);
+        stopwatch.Stop();
+
+        Assert.Equal(expectedExit, exit);
+        Assert.Equal(1, timingCalls);
+        var elapsedLine = Assert.Single(stderr.ToString().Split('\n'),
+            line => line.StartsWith("elapsed-ms=", StringComparison.Ordinal));
+        var reportedElapsed = double.Parse(elapsedLine["elapsed-ms=".Length..], CultureInfo.InvariantCulture);
+        Assert.True(stopwatch.Elapsed.TotalMilliseconds - reportedElapsed >= 250,
+            "Reported elapsed must exclude the synchronous 300ms diagnostics callback.");
     }
 }

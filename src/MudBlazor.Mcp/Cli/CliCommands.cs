@@ -201,19 +201,11 @@ internal static class CliCommands
         }
 
         members = members.ToLowerInvariant();
-        var api = ToApiReference(component);
         var output = context.Format switch
         {
-            CliApp.CliFormat.Markdown => ApiReferenceTools.RenderApiReference(api, members, context.Version),
-            CliApp.CliFormat.Json => JsonSerializer.Serialize(api with
-            {
-                Members = api.Members!.Where(m => members == "all" || m.MemberType == (members switch
-                {
-                    "properties" => "Property",
-                    "events" => "Event",
-                    _ => "Method",
-                })).ToList(),
-            }, CliJsonContext.Default.ApiReference) + "\n",
+            CliApp.CliFormat.Markdown => ApiReferenceTools.RenderApiReference(ToApiReference(component), members, context.Version),
+            CliApp.CliFormat.Json => JsonSerializer.Serialize(
+                FilterApiMembers(ToApiReference(component), members), CliJsonContext.Default.ApiReference) + "\n",
             _ => CompactFormatter.Api(component.Name, context.Version,
                 members is "all" or "properties"
                     ? FilterMembers(component.Parameters, args, p => p.Name, p => p.IsInherited, p => p.DeclaringType)
@@ -228,6 +220,17 @@ internal static class CliCommands
         };
         return WriteMembersAsync(context, output, cancellationToken);
     }
+
+    private static ApiReference FilterApiMembers(ApiReference api, string members) =>
+        api with
+        {
+            Members = api.Members!.Where(m => members == "all" || m.MemberType == (members switch
+            {
+                "properties" => "Property",
+                "events" => "Event",
+                _ => "Method",
+            })).ToList(),
+        };
 
     /// <summary>Implements <c>enum</c> with exact, case-insensitive name lookup.</summary>
     internal static Task<int> EnumAsync(CliApp.CliContext context, CliArgs args, CancellationToken cancellationToken)
