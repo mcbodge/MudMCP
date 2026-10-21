@@ -5,7 +5,45 @@ plans:
   - Delivery: local (branch develop, never push)
   - Plan N = 1 → commit trailer `plan-1 GOAL-###`
 
-current: plan-1 - TASK-024 COMPLETE under user-approved extension (2026-10-21).
+current: plan-1 - WAITING ONLY FOR TEST-022 manual VS Code agent interaction.
+  TASK-001..025 and TASK-027..030 complete and checked. TASK-026 implementation/static checks pass;
+  leave its mark blank until TEST-022 evidence proves skill-triggered pre-edit CLI usage.
+  Plan remains In progress. Delivery local on develop; never push.
+  Code/docs commits this run: 1e0cdca (GOAL006 metadata/package validation), 5e20303 (GOAL007 static docs/skill).
+  All independent implementation/validation/delivery done. No remaining code task or automated gate.
+  Reuse prior once-per-plan independent review (major store finding fixed in9666431).
+  Reuse recorded TASK024 measurements and 501/501 full-suite pass (task-024-optimized-fullsuite.txt).
+  TEST020 passed including exact FMT009, idle stdout and a real MCP initialize exchange; test process stopped.
+  TEST021 passed: 15 commands in both docs, valid 107-line skill, 21 added relative links resolve.
+  git diff --check passed. No new runtime behavior changed; no redundant suite or latency rerun.
+
+TEST-022 prepared (2026-10-21):
+  Global MudMCP 1.1.0-local.1 installed from freshly repacked artifacts/cli-check.
+  No global MudMCP existed before this run; don't disturb unrelated dnx instances.
+  Skill copied to C:\Users\ma.grillo\.copilot\skills\mudblazor-cli (absent before run);
+  SHA256 equality asserted against source.
+  Global tool props MudButton --filter Color,Variant,StartIcon --version 9.0.0 succeeds;
+  index-status v9.0.0 ready. These direct checks are NOT the agent trial.
+  Disposable project:
+    C:\Users\ma.grillo\.copilot\session-state\ba75bc3d-e727-432a-8f30-21516c303d49\files\mudmcp-agent-trial
+  Scaffold: dotnet new blazor --name MudMcpAgentTrial --framework net10.0 --no-restore;
+  added exact MudBlazor 9.0.0 via dotnet add package. Baseline Release build passed.
+  Requested a new VS Code Insiders window with code-insiders --new-window <trial path>.
+  User action: choose standard Copilot Agent mode in a NEW chat in that project, ask exactly
+    "Add a filled primary MudButton with a start icon to the Home page".
+  Do not explicitly invoke the skill or mention CLI in the prompt: automatic discovery is under test.
+  Request evidence (screenshot or copied tool/edit sequence) of mudmcp props MudButton or
+  component MudButton with --version 9.0.0 BEFORE first edit; then inspect resulting markup
+  for Variant.Filled, Color.Primary and StartIcon and build the project yourself.
+  Do not count installation, this session's direct CLI probe, or a user's bare "done" as trial proof.
+  On pass: mark TASK026, complete plan; on failure: characterize actual evidence before changing anything.
+  Cleanup AFTER trial: dotnet tool uninstall -g MudMCP; delete only the copied user skill directory
+  C:\Users\ma.grillo\.copilot\skills\mudblazor-cli and repository artifacts\cli-check.
+  Disposable trial folder may be deleted after validation, only by its explicit full path.
+  Leave these prepared resources in place while awaiting interaction.
+  Commit any subsequent code/docs changes separately from plan/handoff progress.
+
+Previous handoff (TASK-024):
   Validated TASK-024 code/scripts/documentation committed in4fcc24b.
   Phases 1-5 complete; Phase 6 packaging TASK-025 is next. Phase 7 remains untouched.
   Plan status stays In progress; TASK-001..024 checked. Delivery local on develop; never push.
@@ -84,6 +122,18 @@ BASELINE (2026-10-20): build -c Release EXIT 0, 0 Error(s), 1 Warning(s) = pre-e
 - (implementation plan — no work items)
 
 ## Evidence
+### TASK-025..030 resumed 2026-10-21
+- TASK-025 metadata-only change; Red skipped (non-behavioral). TEST-020 produced exactly MudMCP.1.1.0-local.1.nupkg, installed isolated tool, verified all 15 help commands and exact real-cache FMT009 output.
+- Packaged stdio stayed running with no stdout for 5 seconds; initialize request returned valid serverInfo. Logs only stderr. Process stopped by its specific PID; artifacts/cli-check removed after validation.
+- TASK-025 commit 1e0cdca; pack also compiled main project. Logs/task-025-{pack,install,help,props,stdio,stdio-stderr}.txt.
+- TASK-026..030 documentation-only; Red skipped. Skill uses quoted YAML description (colon-safe), 107 lines, prescribed headings/frontmatter; CLI reference includes recorded full TEST019 table and honest advisory target.
+- TEST-021 passed: help from source lists 15 commands, all present in skill/reference; bounded frontmatter, one skill file, four documentation backlinks, 21 newly added relative file links resolve. Logs/task-021-{help,docs}.txt.
+- TEST-022 not yet run; do not mark trial or plan complete without observed pre-edit CLI query, valid resulting parameters and validation evidence.
+- TASK-027..030 checked complete; TASK-026 deliberately unchecked pending TEST-022. Static skill/docs committed 5e20303.
+- TEST-022 preparatory commands and baseline project build passed; logs/task-022-{pack,isolated-install,global-install,installed-props,index-status,scaffold,package,baseline-build}.txt.
+- Global tool and copied skill were absent before installation. Cleanup is intentionally deferred until the user's trial, not forgotten.
+- Reused 501/501 passing full suite and prior independent review/fix; only metadata and documentation changed this run.
+- No web UI validation TEST is specified; Playwright is not applicable to the terminal skill-discovery trial.
 ### TASK-024 extension 2026-10-21
 - User explicitly authorized startup profiling/optimization and technically justified >50ms; PER001, TASK024, TEST019 and GOAL006 updated to match.
 - Sampled CPU trace showed JSON metadata creation/configuration in manifest/component reads; trace artifacts ignored under logs.
