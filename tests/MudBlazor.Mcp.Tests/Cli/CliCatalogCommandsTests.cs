@@ -12,6 +12,31 @@ namespace MudBlazor.Mcp.Tests.Cli;
 
 public class CliCatalogCommandsTests
 {
+    [Theory]
+    [InlineData("catalog.json", false, "list")]
+    [InlineData("catalog.json", true, "list")]
+    [InlineData("catalog.json", false, "related", "MudButton")]
+    [InlineData("catalog.json", true, "related", "MudButton")]
+    [InlineData("enums.json", false, "enum", "Color")]
+    [InlineData("enums.json", true, "enum", "Color")]
+    public async Task RequiredPayload_MissingOrNull_ReturnsOne(
+        string file, bool nullPayload, params string[] arguments)
+    {
+        using var store = await CreateStoreAsync();
+        var path = Path.Combine(new VersionContext("9.0.0", store.DataPath).StorePath, file);
+        if (nullPayload)
+            await File.WriteAllTextAsync(path, "null", TestContext.Current.CancellationToken);
+        else
+            File.Delete(path);
+
+        var (exit, output, error) = await RunAsync(store, arguments);
+
+        Assert.Equal(1, exit);
+        Assert.Empty(output);
+        Assert.StartsWith("error: ", error);
+        Assert.Contains(path, error);
+    }
+
     [Fact]
     public async Task Related_Compact_GroupsParentAndSiblings()
     {

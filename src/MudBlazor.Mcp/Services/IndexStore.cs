@@ -212,37 +212,30 @@ internal sealed class IndexStore(string storePath)
         }
 
         var bytes = File.ReadAllBytes(path);
-        return JsonSerializer.Deserialize(bytes, IndexStoreJsonContext.Default.ComponentInfo);
+        return JsonSerializer.Deserialize(bytes, IndexStoreJsonContext.Default.ComponentInfo)
+            ?? throw new JsonException($"Component payload in '{path}' must not be null.");
     }
 
     /// <summary>
-    /// Reads the component catalog, or an empty list when the store has none.
+    /// Reads the required component catalog.
     /// </summary>
     internal IReadOnlyList<ComponentInfo> ReadCatalog()
     {
         var path = Path.Combine(storePath, "catalog.json");
-        if (!File.Exists(path))
-        {
-            return [];
-        }
-
         var bytes = File.ReadAllBytes(path);
-        return JsonSerializer.Deserialize(bytes, IndexStoreJsonContext.Default.ListComponentInfo) ?? [];
+        return JsonSerializer.Deserialize(bytes, IndexStoreJsonContext.Default.ListComponentInfo)
+            ?? throw new JsonException($"Component catalog payload in '{path}' must not be null.");
     }
 
     /// <summary>
-    /// Reads the enum list, or an empty list when the store has none.
+    /// Reads the required enum list.
     /// </summary>
     internal IReadOnlyList<EnumInfo> ReadEnums()
     {
         var path = Path.Combine(storePath, "enums.json");
-        if (!File.Exists(path))
-        {
-            return [];
-        }
-
         var bytes = File.ReadAllBytes(path);
-        return JsonSerializer.Deserialize(bytes, IndexStoreJsonContext.Default.ListEnumInfo) ?? [];
+        return JsonSerializer.Deserialize(bytes, IndexStoreJsonContext.Default.ListEnumInfo)
+            ?? throw new JsonException($"Enum list payload in '{path}' must not be null.");
     }
 
     /// <summary>

@@ -1,6 +1,7 @@
 // Copyright (c) 2026 Mud MCP Contributors
 // Licensed under the GNU General Public License v2.0. See LICENSE file in the project root for full license information.
 
+using System.Text.Json;
 using MudBlazor.Mcp.Models;
 using MudBlazor.Mcp.Services;
 
@@ -264,6 +265,74 @@ public class IndexStoreTests
 
             Assert.NotNull(store.TryReadEnum("color"));
             Assert.NotNull(store.TryReadEnum("COLOR"));
+        }
+        finally
+        {
+            TryDeleteParent(storePath);
+        }
+    }
+
+    [Theory]
+    [InlineData("catalog.json", false)]
+    [InlineData("catalog.json", true)]
+    [InlineData("enums.json", false)]
+    [InlineData("enums.json", true)]
+    [InlineData("components/mudbutton.json", true)]
+    public async Task RequiredPayload_MissingOrNull_Throws(string file, bool nullPayload)
+    {
+        var storePath = NewStorePath();
+        try
+        {
+            await IndexStore.WriteAsync(
+                storePath, CreateManifest(), [CreateComponent("MudButton")], [CreateEnum("Color")],
+                TestContext.Current.CancellationToken);
+            var path = Path.Combine(storePath, file.Replace('/', Path.DirectorySeparatorChar));
+            if (nullPayload)
+                await File.WriteAllTextAsync(path, "null", TestContext.Current.CancellationToken);
+            else
+                File.Delete(path);
+
+            var store = new IndexStore(storePath);
+            Assert.True(store.IsCurrent("8.0.0"));
+            Action read = file switch
+            {
+                "catalog.json" => () => store.ReadCatalog(),
+                "enums.json" => () => store.ReadEnums(),
+                _ => () => store.TryReadComponent("MudButton"),
+            };
+            if (nullPayload)
+            {
+                var exception = Assert.Throws<JsonException>(read);
+                Assert.Contains(path, exception.Message);
+            }
+            else
+            {
+                var exception = Assert.Throws<FileNotFoundException>(read);
+                Assert.Equal(path, exception.FileName);
+            }
+        }
+        finally
+        {
+            TryDeleteParent(storePath);
+        }
+    }
+
+    [Fact]
+    public async Task EmptyListsAndAbsentComponent_RemainValid()
+    {
+        var storePath = NewStorePath();
+        try
+        {
+            await IndexStore.WriteAsync(
+                storePath, CreateManifest(componentCount: 0, enumCount: 0), [], [],
+                TestContext.Current.CancellationToken);
+            var store = new IndexStore(storePath);
+
+            Assert.Empty(store.ReadCatalog());
+            Assert.Empty(store.ReadEnums());
+            Assert.Null(store.TryReadComponent("Button"));
+            Assert.Null(store.TryReadComponent("MudButton"));
+            Assert.Null(store.TryReadEnum("Color"));
         }
         finally
         {

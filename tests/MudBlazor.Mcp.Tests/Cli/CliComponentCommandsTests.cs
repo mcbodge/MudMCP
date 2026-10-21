@@ -12,6 +12,23 @@ namespace MudBlazor.Mcp.Tests.Cli;
 
 public class CliComponentCommandsTests
 {
+    [Fact]
+    public async Task Component_NullPayload_ReturnsOne()
+    {
+        using var store = new CliTestStore();
+        await store.WriteReady("9.0.0", TestContext.Current.CancellationToken);
+        var path = Path.Combine(new VersionContext("9.0.0", store.DataPath).StorePath,
+            "components", "mudbutton.json");
+        await File.WriteAllTextAsync(path, "null", TestContext.Current.CancellationToken);
+
+        var (exit, output, error) = await RunAsync(store, ["Button"]);
+
+        Assert.Equal(1, exit);
+        Assert.Empty(output);
+        Assert.StartsWith("error: ", error);
+        Assert.Contains(path, error);
+    }
+
     private const string ExpectedCompact =
         "MudButton v9.0.0 component\n" +
         "MudBlazor.MudButton : MudBaseButton [Buttons]\n" +
