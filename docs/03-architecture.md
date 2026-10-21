@@ -5,6 +5,7 @@ This document provides a deep technical dive into the Mud MCP architecture, incl
 ## Table of Contents
 
 - [System Architecture](#system-architecture)
+  - [Entry Point Routing](#entry-point-routing)
 - [Layer Design](#layer-design)
 - [Core Components](#core-components)
 - [Data Flow](#data-flow)
@@ -12,6 +13,7 @@ This document provides a deep technical dive into the Mud MCP architecture, incl
 - [MCP Protocol Implementation](#mcp-protocol-implementation)
 - [Roslyn Parsing Pipeline](#roslyn-parsing-pipeline)
 - [Caching Strategy](#caching-strategy)
+  - [CLI Index Store](#cli-index-store)
 - [Aspire Integration](#aspire-integration)
 
 ---
@@ -73,6 +75,36 @@ This document provides a deep technical dive into the Mud MCP architecture, incl
 │   src/MudBlazor/Components/  │  src/MudBlazor.Docs/Pages/Components/   │
 └─────────────────────────────────────────────────────────────────────────┘
 ```
+
+---
+
+### Entry Point Routing
+
+```text
+mudmcp args -> Program.cs: CliApp.IsCliInvocation(args)
+  +-- true -> CliApp.RunAsync -> CliArgs -> CliCommands
+  |             -> IndexStore (~/.mudmcp/v9.0.0/store/*.json)
+  |             -> CompactFormatter | Tools.Render* | CliJsonContext -> stdout
+  |             index -> McpServerHost.RegisterCoreServices
+  |                   -> ComponentIndexer.BuildIndexAsync -> index.json + store/
+  +-- false -> McpServerHost.RunAsync
+                +-- --stdio -> Generic Host + MCP stdio
+                +-- default or --http -> WebApplication + MCP HTTP
+                       -> /mcp, /health, /health/ready, /health/live
+                IndexInitializationService -> ComponentIndexer -> store/
+```
+
+CLI routing applies when the first argument is `help`, `--help` or `-h`, or
+starts with neither `-` nor `/` and contains no `=`. No arguments, `--stdio`,
+`--http`, `--version`, `--urls`, host `key=value` and `/key` stay on the MCP path.
+`--http` explicitly selects the existing default transport; combining it with
+`--stdio` is an error before version resolution.
+
+`Program.cs` contains only the routing expression. Keeping host bootstrap
+separate means compiling Main does not load ASP.NET Core, MCP, Roslyn or
+LibGit2Sharp. Query commands construct no host, service collection,
+configuration or logger factory; only `index` composes the indexing services.
+The package and executable remain shared. See [CLI Mode](11-cli.md).
 
 ---
 
@@ -161,6 +193,11 @@ Roslyn-based source code analysis:
 ### ComponentIndexer
 
 The central service that coordinates all documentation operations:
+
+MCP and CLI share pure `ComponentQueries` algorithms: search score ties are
+broken by component name (ordinal-ignore-case), and same-category siblings are
+inserted in name order before the related-results limit of 10. This makes tied
+results deterministic; their order can differ from older releases.
 
 ```csharp
 public sealed class ComponentIndexer : IComponentIndexer
@@ -469,6 +506,36 @@ if (typeName.StartsWith("EventCallback") && hasParameterAttribute)
 ---
 
 ## Caching Strategy
+
+### CLI Index Store
+
+Alongside the unchanged schema-6 `index.json`, each version has a `store/`:
+
+| File | Contents |
+| --- | --- |
+| `manifest.json` | Store schema 1, MudBlazor version, UTC build time, component/enum counts, three parsing options |
+| `catalog.json` | Name-sorted components with example Razor and C# code removed |
+| `components/<lowercase-name>.json` | One full component, including examples |
+| `enums.json` | Name-sorted enums |
+
+API references are derived rather than duplicated. Every full index build
+writes the store; a cached load writes it if the manifest is absent, its schema
+differs from `IndexStore.SchemaVersion`, or its version differs from the request.
+Existing caches therefore migrate on MCP startup or explicit `mudmcp index`.
+
+Writes serialize into a unique temporary sibling directory, then rename the
+old store aside and the new directory into place. A reader sees a complete old
+or new store, or briefly no store (CLI exit 3), never a partial publication.
+Write failures are warned on stderr without failing the MCP index build.
+
+`IndexStoreJsonContext` and `CliJsonContext` use source-generated metadata:
+minified camelCase JSON, default values omitted, synchronous `File.ReadAllBytes`
+and typed span deserialization on the query path. Single-component queries read
+the manifest and one component file (v9.0.0 median 4,525 bytes, p95 34,826,
+max 111,853). Enum queries read 42,130 bytes; catalog-based search, list,
+categories and related read 695,438 bytes, not the 2,360,116-byte minified
+monolithic index. These are measured v9.0.0 sizes, not fixed schema limits.
+See [CLI cache paths and lifecycle](11-cli.md#indexing).
 
 ### In-Memory Index
 

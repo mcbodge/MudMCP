@@ -5,6 +5,7 @@ Complete reference documentation for all 12 MCP tools provided by Mud MCP.
 ## Table of Contents
 
 - [Overview](#overview)
+  - [CLI Equivalents](#cli-equivalents)
 - [Component Discovery Tools](#component-discovery-tools)
   - [list_components](#list_components)
   - [list_categories](#list_categories)
@@ -38,6 +39,27 @@ Mud MCP exposes 12 tools organized into functional categories:
 | **Search** | 1 | Find components by query |
 | **Examples** | 3 | Access code examples |
 | **API Reference** | 2 | Type and enum documentation |
+
+### CLI Equivalents
+
+The same package exposes terminal queries without an MCP host. See
+[CLI Mode](11-cli.md) for options, formats, indexing and the Agent Skill.
+Pass the consumer's version, for example `--version 9.0.0`, to query commands.
+
+| MCP tool | CLI equivalent |
+| --- | --- |
+| `list_components` | `mudmcp list` |
+| `list_categories` | `mudmcp categories` |
+| `get_components_by_category` | `mudmcp list --category <name>` |
+| `get_component_detail` | `mudmcp component <name>` |
+| `get_component_parameters` | `mudmcp props <name>` |
+| `get_related_components` | `mudmcp related <name>` |
+| `search_components` | `mudmcp search <query...>` |
+| `get_component_examples` | `mudmcp examples <name>` |
+| `get_example_by_name` | `mudmcp example <name> <example-name...>` |
+| `list_component_examples` | `mudmcp examples <name> --names-only` |
+| `get_api_reference` | `mudmcp api <type>` (or `mudmcp events <name>`, `mudmcp methods <name>`) |
+| `get_enum_values` | `mudmcp enum <name>` |
 
 ### Tool Naming Convention
 

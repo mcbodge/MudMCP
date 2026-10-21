@@ -1,6 +1,6 @@
 # Mud MCP - AI Coding Agent Instructions
 
-MCP (Model Context Protocol) server that gives AI assistants **version-accurate** MudBlazor component documentation. It clones the MudBlazor repo at a specific tag, parses source with Roslyn, builds an in-memory index of ~85 components, and exposes it via 12 MCP tools.
+MCP (Model Context Protocol) server and token-efficient CLI that give AI assistants **version-accurate** MudBlazor component documentation. It clones the MudBlazor repo at a specific tag, parses source with Roslyn, builds an in-memory index of ~85 components, and exposes it via 12 MCP tools or compact terminal queries.
 
 **Tech Stack:** .NET 10, ASP.NET Core, Roslyn (`Microsoft.CodeAnalysis.CSharp`), LibGit2Sharp, Aspire 13.5.3, xunit.v3 + Moq on Microsoft Testing Platform.
 
@@ -12,6 +12,7 @@ Deep docs live in [docs/](../docs/) — link to them, don't re-explain them here
 |-------|-----|
 | Architecture, Roslyn pipeline, caching | [docs/03-architecture.md](../docs/03-architecture.md) |
 | All 12 MCP tools (params & output) | [docs/05-tools-reference.md](../docs/05-tools-reference.md) |
+| CLI mode (commands, formats, store, skill) | [docs/11-cli.md](../docs/11-cli.md) |
 | Configuration schema & options | [docs/06-configuration.md](../docs/06-configuration.md) |
 | Testing (framework, patterns, commands) | [docs/07-testing.md](../docs/07-testing.md) |
 | Getting started / IDE integration / troubleshooting | [docs/02](../docs/02-getting-started.md), [09](../docs/09-ide-integration.md), [10](../docs/10-troubleshooting.md) |
@@ -19,11 +20,15 @@ Deep docs live in [docs/](../docs/) — link to them, don't re-explain them here
 ## Architecture
 
 ```
-CLI: --version 9.0.0 ─▶ VersionContext ─▶ GitRepositoryService (clones MudBlazor @ tag v9.0.0)
-                                                    │
-MCP Tools (12) ─▶ ComponentIndexer ◀── Parsing (Roslyn) ◀──┘
-        │                 │
-        └── VersionCacheManager (LRU, up to MaxCachedVersions=3) ─▶ per-version data/v9.0.0/index.json
+Program.cs -> CliApp.IsCliInvocation(args)
+  +-- CLI -> CliApp -> CliCommands -> IndexStore -> compact / markdown / json
+  |          index -> McpServerHost.RegisterCoreServices -> ComponentIndexer
+  +-- MCP -> McpServerHost (--stdio / default HTTP / --http)
+              -> MCP Tools (12) -> ComponentIndexer <- Parsing (Roslyn)
+                                      ^
+              VersionContext -> GitRepositoryService (tag v9.0.0)
+              VersionCacheManager (LRU, MaxCachedVersions=3)
+                -> per-version index.json + store/
 ```
 
 Every request is scoped to one MudBlazor version. Indexes persist to disk so subsequent runs load instantly.
@@ -55,11 +60,21 @@ dotnet run --project src/MudBlazor.Mcp/MudBlazor.Mcp.csproj -- --stdio --version
 
 # Aspire dashboard (OpenTelemetry, health checks, service discovery)
 dotnet run --project src/MudBlazor.Mcp.AppHost
+
+# CLI (use the consumer project's exact MudBlazor version)
+dotnet run --project src/MudBlazor.Mcp/MudBlazor.Mcp.csproj -- help
+dotnet run --project src/MudBlazor.Mcp/MudBlazor.Mcp.csproj -- index --version 9.0.0
+dotnet run --project src/MudBlazor.Mcp/MudBlazor.Mcp.csproj -- props MudButton --version 9.0.0
+pwsh -NoProfile -File eng/scripts/Measure-CliLatency.ps1 -Version 9.0.0
 ```
 
 ## Critical Conventions (agents can't infer these)
 
-- **`--version X.Y.Z` is mandatory** in every transport (or the `MUDBLAZOR_VERSION` env var used by IIS hosting). Missing/invalid version → the server prints guidance and exits with code 1. Format: `X.Y.Z` or `X.Y.Z-prerelease`. See argument parsing in [Program.cs](../src/MudBlazor.Mcp/Program.cs).
+- **`--version X.Y.Z` is mandatory** in every transport (or the `MUDBLAZOR_VERSION` env var used by IIS hosting). Missing/invalid version → the server prints guidance and exits with code 1. Format: `X.Y.Z` or `X.Y.Z-prerelease`. See argument parsing in [Hosting/McpServerHost.cs](../src/MudBlazor.Mcp/Hosting/McpServerHost.cs).
+- **Routing only**: [Program.cs](../src/MudBlazor.Mcp/Program.cs) holds only the routing expression; MCP bootstrap lives in [Hosting/McpServerHost.cs](../src/MudBlazor.Mcp/Hosting/McpServerHost.cs).
+- **CLI fast path**: queries build no host, DI container, configuration or logger and use no reflection. Register every new JSON type in [CliJsonContext](../src/MudBlazor.Mcp/Cli/CliJsonContext.cs) or [IndexStoreJsonContext](../src/MudBlazor.Mcp/Services/IndexStore.cs). Only `index` composes services.
+- **CLI output** follows the format rules in [docs/11-cli.md](../docs/11-cli.md); stdout contains only the requested format and errors go to stderr.
+- **Cache defaults differ**: CLI uses `~/.mudmcp`; MCP server stays at `./data`. Explicit data path or `MudBlazor__Repository__DataPath` shares caches.
 - **Central Package Management**: add/bump NuGet versions in [Directory.Packages.props](../Directory.Packages.props) (`<PackageVersion>`), never inline `Version=` in a `.csproj`. `ManagePackageVersionsCentrally=true`.
 - **`TreatWarningsAsErrors=true` repo-wide** ([Directory.Build.props](../Directory.Build.props)) with `EnforceCodeStyleInBuild` + `AnalysisLevel=latest`. In tests, **xUnit1051** fires whenever you await a method taking a `CancellationToken` without passing one — including setup I/O (`File.WriteAllTextAsync`) and `indexer.BuildIndexAsync()`. Fix: pass `TestContext.Current.CancellationToken`; use the named form `cancellationToken:` when optional params precede the token. Details in [docs/07-testing.md](../docs/07-testing.md).
 - **`IsPackable=false` by default**; only the `MudBlazor.Mcp` project opts back in and packs as a **dnx .NET tool** (`PackageId=MudMCP`, `ToolCommandName=mudmcp`). Solution-wide `dotnet pack` emits only that one package.
@@ -105,7 +120,11 @@ public static async Task<string> GetComponentDetailAsync(
 
 | Purpose | Location |
 |---------|----------|
-| Startup, arg parsing, DI, transports | [Program.cs](../src/MudBlazor.Mcp/Program.cs) |
+| Startup, arg parsing, DI, transports | [Hosting/McpServerHost.cs](../src/MudBlazor.Mcp/Hosting/McpServerHost.cs) |
+| CLI router | [Cli/CliApp.cs](../src/MudBlazor.Mcp/Cli/CliApp.cs) |
+| CLI index store | [Services/IndexStore.cs](../src/MudBlazor.Mcp/Services/IndexStore.cs) |
+| Shared queries | [Services/ComponentQueries.cs](../src/MudBlazor.Mcp/Services/ComponentQueries.cs) |
+| Agent Skill | [skills/mudblazor-cli/SKILL.md](../skills/mudblazor-cli/SKILL.md) |
 | Version scoping / path resolution | [Configuration/VersionContext.cs](../src/MudBlazor.Mcp/Configuration/VersionContext.cs) |
 | Options binding | [Configuration/MudBlazorOptions.cs](../src/MudBlazor.Mcp/Configuration/MudBlazorOptions.cs) |
 | Index build/query | [Services/ComponentIndexer.cs](../src/MudBlazor.Mcp/Services/ComponentIndexer.cs) |

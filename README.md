@@ -15,6 +15,7 @@ An enterprise-grade Model Context Protocol (MCP) server that provides AI assista
 - [Overview](#overview)
 - [Features](#features)
 - [Quick Start](#quick-start) — for consumers (dnx, no install)
+- [CLI Mode (for AI agents)](#cli-mode-for-ai-agents)
 - [Running from Source](#running-from-source-developers) — for contributors
 - [Documentation](#documentation)
 - [Available MCP Tools](#available-mcp-tools)
@@ -130,6 +131,37 @@ Restart your assistant and ask it something like *"List all MudBlazor button com
 - **`MUDBLAZOR_VERSION` vs `--version`:** `dnx` reserves its own `--version` flag for the *package* version, so the MudBlazor docs version is supplied through the `MUDBLAZOR_VERSION` environment variable. Everything after `--` is forwarded to the server, so you may append `"--version", "9.0.0"` there instead of the env var.
 - **`MudBlazor__Repository__DataPath` (shared cache):** where cloned repos and indexes are stored. Point every project at one fixed folder so they share a single cache instead of each cloning ~500 MB into its own working-directory `./data`. Omit it to use `./data` relative to the client's working directory.
 - **What to use for `${userHome}`:** VS Code expands `${userHome}` to your home directory automatically — `C:\Users\<you>` (Windows), `/home/<you>` (Linux), `/Users/<you>` (macOS). Clients that don't expand variables (Claude Desktop, Cursor) need a **literal absolute path** instead, e.g. `C:/Users/<you>/.mudmcp` or `/home/<you>/.mudmcp`.
+
+---
+
+## CLI Mode (for AI agents)
+
+The same tool also answers version-accurate terminal queries without starting
+an MCP host. Prefer a global install for repeated CLI calls:
+
+```text
+dotnet tool install -g MudMCP
+mudmcp index --version 9.0.0
+mudmcp props MudButton --filter Color,Variant,Size --version 9.0.0
+mudmcp component MudButton --version 9.0.0
+mudmcp search "date picker" --version 9.0.0
+```
+
+Use your project's exact MudBlazor version; index once per version (the first
+clone and parse can take minutes). The filtered props command prints:
+
+```text
+MudButton v9.0.0 props 3/23
+Color: Color = Color.Default
+Size: Size = Size.Medium
+Variant: Variant = Variant.Text
+```
+
+See the [CLI reference](./docs/11-cli.md) for commands, formats, cache sharing,
+performance measurements and a paste-ready Copilot instructions snippet.
+Install the [Agent Skill](./skills/mudblazor-cli/SKILL.md) to teach agents the
+narrow-query-first workflow. The CLI defaults to `~/.mudmcp`; the MCP server
+still defaults to `./data`.
 
 ---
 
@@ -291,6 +323,7 @@ When a 4th version is requested, the least recently used version is evicted auto
 | `--stdio` | `dotnet run -- --stdio --version X.Y.Z` or `.exe --stdio --version X.Y.Z` | No | Running from source: Cursor, Claude Code, Claude Desktop |
 | HTTP (default) | `dotnet run -- --version X.Y.Z` | Yes (`:8000`) | VS Code HTTP, MCP Inspector, remote |
 | Docker | `docker compose up` | Yes (`:8000→8080`) | Containerised / persistent cache |
+| CLI | `mudmcp props MudButton --version 9.0.0` | No | Token-efficient terminal queries for coding agents |
 
 ---
 
@@ -310,11 +343,14 @@ For comprehensive documentation, see the [docs](./docs/) folder:
 | [MCP Inspector](./docs/08-mcp-inspector.md) | Testing with MCP Inspector tool |
 | [IDE Integration](./docs/09-ide-integration.md) | VS Code, Visual Studio, and Claude Desktop setup |
 | [Troubleshooting](./docs/10-troubleshooting.md) | Common issues and solutions |
+| [CLI Mode](./docs/11-cli.md) | CLI commands, output formats, Agent Skill, Copilot snippet |
 | [Changelog](./docs/CHANGELOG.md) | Version history and release notes |
 
 ---
 
 ## Available MCP Tools
+
+Every tool has a CLI equivalent listed in the [CLI reference](./docs/11-cli.md).
 
 | Tool | Description |
 |------|-------------|
@@ -350,6 +386,8 @@ MudBlazor.Mcp/
 │       └── csharp-expert.agent.md     # Local C# agent (MudBlazor agents live in Clowder)
 ├── src/
 │   ├── MudBlazor.Mcp/              # Main MCP server
+│   │   ├── Cli/                    # Fast-path terminal queries and compact output
+│   │   ├── Hosting/                # MCP host bootstrap and health check
 │   │   ├── Configuration/          # Strongly-typed options
 │   │   ├── Models/                 # Domain models (immutable records)
 │   │   ├── Services/               # Core services
@@ -360,6 +398,7 @@ MudBlazor.Mcp/
 ├── tests/
 │   └── MudBlazor.Mcp.Tests/        # Unit tests
 ├── docs/                           # Documentation
+├── skills/mudblazor-cli/            # Agent Skill for CLI consumers
 └── README.md
 ```
 
