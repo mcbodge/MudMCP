@@ -5,27 +5,27 @@ plans:
   - Delivery: local (branch develop, never push)
   - Plan N = 1 → commit trailer `plan-1 GOAL-###`
 
-current: plan-1 - BLOCKED at Phase 6 TASK-024 (2026-10-21). Phases 1-5 DONE and committed.
-  Phase 5 commit 0f7a632; review fix commit 9666431. Full suite 499/499, solution build exits 0.
-  Plan status stays In progress; TASK-001..023 checked. TASK-024 remains blank because its latency gate fails.
-  RESUME AT: ask user to authorize focused latency investigation/optimization or revise the performance scope.
-    eng/scripts/Measure-CliLatency.ps1 and Test-MeasureCliLatency.ps1 are implemented but UNCOMMITTED.
-    Self-checks pass, including percentiles, pipe draining, argument boundaries, exit codes, environment restoration.
-    Initial real 20-run benchmark: every command fails 50 ms p95, range 75.4..131.6 ms.
-    Independent exact 20-run verification: every command fails, range 107.0..302.3 ms.
-    Logs: logs/task-024-benchmark.txt, logs/verify-task-024-benchmark.txt, logs/verify-task-024-selfchecks.txt.
-    Diagnostics: help p95 28.5 ms, index-status p95 106 ms; startup/store overhead not yet isolated.
-    Budget and runtime configuration were NOT changed. Never claim TASK-024 complete from self-checks alone.
-  TASK-025 and Phase 7 remain untouched: required Phase 6 DONE-WHEN does not hold.
-  Independent CAT Code Reviewer ran ONCE over all five code-phase commits, verdict changes requested:
-    major: required catalog/enums missing or JSON null silently returned empty success.
-    Fixed test-first in 9666431; missing files now raise I/O errors and null payloads raise JsonException.
-    Existing component files containing null now raise JsonException; absent component lookup still returns null.
-    Red confirmed 12 failures; focused 235/235, full 499/499; own full build/test also passed.
-  Phase 5 real v9.0.0 props/component outputs passed exact FMT-009/FMT-010 assertions.
-  Delivery local: develop, never push. Review has already run; do not repeat the once-per-plan review.
-  Commit-scope deviation: 0f7a632 unexpectedly included this pre-existing handoff progress file.
-    Main plan was kept out of code commits. No history rewrite; use explicit commit pathspecs going forward.
+current: plan-1 - TASK-024 COMPLETE under user-approved extension (2026-10-21).
+  Validated TASK-024 code/scripts/documentation committed in4fcc24b.
+  Phases 1-5 complete; Phase 6 packaging TASK-025 is next. Phase 7 remains untouched.
+  Plan status stays In progress; TASK-001..024 checked. Delivery local on develop; never push.
+  User approved profiling/optimizing startup with technically justified overruns of the nominal50ms target.
+  Source-generated JSON metadata/JIT initialization dominates cold startup; warm OS cache is not a warm process.
+  Changes: elapsed captured immediately after stdout flush, before diagnostic overhead; compact api no longer creates an unused API-reference model.
+  Benchmark keeps default BudgetMs50, warns explicitly above it; StrictBudget opts into exit1 on overrun.
+  Default full20-run/13-command benchmark exits0 with warnings; strict exits1 honestly (p95 130.7..257.2ms).
+  Scripts self-check percentiles, pipe draining, argument preservation, strict/default policy and environment restoration.
+  TDD cycle: timing-overhead regressions and advisory-default script checks failed Red, then passed.
+  Focused .NET145/145 and CLI306/306; own solution build/full suite and script self-checks passed.
+  Paired old/new binaries alternated order20times per command; every stdout pair byte-identical.
+    props p50 121.7->121.3ms, p95 180.1->159.6ms;
+    api p50 137.5->127.7ms, p95 169.5->190.1ms;
+    list p50 144.4->141.4ms, p95 170.5->201.8ms.
+  No general tail-latency improvement claimed; documented measured overhead is accepted, not hidden.
+  Profiling evidence and rejected experiments: eng/README.md, logs/task-024-profile-*.txt, logs/task-024-paired-comparison.txt.
+  No serializer/schema/runtime/GC/globalization/AOT/ReadyToRun/package changes.
+  Prior independent review already ran once; finding fixed in9666431; do not repeat once-per-plan review.
+  Use explicit staging AND commit pathspecs; original Phase5 commit0f7a632 unexpectedly included this handoff file.
   NOTE: 13 lingering dotnet.exe are the user's installed MudMCP dnx tool — NOT mine; leave alone. Built DLL: src/MudBlazor.Mcp/bin/Release/net10.0/MudBlazor.Mcp.dll
 
 app: n/a (CLI/library; no web UI, no Playwright)
@@ -84,6 +84,15 @@ BASELINE (2026-10-20): build -c Release EXIT 0, 0 Error(s), 1 Warning(s) = pre-e
 - (implementation plan — no work items)
 
 ## Evidence
+### TASK-024 extension 2026-10-21
+- User explicitly authorized startup profiling/optimization and technically justified >50ms; PER001, TASK024, TEST019 and GOAL006 updated to match.
+- Sampled CPU trace showed JSON metadata creation/configuration in manifest/component reads; trace artifacts ignored under logs.
+- Cold/warm probes: manifest80.85ms then~1ms; component38.92ms then~1ms; same in-process CLI192.80ms then3.79/2.12ms. No host/MCP/Roslyn/LibGit2Sharp assemblies observed in query probe.
+- Parameterless-constructor experiment53.95->53.62ms median: rejected. Partial-manifest reader~7%median gain but altered validation/sourcegen behavior: rejected.
+- Buffered stdout flush5.36..7.98ms, not dominant; async cancellation behavior preserved.
+- Exact stdout-flush measurement regression (success/error) Red confirmed; Green145/145 focused tests and306/306 CLI. Own build/fullsuite passed.
+- Default benchmark logs/task-024-profile-after.txt exit0; strict logs/task-024-profile-after-strict.txt exit1 with13 above-target commands. Script selfchecks pass logs/task-024-optimized-script-tests.txt.
+- Alternating before/after20samples each, props/api/list outputs identical; paired measurements logs/task-024-paired-comparison.txt, modest median changes and variable tails documented without claiming a general speedup.
 ### Resumed execution 2026-10-21
 - TASK-017: component command; 37 cases, Red unknown command, Green37/37; own verification passed.
 - TASK-018: member commands; 42 new cases, Red expected, Green79/79; own verification passed.
