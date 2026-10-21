@@ -2,6 +2,7 @@
 // Licensed under the GNU General Public License v2.0. See LICENSE file in the project root for full license information.
 
 using System.Text.Json.Serialization;
+using MudBlazor.Mcp.Models;
 
 namespace MudBlazor.Mcp.Cli;
 
@@ -22,6 +23,22 @@ internal sealed record IndexStatus(
     DateTimeOffset? BuiltAtUtc,
     bool HasIndexJson);
 
+/// <summary>A catalog search result without member details or example source code.</summary>
+internal sealed record ComponentSummary(
+    string Name,
+    string? Category,
+    string Summary,
+    string? BaseType,
+    int ParameterCount,
+    int EventCount,
+    int MethodCount,
+    int ExampleCount)
+{
+    internal static ComponentSummary From(ComponentInfo component) =>
+        new(component.Name, component.Category, component.Summary, component.BaseType,
+            component.Parameters.Count, component.Events.Count, component.Methods.Count, component.Examples.Count);
+}
+
 /// <summary>
 /// Source-generated serialization metadata for CLI JSON output, using camelCase property names
 /// and omitting default values to keep the payload compact.
@@ -31,4 +48,14 @@ internal sealed record IndexStatus(
     DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingDefault)]
 [JsonSerializable(typeof(IndexStatus))]
 [JsonSerializable(typeof(List<IndexStatus>))]
+[JsonSerializable(typeof(ComponentInfo))]
+[JsonSerializable(typeof(ComponentExample))]
+[JsonSerializable(typeof(IReadOnlyList<ComponentExample>))]
+[JsonSerializable(typeof(IReadOnlyList<ComponentParameter>))]
+[JsonSerializable(typeof(IReadOnlyList<ComponentEvent>))]
+[JsonSerializable(typeof(IReadOnlyList<ComponentMethod>))]
+[JsonSerializable(typeof(ApiReference))]
+[JsonSerializable(typeof(EnumInfo))]
+[JsonSerializable(typeof(IReadOnlyList<ComponentSummary>))]
+[JsonSerializable(typeof(IReadOnlyList<ComponentCategory>))]
 internal sealed partial class CliJsonContext : JsonSerializerContext;
