@@ -5,7 +5,21 @@ plans:
   - Delivery: local (branch develop, never push)
   - Plan N = 1 → commit trailer `plan-1 GOAL-###`
 
-current: plan-1 - WAITING ONLY FOR TEST-022 manual VS Code agent interaction.
+current: plan-1 COMPLETE (2026-10-21). All TASK-001..030 checked; local delivery, no push.
+  TEST-022: user reports successful trial and supplies screenshot of
+  mudmcp props MudButton --filter Color,Variant,StartIcon --version 9.0.0.
+  User also reports a later MCP attempt: mixed-tool behavior, not exclusive CLI use.
+  Screenshot confirms invocation, not command stdout or the entire edit chronology;
+  manual workflow success/order relies on the user's trial confirmation.
+  Inspected generated Components/Pages/Home.razor: Variant.Filled, Color.Primary,
+  StartIcon=@Icons.Material.Filled.Home. Own Release build passes.
+  Evidence: user screenshot in chat; logs/task-022-result-build.txt.
+  Cleanup complete: global trial MudMCP uninstalled; copied user skill and artifacts/cli-check removed.
+  Trial project retained as result evidence. No source code changes required.
+  Prior independent review and 501/501 full suite retained; no runtime changes since.
+
+Previous waiting handoff (superseded):
+  WAITING ONLY FOR TEST-022 manual VS Code agent interaction.
   TASK-001..025 and TASK-027..030 complete and checked. TASK-026 implementation/static checks pass;
   leave its mark blank until TEST-022 evidence proves skill-triggered pre-edit CLI usage.
   Plan remains In progress. Delivery local on develop; never push.
