@@ -47,7 +47,7 @@ curl http://localhost:8000/health
 ### Manual Tool Test (stdio)
 
 ```bash
-cd src/MudBlazor.Mcp
+cd src/MudDocs
 echo '{"jsonrpc":"2.0","method":"tools/list","id":1}' | dotnet run -- --stdio 2>nul
 ```
 
@@ -86,11 +86,11 @@ Could not find a project to run.
 **Solution:**
 ```bash
 # Ensure you're in the correct directory
-cd src/MudBlazor.Mcp
+cd src/MudDocs
 dotnet run
 
 # Or specify full path
-dotnet run --project "C:\Path\To\MudBlazor.Mcp\src\MudBlazor.Mcp"
+dotnet run --project "C:\Path\To\MudDocs\src\MudDocs"
 ```
 
 ### Issue: "Port already in use"
@@ -398,7 +398,7 @@ TimeoutException: The operation has timed out
    {
      "mcpServers": {
        "mudblazor": {
-         "command": "C:\\full\\path\\to\\MudBlazor.Mcp.exe",
+         "command": "C:\\full\\path\\to\\MudDocs.exe",
          "args": ["--stdio"]
        }
      }
@@ -420,14 +420,14 @@ The system cannot find the path specified
 **Solution:** Quote paths properly:
 ```json
 {
-  "args": ["run", "--project", "\"C:/Path With Spaces/MudBlazor.Mcp\"", "--", "--stdio"]
+  "args": ["run", "--project", "\"C:/Path With Spaces/MudDocs\"", "--", "--stdio"]
 }
 ```
 
 Or use short paths:
 ```json
 {
-  "args": ["run", "--project", "C:/PathWi~1/MudBlazor.Mcp", "--", "--stdio"]
+  "args": ["run", "--project", "C:/PathWi~1/MudDocs", "--", "--stdio"]
 }
 ```
 
@@ -435,7 +435,7 @@ Or use short paths:
 
 ## dnx Issues
 
-Issues specific to launching the packaged tool with `dnx MudMCP`.
+Issues specific to launching the packaged tool with `dnx MudDocs`.
 
 ### Issue: `dnx` command not found
 
@@ -452,20 +452,20 @@ dotnet --version   # must report 10.0.xxx
 # Install the .NET 10 SDK if missing: https://dotnet.microsoft.com/download/dotnet/10.0
 ```
 
-### Issue: Package `MudMCP` could not be found
+### Issue: Package `MudDocs` could not be found
 
 **Error:**
 ```
-error NU1101: Unable to find package MudMCP. No packages exist with this id...
+error NU1101: Unable to find package MudDocs. No packages exist with this id...
 ```
 
 **Cause:** Either you're building from source (the package isn't on your configured feeds) or a just-published version hasn't finished indexing on nuget.org yet.
 
-**Solution:** For a published version, wait a few minutes for indexing, then retry `dnx MudMCP@<version>`. To run a source build, pack a local package and point `dnx` at it with an **absolute** `--source` path (a relative `./nupkg` resolves against the client's working directory, not the repo):
+**Solution:** For a published version, wait a few minutes for indexing, then retry `dnx MudDocs@<version>`. To run a source build, pack a local package and point `dnx` at it with an **absolute** `--source` path (a relative `./nupkg` resolves against the client's working directory, not the repo):
 
 ```bash
-dotnet pack src/MudBlazor.Mcp/MudBlazor.Mcp.csproj -c Release -o ./nupkg
-dnx MudMCP --source C:/Mapei/MudBlazor/Mcp/MudBlazor.Mcp/nupkg --yes -- --stdio
+dotnet pack src/MudDocs/MudDocs.csproj -c Release -o ./nupkg
+dnx MudDocs --source C:/Mapei/MudBlazor/Mcp/MudDocs/nupkg --yes -- --stdio
 ```
 
 ### Issue: Wrong version served / `--version` ignored
@@ -478,13 +478,13 @@ dnx MudMCP --source C:/Mapei/MudBlazor/Mcp/MudBlazor.Mcp/nupkg --yes -- --stdio
 
 ```bash
 # PowerShell
-$env:MUDBLAZOR_VERSION = "9.0.0"; dnx MudMCP --yes -- --stdio
+$env:MUDBLAZOR_VERSION = "9.0.0"; dnx MudDocs --yes -- --stdio
 
 # bash
-MUDBLAZOR_VERSION=9.0.0 dnx MudMCP --yes -- --stdio
+MUDBLAZOR_VERSION=9.0.0 dnx MudDocs --yes -- --stdio
 ```
 
-Alternatively append the flag after the separator: `dnx MudMCP --yes -- --stdio --version 9.0.0`.
+Alternatively append the flag after the separator: `dnx MudDocs --yes -- --stdio --version 9.0.0`.
 
 ### Issue: `data/` clone appears in an unexpected folder
 
@@ -619,7 +619,7 @@ The IIS configure step publishes `iisEffectiveBindingProtocol`, and the deployme
   "Logging": {
     "LogLevel": {
       "Default": "Debug",
-      "MudBlazor.Mcp": "Trace",
+      "MudDocs": "Trace",
       "Microsoft.AspNetCore": "Debug"
     }
   }
@@ -651,9 +651,9 @@ dotnet run -- --stdio 2>server.log
       "type": "coreclr",
       "request": "launch",
       "preLaunchTask": "build",
-      "program": "${workspaceFolder}/src/MudBlazor.Mcp/bin/Debug/net10.0/MudBlazor.Mcp.dll",
+      "program": "${workspaceFolder}/src/MudDocs/bin/Debug/net10.0/MudDocs.dll",
       "args": ["--stdio"],
-      "cwd": "${workspaceFolder}/src/MudBlazor.Mcp",
+      "cwd": "${workspaceFolder}/src/MudDocs",
       "console": "integratedTerminal"
     }
   ]
@@ -698,7 +698,7 @@ Include in bug reports:
 
 ### Resources
 
-- [GitHub Issues](https://github.com/mcbodge/MudMCP/issues)
+- [GitHub Issues](https://github.com/mcbodge/MudDocs/issues)
 - [MCP Protocol Spec](https://spec.modelcontextprotocol.io/)
 - [MudBlazor Docs](https://mudblazor.com/docs)
 - [.NET Troubleshooting](https://docs.microsoft.com/dotnet/core/tools/troubleshoot-usage-issues)

@@ -77,7 +77,7 @@ mcp-inspector
 ### Option A: stdio Transport (Recommended for Inspector)
 
 ```bash
-cd src/MudBlazor.Mcp
+cd src/MudDocs
 dotnet run -- --stdio
 ```
 
@@ -89,7 +89,7 @@ The server will:
 ### Option B: HTTP Transport
 
 ```bash
-cd src/MudBlazor.Mcp
+cd src/MudDocs
 dotnet run
 ```
 
@@ -102,13 +102,13 @@ These Inspector examples use the local HTTP transport. For IIS deployments, use 
 `dnx` (bundled with the .NET 10 SDK) runs the published tool without a manual clone:
 
 ```bash
-# Launch the Inspector against the dnx-hosted server (restores MudMCP from nuget.org)
+# Launch the Inspector against the dnx-hosted server (restores MudDocs from nuget.org)
 npx @modelcontextprotocol/inspector \
   --command "dnx" \
-  --args "MudMCP@1.0.2 --yes -- --stdio"
+  --args "MudDocs@1.0.2 --yes -- --stdio"
 ```
 
-Set the docs version via the `MUDBLAZOR_VERSION` environment variable before launching (for example `export MUDBLAZOR_VERSION=9.0.0` or `$env:MUDBLAZOR_VERSION="9.0.0"`), because `dnx` reserves `--version` for the package version. If you're building from source, pack locally and use `--args "MudMCP --source ./nupkg --yes -- --stdio"`.
+Set the docs version via the `MUDBLAZOR_VERSION` environment variable before launching (for example `export MUDBLAZOR_VERSION=9.0.0` or `$env:MUDBLAZOR_VERSION="9.0.0"`), because `dnx` reserves `--version` for the package version. If you're building from source, pack locally and use `--args "MudDocs --source ./nupkg --yes -- --stdio"`.
 
 ---
 
@@ -119,7 +119,7 @@ Set the docs version via the `MUDBLAZOR_VERSION` environment variable before lau
 ```bash
 npx @modelcontextprotocol/inspector \
   --command "dotnet" \
-  --args "run --project src/MudBlazor.Mcp -- --stdio"
+  --args "run --project src/MudDocs -- --stdio"
 ```
 
 Or from the solution root:
@@ -127,14 +127,14 @@ Or from the solution root:
 ```bash
 npx @modelcontextprotocol/inspector \
   --command "dotnet" \
-  --args "run --project c:/MudBlazor/Mcp/MudBlazor.Mcp/src/MudBlazor.Mcp -- --stdio"
+  --args "run --project c:/MudBlazor/Mcp/MudDocs/src/MudDocs -- --stdio"
 ```
 
 ### For HTTP Transport
 
 1. Start the server:
    ```bash
-   cd src/MudBlazor.Mcp
+   cd src/MudDocs
    dotnet run
    ```
 

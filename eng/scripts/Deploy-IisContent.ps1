@@ -83,12 +83,12 @@ if (-not (Test-Path $ArtifactPath)) {
 
 # Find the actual source - could be directly in artifact or in a subfolder
 # Look for the main DLL to determine correct source path (limit recursion depth for performance)
-$mainDll = Get-ChildItem -Path $ArtifactPath -Filter "MudBlazor.Mcp.dll" -Recurse -Depth 3 -ErrorAction SilentlyContinue | Select-Object -First 1
+$mainDll = Get-ChildItem -Path $ArtifactPath -Filter "MudDocs.dll" -Recurse -Depth 3 -ErrorAction SilentlyContinue | Select-Object -First 1
 if ($mainDll -and $mainDll.DirectoryName) {
     $sourcePath = $mainDll.DirectoryName
 } else {
     # Fallback to artifact root
-    Write-Warning "Could not locate MudBlazor.Mcp.dll, falling back to artifact root."
+    Write-Warning "Could not locate MudDocs.dll, falling back to artifact root."
     $sourcePath = $ArtifactPath
 }
 

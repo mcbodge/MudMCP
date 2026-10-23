@@ -92,11 +92,11 @@ function Invoke-CliLatency {
     )
 
     $root = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
-    $project = Join-Path $root 'src' 'MudBlazor.Mcp' 'MudBlazor.Mcp.csproj'
-    $dll = Join-Path $root 'src' 'MudBlazor.Mcp' 'bin' 'Release' 'net10.0' 'MudBlazor.Mcp.dll'
+    $project = Join-Path $root 'src' 'MudDocs' 'MudDocs.csproj'
+    $dll = Join-Path $root 'src' 'MudDocs' 'bin' 'Release' 'net10.0' 'MudDocs.dll'
     $globalArguments = @('--version', $Version)
     if ($DataPath) { $globalArguments += @('--data-path', $DataPath) }
-    $previousTiming = [Environment]::GetEnvironmentVariable('MUDMCP_TIMING')
+    $previousTiming = [Environment]::GetEnvironmentVariable('MUDDOCS_TIMING')
     try {
         if (-not $NoBuild) {
             $build = Invoke-CapturedProcess -FilePath 'dotnet' -ArgumentList @('build', $project, '-c', 'Release')
@@ -106,11 +106,11 @@ function Invoke-CliLatency {
         }
         $status = Invoke-CapturedProcess -FilePath 'dotnet' -ArgumentList (@($dll, 'index-status') + $globalArguments)
         if ($status.ExitCode -eq 3) {
-            [Console]::Error.WriteLine("Version $Version is not indexed; run: mudmcp index --version $Version")
+            [Console]::Error.WriteLine("Version $Version is not indexed; run: muddocs index --version $Version")
             return 2
         }
         if ($status.ExitCode -ne 0) { throw "index-status failed (exit $($status.ExitCode)): $($status.Stderr)" }
-        $env:MUDMCP_TIMING = '1'
+        $env:MUDDOCS_TIMING = '1'
         $commands = @(
             ,@('component', 'MudButton')
             ,@('props', 'MudButton', '--filter', 'Color,Variant,Size')
@@ -163,10 +163,10 @@ function Invoke-CliLatency {
     }
     finally {
         if ($null -eq $previousTiming) {
-            Remove-Item Env:MUDMCP_TIMING -ErrorAction SilentlyContinue
+            Remove-Item Env:MUDDOCS_TIMING -ErrorAction SilentlyContinue
         }
         else {
-            [Environment]::SetEnvironmentVariable('MUDMCP_TIMING', $previousTiming)
+            [Environment]::SetEnvironmentVariable('MUDDOCS_TIMING', $previousTiming)
         }
     }
 }

@@ -34,7 +34,7 @@
     Set to true to skip HTTPS certificate validation for loopback health checks. Use only for explicit dev/test scenarios.
 
 .EXAMPLE
-    .\Test-DeploymentHealth.ps1 -HostName "dev.mudmcp.org" -Port 8000 -Scheme https -AppPoolName "MudBlazorMcpPool" -PhysicalPath "C:\inetpub\wwwroot\MudBlazorMcp"
+    .\Test-DeploymentHealth.ps1 -HostName "dev.muddocs.org" -Port 8000 -Scheme https -AppPoolName "MudBlazorMcpPool" -PhysicalPath "C:\inetpub\wwwroot\MudBlazorMcp"
 #>
 
 [CmdletBinding()]
@@ -193,7 +193,7 @@ try {
 # Deployed Files Check
 Write-Host ""
 Write-Host "--- Deployed Files Check ---"
-$mainDll = Join-Path $PhysicalPath "MudBlazor.Mcp.dll"
+$mainDll = Join-Path $PhysicalPath "MudDocs.dll"
 if (Test-Path $mainDll) {
     Write-Host "Main DLL exists: $mainDll"
 } else {

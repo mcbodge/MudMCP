@@ -23,7 +23,7 @@ stderr warning and exit 0 if all commands succeeded. `-StrictBudget` turns an
 overrun into exit 1; `-BudgetMs` changes the target. Build failures, failed
 queries, or invalid/missing timing data always exit 1. An unindexed version exits
 2 with an indexing hint. `-DataPath` selects a different cache, and the script
-restores the caller's `MUDMCP_TIMING` value even on failure.
+restores the caller's `MUDDOCS_TIMING` value even on failure.
 
 ### Profiling Findings (2026-10-21)
 
@@ -237,7 +237,7 @@ For development or test servers, you can create and trust a self-signed certific
 
 ```powershell
 $cert = New-SelfSignedCertificate -DnsName "localhost" -CertStoreLocation "Cert:\LocalMachine\My"
-$certificatePath = Join-Path $env:TEMP "mudmcp-local.cer"
+$certificatePath = Join-Path $env:TEMP "muddocs-local.cer"
 Export-Certificate -Cert $cert -FilePath $certificatePath
 Import-Certificate -FilePath $certificatePath -CertStoreLocation "Cert:\LocalMachine\Root"
 $cert.Thumbprint

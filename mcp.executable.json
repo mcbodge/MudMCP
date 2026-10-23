@@ -3,7 +3,7 @@
   "mcpServers": {
     "mudblazor": {
       "description": "MudBlazor MCP Server (Self-Contained Executable)",
-      "command": "<REPO_ROOT>\\publish\\win-x64\\MudBlazor.Mcp.exe",
+      "command": "<REPO_ROOT>\\publish\\win-x64\\MudDocs.exe",
       "args": [
         "--stdio",
         "--version",

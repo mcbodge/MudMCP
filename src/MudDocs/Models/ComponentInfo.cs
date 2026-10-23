@@ -1,0 +1,200 @@
+// Copyright (c) 2025 Mud MCP Contributors
+// Licensed under the GNU General Public License v2.0. See LICENSE file in the project root for full license information.
+
+namespace MudDocs.Models;
+
+/// <summary>
+/// Represents comprehensive information about a MudBlazor component.
+/// </summary>
+/// <param name="Name">The component type name (e.g., "MudButton").</param>
+/// <param name="Namespace">The namespace containing this component.</param>
+/// <param name="Summary">A brief description of the component.</param>
+/// <param name="Description">Extended description/remarks about the component.</param>
+/// <param name="Category">The category this component belongs to.</param>
+/// <param name="BaseType">The base type this component inherits from.</param>
+/// <param name="Parameters">Component parameters (properties with [Parameter] attribute).</param>
+/// <param name="Events">Event callbacks on the component.</param>
+/// <param name="Methods">Public methods on the component.</param>
+/// <param name="Examples">Code examples for this component.</param>
+/// <param name="RelatedComponents">Related components.</param>
+/// <param name="DocumentationUrl">URL to the component's documentation page.</param>
+/// <param name="SourceUrl">URL to the component's source code.</param>
+public sealed record ComponentInfo(
+    string Name,
+    string Namespace,
+    string Summary,
+    string? Description,
+    string? Category,
+    string? BaseType,
+    IReadOnlyList<ComponentParameter> Parameters,
+    IReadOnlyList<ComponentEvent> Events,
+    IReadOnlyList<ComponentMethod> Methods,
+    IReadOnlyList<ComponentExample> Examples,
+    IReadOnlyList<string> RelatedComponents,
+    string? DocumentationUrl,
+    string? SourceUrl
+);
+
+/// <summary>
+/// Represents a component parameter (property with [Parameter] attribute).
+/// </summary>
+/// <param name="Name">The parameter name.</param>
+/// <param name="Type">The parameter type as a string.</param>
+/// <param name="Description">Description of the parameter.</param>
+/// <param name="DefaultValue">The parameter's default value, if known.</param>
+/// <param name="IsRequired">Whether this parameter is required.</param>
+/// <param name="IsCascading">Whether this parameter is a cascading parameter.</param>
+/// <param name="Category">The category this parameter belongs to (e.g., "Appearance", "Behavior").</param>
+/// <param name="IsInherited">Whether this parameter is declared on a base type rather than the component itself.</param>
+/// <param name="DeclaringType">The type that declares this parameter (set when inherited from a base class).</param>
+public sealed record ComponentParameter(
+    string Name,
+    string Type,
+    string? Description,
+    string? DefaultValue,
+    bool IsRequired,
+    bool IsCascading,
+    string? Category,
+    bool IsInherited = false,
+    string? DeclaringType = null
+);
+
+/// <summary>
+/// Represents an event callback on a component.
+/// </summary>
+/// <param name="Name">The event name.</param>
+/// <param name="EventArgsType">The type of event arguments (null for simple EventCallback).</param>
+/// <param name="Description">Description of when this event fires.</param>
+/// <param name="IsInherited">Whether this event is declared on a base type rather than the component itself.</param>
+/// <param name="DeclaringType">The type that declares this event (set when inherited from a base class).</param>
+public sealed record ComponentEvent(
+    string Name,
+    string? EventArgsType,
+    string? Description,
+    bool IsInherited = false,
+    string? DeclaringType = null
+);
+
+/// <summary>
+/// Represents a public method on a component.
+/// </summary>
+/// <param name="Name">The method name.</param>
+/// <param name="ReturnType">The return type as a string.</param>
+/// <param name="Description">Description of what the method does.</param>
+/// <param name="Parameters">Method parameters.</param>
+/// <param name="IsAsync">Whether this method is async.</param>
+/// <param name="IsInherited">Whether this method is declared on a base type rather than the component itself.</param>
+/// <param name="DeclaringType">The type that declares this method (set when inherited from a base class).</param>
+public sealed record ComponentMethod(
+    string Name,
+    string ReturnType,
+    string? Description,
+    IReadOnlyList<MethodParameter> Parameters,
+    bool IsAsync,
+    bool IsInherited = false,
+    string? DeclaringType = null
+);
+
+/// <summary>
+/// Represents a method parameter.
+/// </summary>
+/// <param name="Name">The parameter name.</param>
+/// <param name="Type">The parameter type as a string.</param>
+/// <param name="Description">Description of the parameter.</param>
+/// <param name="DefaultValue">The default value, if any.</param>
+public sealed record MethodParameter(
+    string Name,
+    string Type,
+    string? Description,
+    string? DefaultValue
+);
+
+/// <summary>
+/// Represents a code example for a component.
+/// </summary>
+/// <param name="Name">The example name (derived from file name).</param>
+/// <param name="Description">Description of what this example demonstrates.</param>
+/// <param name="RazorMarkup">The Razor markup portion of the example.</param>
+/// <param name="CSharpCode">The C# code portion of the example.</param>
+/// <param name="SourceFile">Path to the source file for this example.</param>
+/// <param name="Features">List of features demonstrated by this example.</param>
+public sealed record ComponentExample(
+    string Name,
+    string? Description,
+    string? RazorMarkup,
+    string? CSharpCode,
+    string? SourceFile,
+    IReadOnlyList<string> Features
+);
+
+/// <summary>
+/// Represents a component category.
+/// </summary>
+/// <param name="Name">The category name.</param>
+/// <param name="Title">Display title for the category.</param>
+/// <param name="Description">Description of this category.</param>
+/// <param name="ComponentNames">Components in this category.</param>
+public sealed record ComponentCategory(
+    string Name,
+    string? Title,
+    string? Description,
+    IReadOnlyList<string> ComponentNames
+);
+
+/// <summary>
+/// Represents API reference for an enum, class, or interface.
+/// </summary>
+/// <param name="TypeName">The type name.</param>
+/// <param name="Namespace">The namespace containing this type.</param>
+/// <param name="Summary">Description of this type.</param>
+/// <param name="BaseType">The base type if applicable.</param>
+/// <param name="Members">For classes/interfaces: the members.</param>
+public sealed record ApiReference(
+    string TypeName,
+    string? Namespace,
+    string? Summary,
+    string? BaseType,
+    IReadOnlyList<ApiMember>? Members
+);
+
+/// <summary>
+/// Represents a member of a class or interface.
+/// </summary>
+/// <param name="Name">The member name.</param>
+/// <param name="MemberType">The member kind (Property, Method, Event, Field).</param>
+/// <param name="ReturnType">The member return type.</param>
+/// <param name="Description">Description of this member.</param>
+/// <param name="ParameterSignature">For methods: the formatted parameter list (e.g., "string name, int count").</param>
+public sealed record ApiMember(
+    string Name,
+    string MemberType,
+    string ReturnType,
+    string? Description,
+    string? ParameterSignature = null
+);
+
+/// <summary>
+/// Represents a MudBlazor enum type and its values, parsed from the versioned source.
+/// </summary>
+/// <param name="Name">The enum type name (e.g., "Color").</param>
+/// <param name="Namespace">The namespace containing this enum.</param>
+/// <param name="Summary">A brief description of the enum from its XML documentation.</param>
+/// <param name="Values">The values defined by this enum.</param>
+public sealed record EnumInfo(
+    string Name,
+    string? Namespace,
+    string? Summary,
+    IReadOnlyList<EnumValueInfo> Values
+);
+
+/// <summary>
+/// Represents a single value of an enum.
+/// </summary>
+/// <param name="Name">The value name (e.g., "Primary").</param>
+/// <param name="Value">The explicit numeric value, when declared in source.</param>
+/// <param name="Description">Description of this value (preferring the XML summary, falling back to <c>[Description]</c>).</param>
+public sealed record EnumValueInfo(
+    string Name,
+    long? Value,
+    string? Description
+);

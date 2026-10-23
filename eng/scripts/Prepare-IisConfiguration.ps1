@@ -62,7 +62,7 @@ if (-not (Test-Path $webConfigPath)) {
       <handlers>
         <add name="aspNetCore" path="*" verb="*" modules="AspNetCoreModuleV2" resourceType="Unspecified" />
       </handlers>
-      <aspNetCore processPath="dotnet" arguments=".\MudBlazor.Mcp.dll" stdoutLogEnabled="true" stdoutLogFile=".\logs\stdout" hostingModel="InProcess">
+      <aspNetCore processPath="dotnet" arguments=".\MudDocs.dll" stdoutLogEnabled="true" stdoutLogFile=".\logs\stdout" hostingModel="InProcess">
         <environmentVariables>
           <environmentVariable name="ASPNETCORE_ENVIRONMENT" value="Production" />
         </environmentVariables>

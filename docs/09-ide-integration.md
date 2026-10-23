@@ -30,14 +30,14 @@ The HTTP URL shown here is the local `dotnet run` default. IIS deployments use t
 
 ## Launching via dnx
 
-`dnx` (bundled with the **.NET 10 SDK**) downloads and runs a tool package on demand — no global install and no manually cloned repo. This project is published to nuget.org as the .NET tool **[`MudMCP`](https://www.nuget.org/packages/MudMCP)** (command `mudmcp`), so every client below can launch it the same way.
+`dnx` (bundled with the **.NET 10 SDK**) downloads and runs a tool package on demand — no global install and no manually cloned repo. This project is published to nuget.org as the .NET tool **[`MudDocs`](https://www.nuget.org/packages/MudDocs)** (command `muddocs`), so every client below can launch it the same way.
 
 ### Prerequisites
 
 - **.NET 10 SDK** (provides the `dnx` command).
-- Nothing else — `dnx` restores **`MudMCP`** from nuget.org on first run.
+- Nothing else — `dnx` restores **`MudDocs`** from nuget.org on first run.
 
-> **Building from source instead of nuget.org?** Pack it locally (`dotnet pack src/MudBlazor.Mcp/MudBlazor.Mcp.csproj -c Release -o ./nupkg`) and add `"--source", "<absolute-path>/nupkg"` to the `args` below. Use an **absolute** path — each client sets its own working directory, so a relative `./nupkg` will not resolve.
+> **Building from source instead of nuget.org?** Pack it locally (`dotnet pack src/MudDocs/MudDocs.csproj -c Release -o ./nupkg`) and add `"--source", "<absolute-path>/nupkg"` to the `args` below. Use an **absolute** path — each client sets its own working directory, so a relative `./nupkg` will not resolve.
 
 ### Key differences from the `dotnet run` configs
 
@@ -52,10 +52,10 @@ The HTTP URL shown here is the local `dotnet run` default. IIS deployments use t
   "servers": {
     "mudblazor": {
       "command": "dnx",
-      "args": ["MudMCP@1.0.2", "--yes", "--", "--stdio"],
+      "args": ["MudDocs@1.0.2", "--yes", "--", "--stdio"],
       "env": {
         "MUDBLAZOR_VERSION": "9.0.0",
-        "MudBlazor__Repository__DataPath": "${userHome}/.mudmcp"
+        "MudBlazor__Repository__DataPath": "${userHome}/.muddocs"
       }
     }
   }
@@ -69,10 +69,10 @@ The HTTP URL shown here is the local `dotnet run` default. IIS deployments use t
   "mcpServers": {
     "mudblazor": {
       "command": "dnx",
-      "args": ["MudMCP@1.0.2", "--yes", "--", "--stdio"],
+      "args": ["MudDocs@1.0.2", "--yes", "--", "--stdio"],
       "env": {
         "MUDBLAZOR_VERSION": "9.0.0",
-        "MudBlazor__Repository__DataPath": "C:/Users/you/.mudmcp"
+        "MudBlazor__Repository__DataPath": "C:/Users/you/.muddocs"
       }
     }
   }
@@ -89,11 +89,11 @@ The HTTP URL shown here is the local `dotnet run` default. IIS deployments use t
         "transport": {
           "type": "stdio",
           "command": "dnx",
-          "args": ["MudMCP@1.0.2", "--yes", "--", "--stdio"]
+          "args": ["MudDocs@1.0.2", "--yes", "--", "--stdio"]
         },
         "env": {
           "MUDBLAZOR_VERSION": "9.0.0",
-          "MudBlazor__Repository__DataPath": "C:/Users/you/.mudmcp"
+          "MudBlazor__Repository__DataPath": "C:/Users/you/.muddocs"
         }
       }
     }
@@ -127,7 +127,7 @@ The HTTP URL shown here is the local `dotnet run` default. IIS deployments use t
       "args": [
         "run",
         "--project",
-        "C:/MudBlazor/Mcp/MudBlazor.Mcp/src/MudBlazor.Mcp",
+        "C:/MudBlazor/Mcp/MudDocs/src/MudDocs",
         "--",
         "--stdio"
       ]
@@ -148,7 +148,7 @@ Create `.vscode/mcp.json` in your project:
       "args": [
         "run",
         "--project",
-        "${workspaceFolder}/src/MudBlazor.Mcp",
+        "${workspaceFolder}/src/MudDocs",
         "--",
         "--stdio"
       ]
@@ -163,7 +163,7 @@ For faster startup, use a published executable:
 
 ```bash
 # Build the executable
-cd src/MudBlazor.Mcp
+cd src/MudDocs
 dotnet publish -c Release -o ./publish
 ```
 
@@ -171,7 +171,7 @@ dotnet publish -c Release -o ./publish
 {
   "github.copilot.chat.experimental.mcpServers": {
     "mudblazor": {
-      "command": "C:/MudBlazor/Mcp/MudBlazor.Mcp/src/MudBlazor.Mcp/publish/MudBlazor.Mcp.exe",
+      "command": "C:/MudBlazor/Mcp/MudDocs/src/MudDocs/publish/MudDocs.exe",
       "args": ["--stdio"]
     }
   }
@@ -222,7 +222,7 @@ Create or edit `claude_desktop_config.json`:
       "args": [
         "run",
         "--project",
-        "C:\\MudBlazor\\Mcp\\MudBlazor.Mcp\\src\\MudBlazor.Mcp",
+        "C:\\MudBlazor\\Mcp\\MudDocs\\src\\MudDocs",
         "--",
         "--stdio"
       ],
@@ -244,7 +244,7 @@ Create or edit `claude_desktop_config.json`:
       "args": [
         "run",
         "--project",
-        "/path/to/MudBlazor.Mcp/src/MudBlazor.Mcp",
+        "/path/to/MudDocs/src/MudDocs",
         "--",
         "--stdio"
       ],
@@ -262,7 +262,7 @@ Create or edit `claude_desktop_config.json`:
 {
   "mcpServers": {
     "mudblazor": {
-      "command": "C:\\MudBlazor\\Mcp\\MudBlazor.Mcp\\src\\MudBlazor.Mcp\\publish\\MudBlazor.Mcp.exe",
+      "command": "C:\\MudBlazor\\Mcp\\MudDocs\\src\\MudDocs\\publish\\MudDocs.exe",
       "args": ["--stdio"],
       "env": {
         "DOTNET_ENVIRONMENT": "Production"
@@ -298,7 +298,7 @@ Edit `~/.continue/config.json`:
           "args": [
             "run",
             "--project",
-            "C:/MudBlazor/Mcp/MudBlazor.Mcp/src/MudBlazor.Mcp",
+            "C:/MudBlazor/Mcp/MudDocs/src/MudDocs",
             "--",
             "--stdio"
           ]
@@ -319,7 +319,7 @@ Any MCP client supporting stdio transport can connect:
 
 ```bash
 # Start server in stdio mode
-dotnet run --project src/MudBlazor.Mcp -- --stdio
+dotnet run --project src/MudDocs -- --stdio
 ```
 
 ### Generic HTTP Client
@@ -328,7 +328,7 @@ For clients supporting HTTP transport:
 
 ```bash
 # Start server in HTTP mode (default)
-dotnet run --project src/MudBlazor.Mcp
+dotnet run --project src/MudDocs
 
 # Server available at: http://localhost:8000/mcp
 ```
@@ -343,7 +343,7 @@ var client = await McpClientFactory.CreateAsync(
     new StdioClientTransport(new StdioClientTransportOptions
     {
         Command = "dotnet",
-        Arguments = ["run", "--project", "path/to/MudBlazor.Mcp", "--", "--stdio"]
+        Arguments = ["run", "--project", "path/to/MudDocs", "--", "--stdio"]
     }));
 
 // List tools
@@ -436,7 +436,7 @@ Set the working directory for the server:
     "mudblazor": {
       "command": "dotnet",
       "args": ["run", "--", "--stdio"],
-      "cwd": "C:\\MudBlazor\\Mcp\\MudBlazor.Mcp\\src\\MudBlazor.Mcp"
+      "cwd": "C:\\MudBlazor\\Mcp\\MudDocs\\src\\MudDocs"
     }
   }
 }
@@ -476,7 +476,7 @@ Run different configurations for different projects:
 **Check logs:**
 ```bash
 # Run manually to see errors
-dotnet run --project src/MudBlazor.Mcp -- --stdio 2>&1
+dotnet run --project src/MudDocs -- --stdio 2>&1
 ```
 
 **Verify .NET SDK:**

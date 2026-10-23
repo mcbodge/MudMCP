@@ -1,0 +1,162 @@
+// Copyright (c) 2025 Mud MCP Contributors
+// Licensed under the GNU General Public License v2.0. See LICENSE file in the project root for full license information.
+
+using System.ComponentModel;
+using System.Text;
+using System.Text.Json;
+using Microsoft.Extensions.Logging;
+using ModelContextProtocol.Server;
+using MudDocs.Configuration;
+using MudDocs.Models;
+using MudDocs.Services;
+
+namespace MudDocs.Tools;
+
+/// <summary>
+/// MCP tools for listing and browsing MudBlazor components.
+/// </summary>
+[McpServerToolType]
+public sealed class ComponentListTools
+{
+    /// <summary>
+    /// Lists all available MudBlazor components with their categories.
+    /// </summary>
+    /// <param name="indexer">The component indexer service.</param>
+    /// <param name="logger">Logger for diagnostics.</param>
+    /// <param name="category">Optional category to filter by.</param>
+    /// <param name="includeDetails">Whether to include parameter counts and descriptions.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>Formatted list of components.</returns>
+    [McpServerTool(Name = "list_components")]
+    [Description("Lists all available MudBlazor components. Optionally filter by category and include additional details. Results are for the configured MudBlazor version. If a component seems missing, verify the --version matches your project's MudBlazor PackageReference in the .csproj file.")]
+    public static async Task<string> ListComponentsAsync(
+        IComponentIndexer indexer,
+        ILogger<ComponentListTools> logger,
+        VersionContext versionContext,
+        [Description("Optional category to filter by (e.g., 'Buttons', 'Form & Inputs', 'Pickers', 'Charts', 'Functional', 'Components'). Use list_categories to see all.")] 
+        string? category = null,
+        [Description("Include parameter counts and brief descriptions (default: true)")]
+        bool? includeDetails = null,
+        CancellationToken cancellationToken = default)
+    {
+        // Apply default value if not provided (MCP clients may send null for optional parameters)
+        var effectiveIncludeDetails = includeDetails ?? true;
+
+        logger.LogDebug("Listing components with category filter: {Category}, includeDetails: {IncludeDetails}",
+            category ?? "none", effectiveIncludeDetails);
+
+        var components = string.IsNullOrWhiteSpace(category)
+            ? await indexer.GetAllComponentsAsync(cancellationToken)
+            : await indexer.GetComponentsByCategoryAsync(category, cancellationToken);
+
+        logger.LogDebug("Found {Count} components", components.Count);
+
+        if (components.Count == 0)
+        {
+            if (category is not null)
+            {
+                var categories = await indexer.GetCategoriesAsync(cancellationToken);
+                ToolValidation.ThrowCategoryNotFound(category, categories.Select(c => c.Name));
+            }
+            return "No components found. The index may not have been built yet.";
+        }
+
+        return RenderComponentList(components, category, effectiveIncludeDetails, versionContext.Version);
+    }
+
+    /// <summary>
+    /// Renders the Markdown listing for a set of components.
+    /// </summary>
+    internal static string RenderComponentList(IReadOnlyList<ComponentInfo> components, string? category, bool includeDetails, string version)
+    {
+        var sb = new StringBuilder();
+        sb.AppendLine($"# MudBlazor Components v{version} ({components.Count} total)");
+        sb.AppendLine();
+
+        if (category is not null)
+        {
+            sb.AppendLine($"**Category:** {category}");
+            sb.AppendLine();
+        }
+
+        // Group by category if not filtering
+        var grouped = category is null 
+            ? components.GroupBy(c => c.Category ?? "Uncategorized").OrderBy(g => g.Key)
+            : components.GroupBy(c => category).OrderBy(g => g.Key);
+
+        foreach (var group in grouped)
+        {
+            sb.AppendLine($"## {group.Key}");
+            sb.AppendLine();
+
+            foreach (var component in group.OrderBy(c => c.Name))
+            {
+                if (includeDetails)
+                {
+                    sb.AppendLine($"- **{component.Name}**: {ToolFormatting.Truncate(component.Summary, 80, "No description available")}");
+                    sb.AppendLine($"  - Parameters: {component.Parameters.Count}, Events: {component.Events.Count}, Examples: {component.Examples.Count}");
+                }
+                else
+                {
+                    sb.AppendLine($"- {component.Name}");
+                }
+            }
+            sb.AppendLine();
+        }
+
+        sb.AppendLine("---");
+        sb.AppendLine("*Use `get_component_detail` for detailed information about a specific component.*");
+
+        return sb.ToString();
+    }
+
+    /// <summary>
+    /// Lists all component categories with their descriptions and component counts.
+    /// </summary>
+    [McpServerTool(Name = "list_categories")]
+    [Description("Lists all MudBlazor component categories with descriptions and component counts. Results are for the configured MudBlazor version. If a component seems missing, verify the --version matches your project's MudBlazor PackageReference in the .csproj file.")]
+    public static async Task<string> ListCategoriesAsync(
+        IComponentIndexer indexer,
+        ILogger<ComponentListTools> logger,
+        VersionContext versionContext,
+        CancellationToken cancellationToken = default)
+    {
+        logger.LogDebug("Listing all component categories");
+
+        var categories = await indexer.GetCategoriesAsync(cancellationToken);
+        var allComponents = await indexer.GetAllComponentsAsync(cancellationToken);
+
+        logger.LogDebug("Found {CategoryCount} categories with {ComponentCount} total components",
+            categories.Count, allComponents.Count);
+
+        return RenderCategories(categories, allComponents, versionContext.Version);
+    }
+
+    /// <summary>
+    /// Renders the Markdown listing for the component categories.
+    /// </summary>
+    internal static string RenderCategories(IReadOnlyList<ComponentCategory> categories, IReadOnlyList<ComponentInfo> allComponents, string version)
+    {
+        var sb = new StringBuilder();
+        sb.AppendLine($"# MudBlazor Component Categories (v{version})");
+        sb.AppendLine();
+
+        foreach (var category in categories)
+        {
+            var componentCount = allComponents.Count(c => c.Category == category.Name);
+            
+            sb.AppendLine($"## {category.Title}");
+            if (!string.IsNullOrEmpty(category.Description))
+            {
+                sb.AppendLine($"*{category.Description}*");
+            }
+            sb.AppendLine($"- **Components:** {componentCount}");
+            sb.AppendLine();
+        }
+
+        sb.AppendLine("---");
+        sb.AppendLine("*Use `list_components` with a category filter to see components in a specific category.*");
+
+        return sb.ToString();
+    }
+}

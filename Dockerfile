@@ -11,17 +11,17 @@ WORKDIR /src
 COPY global.json Directory.Build.props Directory.Packages.props nuget.config ./
 
 # Copy project files for restore layer caching.
-COPY src/MudBlazor.Mcp.ServiceDefaults/MudBlazor.Mcp.ServiceDefaults.csproj \
-     src/MudBlazor.Mcp.ServiceDefaults/
-COPY src/MudBlazor.Mcp/MudBlazor.Mcp.csproj src/MudBlazor.Mcp/
+COPY src/MudDocs.ServiceDefaults/MudDocs.ServiceDefaults.csproj \
+     src/MudDocs.ServiceDefaults/
+COPY src/MudDocs/MudDocs.csproj src/MudDocs/
 
-RUN dotnet restore src/MudBlazor.Mcp/MudBlazor.Mcp.csproj
+RUN dotnet restore src/MudDocs/MudDocs.csproj
 
 # Copy the actual source after restore to preserve the cache layer above.
-COPY src/MudBlazor.Mcp.ServiceDefaults/ src/MudBlazor.Mcp.ServiceDefaults/
-COPY src/MudBlazor.Mcp/ src/MudBlazor.Mcp/
+COPY src/MudDocs.ServiceDefaults/ src/MudDocs.ServiceDefaults/
+COPY src/MudDocs/ src/MudDocs/
 
-RUN dotnet publish src/MudBlazor.Mcp/MudBlazor.Mcp.csproj \
+RUN dotnet publish src/MudDocs/MudDocs.csproj \
     -c Release -o /app/publish --no-restore
 
 # ---------------------------------------------------------------------------
@@ -51,4 +51,4 @@ ENV MUDBLAZOR_VERSION=9.0.0
 
 EXPOSE 8080
 
-ENTRYPOINT exec dotnet MudBlazor.Mcp.dll --version ${MUDBLAZOR_VERSION}
+ENTRYPOINT exec dotnet MudDocs.dll --version ${MUDBLAZOR_VERSION}

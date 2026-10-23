@@ -1,14 +1,14 @@
 # Copyright (c) 2026 Mud MCP Contributors
 # Licensed under the GNU General Public License v2.0. See LICENSE file in the project root for full license information.
 
-if (-not ([System.Management.Automation.PSTypeName]'MudMcp.DeploymentHealthCertificateValidator').Type) {
+if (-not ([System.Management.Automation.PSTypeName]'MudDocs.DeploymentHealthCertificateValidator').Type) {
     Add-Type -TypeDefinition @'
 using System;
 using System.Net;
 using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
 
-namespace MudMcp
+namespace MudDocs
 {
     public static class DeploymentHealthCertificateValidator
     {
@@ -81,8 +81,8 @@ function Invoke-DeploymentHealthRequest {
         }
 
         if ($useCertificateValidationBypass) {
-            [MudMcp.DeploymentHealthCertificateValidator]::Configure($targetUri, $previousCertificateValidationCallback)
-            $validatorMethod = [MudMcp.DeploymentHealthCertificateValidator].GetMethod('Validate', [System.Reflection.BindingFlags]'Public, Static')
+            [MudDocs.DeploymentHealthCertificateValidator]::Configure($targetUri, $previousCertificateValidationCallback)
+            $validatorMethod = [MudDocs.DeploymentHealthCertificateValidator].GetMethod('Validate', [System.Reflection.BindingFlags]'Public, Static')
             [System.Net.ServicePointManager]::ServerCertificateValidationCallback = [System.Delegate]::CreateDelegate(
                 [System.Net.Security.RemoteCertificateValidationCallback],
                 $validatorMethod)
@@ -92,7 +92,7 @@ function Invoke-DeploymentHealthRequest {
     } finally {
         if ($useCertificateValidationBypass) {
             [System.Net.ServicePointManager]::ServerCertificateValidationCallback = $previousCertificateValidationCallback
-            [MudMcp.DeploymentHealthCertificateValidator]::Clear()
+            [MudDocs.DeploymentHealthCertificateValidator]::Clear()
         }
 
         if ($Uri.Scheme -eq 'https') {

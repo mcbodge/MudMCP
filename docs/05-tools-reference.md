@@ -48,18 +48,18 @@ Pass the consumer's version, for example `--version 9.0.0`, to query commands.
 
 | MCP tool | CLI equivalent |
 | --- | --- |
-| `list_components` | `mudmcp list` |
-| `list_categories` | `mudmcp categories` |
-| `get_components_by_category` | `mudmcp list --category <name>` |
-| `get_component_detail` | `mudmcp component <name>` |
-| `get_component_parameters` | `mudmcp props <name>` |
-| `get_related_components` | `mudmcp related <name>` |
-| `search_components` | `mudmcp search <query...>` |
-| `get_component_examples` | `mudmcp examples <name>` |
-| `get_example_by_name` | `mudmcp example <name> <example-name...>` |
-| `list_component_examples` | `mudmcp examples <name> --names-only` |
-| `get_api_reference` | `mudmcp api <type>` (or `mudmcp events <name>`, `mudmcp methods <name>`) |
-| `get_enum_values` | `mudmcp enum <name>` |
+| `list_components` | `muddocs list` |
+| `list_categories` | `muddocs categories` |
+| `get_components_by_category` | `muddocs list --category <name>` |
+| `get_component_detail` | `muddocs component <name>` |
+| `get_component_parameters` | `muddocs props <name>` |
+| `get_related_components` | `muddocs related <name>` |
+| `search_components` | `muddocs search <query...>` |
+| `get_component_examples` | `muddocs examples <name>` |
+| `get_example_by_name` | `muddocs example <name> <example-name...>` |
+| `list_component_examples` | `muddocs examples <name> --names-only` |
+| `get_api_reference` | `muddocs api <type>` (or `muddocs events <name>`, `muddocs methods <name>`) |
+| `get_enum_values` | `muddocs enum <name>` |
 
 ### Tool Naming Convention
 

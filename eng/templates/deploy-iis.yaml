@@ -69,7 +69,7 @@ steps:
     fetchDepth: 1
 
   - task: DownloadPipelineArtifact@2
-    displayName: 'Download MudBlazor.Mcp build artifact'
+    displayName: 'Download MudDocs build artifact'
     inputs:
       buildType: 'current'
       artifactName: '${{ parameters.artifactName }}'

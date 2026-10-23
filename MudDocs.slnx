@@ -1,0 +1,15 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/MudDocs/MudDocs.csproj" />
+    <Project Path="src/MudDocs.AppHost/MudDocs.AppHost.csproj" />
+    <Project Path="src/MudDocs.ServiceDefaults/MudDocs.ServiceDefaults.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/MudDocs.Tests/MudDocs.Tests.csproj" />
+  </Folder>
+  <Configurations>
+    <Platform Name="Any CPU" />
+    <BuildType Name="Debug" />
+    <BuildType Name="Release" />
+  </Configurations>
+</Solution>
