@@ -1,0 +1,551 @@
+// Copyright (c) 2026 Mud MCP Contributors
+// Licensed under the GNU General Public License v2.0. See LICENSE file in the project root for full license information.
+
+using System.Diagnostics;
+using System.Globalization;
+using System.Text;
+using System.Text.Json;
+using MudDocs.Configuration;
+using MudDocs.Services;
+
+namespace MudDocs.Cli;
+
+/// <summary>
+/// The command-line front end: routing (REQ-001), argument parsing, global options (REQ-003),
+/// exit-code mapping (REQ-004), and the command table (REQ-005). Additional commands are
+/// registered by later tasks.
+/// </summary>
+internal static class CliApp
+{
+    /// <summary>The output format selected by <c>--format</c>.</summary>
+    internal enum CliFormat
+    {
+        Compact,
+        Markdown,
+        Json,
+    }
+
+    /// <summary>
+    /// The resolved context passed to a command handler. <see cref="Version"/> is empty when the
+    /// version is optional and absent; <see cref="Store"/> points at the version's <c>store</c> folder.
+    /// </summary>
+    internal sealed record CliContext(string Version, string DataPath, CliFormat Format, IndexStore Store, TextWriter Out);
+
+    /// <summary>A single row of the command table (REQ-005).</summary>
+    private sealed record CliCommand(
+        string Name,
+        string Usage,
+        string Summary,
+        string Example,
+        IReadOnlySet<string> ValueOptions,
+        IReadOnlySet<string> FlagOptions,
+        int MinPositionals,
+        int MaxPositionals,
+        bool RequiresVersion,
+        bool RequiresStore,
+        Func<CliContext, CliArgs, CancellationToken, Task<int>> Handler);
+
+    private static readonly IReadOnlySet<string> NoOptions = new HashSet<string>(StringComparer.Ordinal);
+
+    private static readonly IReadOnlyList<CliCommand> CommandTable = BuildCommandTable();
+
+    private static readonly IReadOnlyDictionary<string, CliCommand> CommandsByName =
+        CommandTable.ToDictionary(command => command.Name, StringComparer.Ordinal);
+
+    /// <summary>Gets the registered command names in registration order.</summary>
+    internal static IReadOnlyList<string> CommandNames { get; } = CommandTable.Select(command => command.Name).ToArray();
+
+    /// <summary>
+    /// Returns <see langword="true"/> when <paramref name="args"/> should run as a CLI command
+    /// rather than the MCP server (REQ-001).
+    /// </summary>
+    internal static bool IsCliInvocation(string[] args)
+    {
+        if (args.Length == 0)
+        {
+            return false;
+        }
+
+        var first = args[0];
+        if (first is "--help" or "-h")
+        {
+            return true;
+        }
+
+        if (first.StartsWith('-') || first.StartsWith('/'))
+        {
+            return false;
+        }
+
+        if (first.Contains('='))
+        {
+            return false;
+        }
+
+        return true;
+    }
+
+    /// <summary>
+    /// Entry point for a CLI invocation: wires real console streams, UTF-8 (no BOM) buffered
+    /// stdout, and Ctrl+C cancellation, then delegates to the testable core overload.
+    /// </summary>
+    internal static async Task<int> RunAsync(string[] args)
+    {
+        await using var stdout = new StreamWriter(
+            Console.OpenStandardOutput(),
+            new UTF8Encoding(encoderShouldEmitUTF8Identifier: false))
+        {
+            AutoFlush = false,
+        };
+
+        using var cts = new CancellationTokenSource();
+        ConsoleCancelEventHandler onCancel = (_, eventArgs) =>
+        {
+            eventArgs.Cancel = true;
+            cts.Cancel();
+        };
+        Console.CancelKeyPress += onCancel;
+        try
+        {
+            return await RunAsync(args, stdout, Console.Error, Environment.GetEnvironmentVariable, cts.Token).ConfigureAwait(false);
+        }
+        finally
+        {
+            Console.CancelKeyPress -= onCancel;
+        }
+    }
+
+    /// <summary>
+    /// Runs a CLI command, writing command output to <paramref name="stdout"/> and diagnostics to
+    /// <paramref name="stderr"/>, and returns the process exit code (REQ-004).
+    /// </summary>
+    internal static async Task<int> RunAsync(
+        string[] args,
+        TextWriter stdout,
+        TextWriter stderr,
+        Func<string, string?> getEnvironmentVariable,
+        CancellationToken cancellationToken)
+    {
+        var startTimestamp = Stopwatch.GetTimestamp();
+        string? version = null;
+
+        async Task<int> FinishSuccessAsync(int exit)
+        {
+            await stdout.FlushAsync(cancellationToken).ConfigureAwait(false);
+            var elapsedMs = Stopwatch.GetElapsedTime(startTimestamp).TotalMilliseconds;
+            await EmitTimingAsync(elapsedMs).ConfigureAwait(false);
+            return exit;
+        }
+
+        async Task<int> FailAsync(int exit, string errorMessage, string? hint)
+        {
+            await stdout.FlushAsync(CancellationToken.None).ConfigureAwait(false);
+            var elapsedMs = Stopwatch.GetElapsedTime(startTimestamp).TotalMilliseconds;
+            await stderr.WriteLineAsync($"error: {errorMessage}".AsMemory(), CancellationToken.None).ConfigureAwait(false);
+            if (hint is not null)
+            {
+                await stderr.WriteLineAsync($"hint: {hint}".AsMemory(), CancellationToken.None).ConfigureAwait(false);
+            }
+
+            await EmitTimingAsync(elapsedMs).ConfigureAwait(false);
+            return exit;
+        }
+
+        async Task EmitTimingAsync(double elapsedMs)
+        {
+            if (getEnvironmentVariable("MUDDOCS_TIMING") == "1")
+            {
+                await WriteTimingAsync(stderr, elapsedMs).ConfigureAwait(false);
+            }
+        }
+
+        try
+        {
+            CliCommand command;
+            string[] rest;
+            if (args.Length == 0 || args[0] is "--help" or "-h")
+            {
+                command = CommandsByName["help"];
+                rest = [];
+            }
+            else
+            {
+                var name = args[0];
+                if (!CommandsByName.TryGetValue(name, out var found))
+                {
+                    throw new CliException(CliExitCodes.Usage, $"unknown command '{name}'", "muddocs help");
+                }
+
+                command = found;
+                rest = args.Skip(1).ToArray();
+            }
+
+            if (rest.Contains("--help") || rest.Contains("-h"))
+            {
+                await WriteCommandHelpAsync(command, stdout, cancellationToken).ConfigureAwait(false);
+                return await FinishSuccessAsync(CliExitCodes.Success).ConfigureAwait(false);
+            }
+
+            var valueOptions = new HashSet<string>(command.ValueOptions, StringComparer.Ordinal)
+            {
+                "--version",
+                "--data-path",
+                "--format",
+            };
+            var parsed = CliArgs.Parse(rest, valueOptions, command.FlagOptions);
+
+            if (parsed.Positionals.Count < command.MinPositionals || parsed.Positionals.Count > command.MaxPositionals)
+            {
+                throw new CliException(CliExitCodes.Usage, $"usage: muddocs {command.Usage}");
+            }
+
+            var fmt = parsed.GetValue("--format") switch
+            {
+                null or "compact" => CliFormat.Compact,
+                "markdown" => CliFormat.Markdown,
+                "json" => CliFormat.Json,
+                var other => throw new CliException(CliExitCodes.Usage, $"invalid format '{other}'"),
+            };
+
+            var dataPath = ResolveDataPath(parsed, getEnvironmentVariable);
+
+            version = (parsed.GetValue("--version") ?? getEnvironmentVariable("MUDBLAZOR_VERSION"))?.Trim();
+            if (command.RequiresVersion && string.IsNullOrEmpty(version))
+            {
+                var ready = CliCommands.ReadyVersions(dataPath);
+                var hint = ready.Count > 0
+                    ? "indexed versions: " + string.Join(", ", ready)
+                    : "read Version from <PackageReference Include=\"MudBlazor\" ...> in your .csproj or Directory.Packages.props";
+                throw new CliException(
+                    CliExitCodes.Usage,
+                    "MudBlazor version required: pass --version X.Y.Z or set MUDBLAZOR_VERSION",
+                    hint);
+            }
+
+            if (!string.IsNullOrEmpty(version) && !VersionArgument.IsValid(version))
+            {
+                throw new CliException(CliExitCodes.Usage, $"invalid version '{version}'");
+            }
+
+            var store = new IndexStore(new VersionContext(version ?? string.Empty, dataPath).StorePath);
+            var context = new CliContext(version ?? string.Empty, dataPath, fmt, store, stdout);
+
+            if (command.RequiresStore && !store.IsCurrent(context.Version))
+            {
+                throw new CliException(
+                    CliExitCodes.NotIndexed,
+                    $"MudBlazor v{context.Version} is not indexed in {dataPath}",
+                    $"muddocs index --version {context.Version}");
+            }
+
+            var exit = await command.Handler(context, parsed, cancellationToken).ConfigureAwait(false);
+            return await FinishSuccessAsync(exit).ConfigureAwait(false);
+        }
+        catch (CliException ex)
+        {
+            return await FailAsync(ex.ExitCode, ex.Message, ex.Hint).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            return await FailAsync(CliExitCodes.Cancelled, "cancelled", hint: null).ConfigureAwait(false);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or JsonException)
+        {
+            return await FailAsync(
+                CliExitCodes.Error,
+                $"cannot read the index store: {ex.Message}",
+                $"muddocs index --version {version ?? string.Empty}").ConfigureAwait(false);
+        }
+    }
+
+    private static IReadOnlyList<CliCommand> BuildCommandTable()
+    {
+        return
+        [
+            new CliCommand(
+                Name: "help",
+                Usage: "help [command]",
+                Summary: "Show CLI or command help",
+                Example: "muddocs help props",
+                ValueOptions: NoOptions,
+                FlagOptions: NoOptions,
+                MinPositionals: 0,
+                MaxPositionals: 1,
+                RequiresVersion: false,
+                RequiresStore: false,
+                Handler: HelpAsync),
+            new CliCommand(
+                Name: "index-status",
+                Usage: "index-status",
+                Summary: "Show cached index status",
+                Example: "muddocs index-status --version 9.0.0",
+                ValueOptions: NoOptions,
+                FlagOptions: NoOptions,
+                MinPositionals: 0,
+                MaxPositionals: 0,
+                RequiresVersion: false,
+                RequiresStore: false,
+                Handler: CliCommands.IndexStatusAsync),
+            new CliCommand(
+                Name: "index",
+                Usage: "index",
+                Summary: "Build cached index for a version",
+                Example: "muddocs index --version 9.0.0",
+                ValueOptions: NoOptions,
+                FlagOptions: NoOptions,
+                MinPositionals: 0,
+                MaxPositionals: 0,
+                RequiresVersion: true,
+                RequiresStore: false,
+                Handler: CliCommands.IndexAsync),
+            new CliCommand(
+                Name: "component",
+                Usage: "component <name>",
+                Summary: "Show component details",
+                Example: "muddocs component MudButton --version 9.0.0",
+                ValueOptions: NoOptions,
+                FlagOptions: new HashSet<string>(StringComparer.Ordinal) { "--no-inherited", "--no-examples" },
+                MinPositionals: 1,
+                MaxPositionals: 1,
+                RequiresVersion: true,
+                RequiresStore: true,
+                Handler: CliCommands.ComponentAsync),
+            new CliCommand(
+                Name: "props",
+                Usage: "props <name>",
+                Summary: "Show component parameters",
+                Example: "muddocs props MudButton --filter Color,Variant,Size --version 9.0.0",
+                ValueOptions: new HashSet<string>(StringComparer.Ordinal) { "--filter", "--category", "--limit" },
+                FlagOptions: new HashSet<string>(StringComparer.Ordinal) { "--required-only", "--no-inherited", "--desc" },
+                MinPositionals: 1,
+                MaxPositionals: 1,
+                RequiresVersion: true,
+                RequiresStore: true,
+                Handler: CliCommands.PropsAsync),
+            new CliCommand(
+                Name: "events",
+                Usage: "events <name>",
+                Summary: "Show component events",
+                Example: "muddocs events MudButton --version 9.0.0",
+                ValueOptions: new HashSet<string>(StringComparer.Ordinal) { "--filter", "--limit" },
+                FlagOptions: new HashSet<string>(StringComparer.Ordinal) { "--no-inherited", "--desc" },
+                MinPositionals: 1,
+                MaxPositionals: 1,
+                RequiresVersion: true,
+                RequiresStore: true,
+                Handler: CliCommands.EventsAsync),
+            new CliCommand(
+                Name: "methods",
+                Usage: "methods <name>",
+                Summary: "Show component methods",
+                Example: "muddocs methods MudDataGrid --filter \"*Async\" --version 9.0.0",
+                ValueOptions: new HashSet<string>(StringComparer.Ordinal) { "--filter", "--limit" },
+                FlagOptions: new HashSet<string>(StringComparer.Ordinal) { "--no-inherited", "--desc" },
+                MinPositionals: 1,
+                MaxPositionals: 1,
+                RequiresVersion: true,
+                RequiresStore: true,
+                Handler: CliCommands.MethodsAsync),
+            new CliCommand(
+                Name: "examples",
+                Usage: "examples <name>",
+                Summary: "Show component examples",
+                Example: "muddocs examples MudButton --names-only --version 9.0.0",
+                ValueOptions: new HashSet<string>(StringComparer.Ordinal) { "--filter", "--limit" },
+                FlagOptions: new HashSet<string>(StringComparer.Ordinal) { "--names-only" },
+                MinPositionals: 1,
+                MaxPositionals: 1,
+                RequiresVersion: true,
+                RequiresStore: true,
+                Handler: CliCommands.ExamplesAsync),
+            new CliCommand(
+                Name: "example",
+                Usage: "example <name> <example-name...>",
+                Summary: "Show a named component example",
+                Example: "muddocs example MudButton \"Icon Label\" --version 9.0.0",
+                ValueOptions: NoOptions,
+                FlagOptions: NoOptions,
+                MinPositionals: 2,
+                MaxPositionals: int.MaxValue,
+                RequiresVersion: true,
+                RequiresStore: true,
+                Handler: CliCommands.ExampleAsync),
+            new CliCommand(
+                Name: "api",
+                Usage: "api <type>",
+                Summary: "Show a type's API reference",
+                Example: "muddocs api DialogParameters --version 9.0.0",
+                ValueOptions: new HashSet<string>(StringComparer.Ordinal) { "--members" },
+                FlagOptions: new HashSet<string>(StringComparer.Ordinal) { "--desc" },
+                MinPositionals: 1,
+                MaxPositionals: 1,
+                RequiresVersion: true,
+                RequiresStore: true,
+                Handler: CliCommands.ApiAsync),
+            new CliCommand(
+                Name: "enum",
+                Usage: "enum <name>",
+                Summary: "Show enum values",
+                Example: "muddocs enum Color --version 9.0.0",
+                ValueOptions: NoOptions,
+                FlagOptions: new HashSet<string>(StringComparer.Ordinal) { "--desc" },
+                MinPositionals: 1,
+                MaxPositionals: 1,
+                RequiresVersion: true,
+                RequiresStore: true,
+                Handler: CliCommands.EnumAsync),
+            new CliCommand(
+                Name: "related",
+                Usage: "related <name>",
+                Summary: "Show related components",
+                Example: "muddocs related MudDialog --version 9.0.0",
+                ValueOptions: new HashSet<string>(StringComparer.Ordinal) { "--type" },
+                FlagOptions: NoOptions,
+                MinPositionals: 1,
+                MaxPositionals: 1,
+                RequiresVersion: true,
+                RequiresStore: true,
+                Handler: CliCommands.RelatedAsync),
+            new CliCommand(
+                Name: "search",
+                Usage: "search <query...>",
+                Summary: "Search the component catalog",
+                Example: "muddocs search \"date picker\" --version 9.0.0",
+                ValueOptions: new HashSet<string>(StringComparer.Ordinal) { "--in", "--limit" },
+                FlagOptions: NoOptions,
+                MinPositionals: 1,
+                MaxPositionals: int.MaxValue,
+                RequiresVersion: true,
+                RequiresStore: true,
+                Handler: CliCommands.SearchAsync),
+            new CliCommand(
+                Name: "list",
+                Usage: "list",
+                Summary: "List components by category",
+                Example: "muddocs list --category Buttons --version 9.0.0",
+                ValueOptions: new HashSet<string>(StringComparer.Ordinal) { "--category" },
+                FlagOptions: new HashSet<string>(StringComparer.Ordinal) { "--desc" },
+                MinPositionals: 0,
+                MaxPositionals: 0,
+                RequiresVersion: true,
+                RequiresStore: true,
+                Handler: CliCommands.ListAsync),
+            new CliCommand(
+                Name: "categories",
+                Usage: "categories",
+                Summary: "List component categories and counts",
+                Example: "muddocs categories --version 9.0.0",
+                ValueOptions: NoOptions,
+                FlagOptions: NoOptions,
+                MinPositionals: 0,
+                MaxPositionals: 0,
+                RequiresVersion: true,
+                RequiresStore: true,
+                Handler: CliCommands.CategoriesAsync),
+        ];
+    }
+
+    private static string ResolveDataPath(CliArgs parsed, Func<string, string?> getEnvironmentVariable)
+    {
+        var dataPath = parsed.GetValue("--data-path");
+
+        if (string.IsNullOrEmpty(dataPath))
+        {
+            dataPath = getEnvironmentVariable("MudBlazor__Repository__DataPath");
+        }
+
+        if (string.IsNullOrEmpty(dataPath))
+        {
+            var home = (OperatingSystem.IsWindows()
+                ? getEnvironmentVariable("USERPROFILE")
+                : getEnvironmentVariable("HOME"))
+                ?? Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+            dataPath = Path.Combine(home, ".muddocs");
+        }
+
+        return Path.GetFullPath(dataPath);
+    }
+
+    private static async Task<int> HelpAsync(CliContext context, CliArgs args, CancellationToken cancellationToken)
+    {
+        if (args.Positionals.Count == 0)
+        {
+            await WriteFullHelpAsync(context.Out, cancellationToken).ConfigureAwait(false);
+            return CliExitCodes.Success;
+        }
+
+        var name = args.Positionals[0];
+        if (!CommandsByName.TryGetValue(name, out var command))
+        {
+            throw new CliException(CliExitCodes.Usage, $"unknown command '{name}'");
+        }
+
+        await WriteCommandHelpAsync(command, context.Out, cancellationToken).ConfigureAwait(false);
+        return CliExitCodes.Success;
+    }
+
+    private static async Task WriteFullHelpAsync(TextWriter writer, CancellationToken cancellationToken)
+    {
+        var builder = new StringBuilder();
+        builder.AppendLine("usage: muddocs <command> [arguments] [options]");
+        builder.AppendLine();
+        builder.AppendLine("commands:");
+        foreach (var name in CommandNames)
+        {
+            var command = CommandsByName[name];
+            builder.Append("  ").Append(command.Usage.PadRight(38)).AppendLine(command.Summary);
+        }
+
+        builder.AppendLine();
+        builder.AppendLine("global options:");
+        builder.AppendLine("  --version <ver>   MudBlazor version (or set MUDBLAZOR_VERSION)");
+        builder.AppendLine("  --data-path <dir> Cache directory (default: ~/.muddocs)");
+        builder.AppendLine("  --format <fmt>    Output format: compact (default), markdown, json");
+        builder.AppendLine();
+        builder.AppendLine("MCP server: muddocs --stdio or muddocs --http");
+
+        await writer.WriteAsync(builder.ToString().AsMemory(), cancellationToken).ConfigureAwait(false);
+    }
+
+    private static async Task WriteCommandHelpAsync(CliCommand command, TextWriter writer, CancellationToken cancellationToken)
+    {
+        var builder = new StringBuilder();
+        builder.Append("usage: muddocs ").AppendLine(command.Usage);
+
+        var opts = new List<string>();
+        foreach (var option in command.ValueOptions.OrderBy(o => o, StringComparer.Ordinal))
+        {
+            opts.Add($"{option} <val>");
+        }
+
+        foreach (var flag in command.FlagOptions.OrderBy(f => f, StringComparer.Ordinal))
+        {
+            opts.Add(flag);
+        }
+
+        if (opts.Count > 0)
+        {
+            builder.Append("options: ").AppendLine(string.Join(", ", opts));
+        }
+
+        if (!string.IsNullOrEmpty(command.Example))
+        {
+            builder.Append("example: ").AppendLine(command.Example);
+        }
+
+        await writer.WriteAsync(builder.ToString().AsMemory(), cancellationToken).ConfigureAwait(false);
+    }
+
+    private static async Task WriteTimingAsync(TextWriter stderr, double elapsedMs)
+    {
+        using var process = Process.GetCurrentProcess();
+        var processMs = (DateTime.Now - process.StartTime).TotalMilliseconds;
+
+        await stderr.WriteLineAsync(
+            $"elapsed-ms={elapsedMs.ToString("F1", CultureInfo.InvariantCulture)}".AsMemory(),
+            CancellationToken.None).ConfigureAwait(false);
+        await stderr.WriteLineAsync(
+            $"process-ms={processMs.ToString("F0", CultureInfo.InvariantCulture)}".AsMemory(),
+            CancellationToken.None).ConfigureAwait(false);
+    }
+}

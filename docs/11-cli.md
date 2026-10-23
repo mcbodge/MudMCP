@@ -1,6 +1,6 @@
 # CLI Mode
 
-The same MudMCP package provides the MCP server and a compact terminal CLI.
+The same MudDocs package provides the MCP server and a compact terminal CLI.
 Queries are version-scoped, local and read-only; only `index` may clone sources.
 
 ## Install and run
@@ -8,12 +8,12 @@ Queries are version-scoped, local and read-only; only `index` may clone sources.
 Install the .NET 10 SDK, then prefer the global tool's direct apphost for repeated queries:
 
 ```text
-dotnet tool install -g MudMCP
-dotnet tool update -g MudMCP
-mudmcp help
+dotnet tool install -g MudDocs
+dotnet tool update -g MudDocs
+muddocs help
 ```
 
-Zero-install fallback: `dnx MudMCP --yes -- help`. Always put tool arguments
+Zero-install fallback: `dnx MudDocs --yes -- help`. Always put tool arguments
 after `--`. On .NET 10, dnx starts the SDK CLI and checks NuGet feeds on every
 invocation, even for a pinned version
 ([dotnet/sdk#50579](https://github.com/dotnet/sdk/issues/50579)).
@@ -22,7 +22,7 @@ The global tool avoids that overhead.
 From the repository root:
 
 ```text
-dotnet run --project src/MudBlazor.Mcp/MudBlazor.Mcp.csproj -- help
+dotnet run --project src/MudDocs/MudDocs.csproj -- help
 ```
 
 Read the consumer project's MudBlazor version from its
@@ -34,9 +34,9 @@ The CLI does not auto-detect it.
 ## Indexing
 
 ```text
-mudmcp index --version 9.0.0
-mudmcp index-status --version 9.0.0
-mudmcp index-status
+muddocs index --version 9.0.0
+muddocs index-status --version 9.0.0
+muddocs index-status
 ```
 
 The first index may take minutes to clone the tagged repository and parse it.
@@ -45,13 +45,13 @@ Query commands never build or download an index automatically.
 without cloning when its schema and parsing options match.
 
 Data path precedence: `--data-path`, `MudBlazor__Repository__DataPath`,
-then `.mudmcp` under the user home (`USERPROFILE` on Windows, `HOME` elsewhere,
+then `.muddocs` under the user home (`USERPROFILE` on Windows, `HOME` elsewhere,
 then the runtime user-profile folder). Paths resolve to absolute paths.
 The MCP server default remains `./data`; set its
 `MudBlazor__Repository__DataPath` to the same absolute CLI data path to share caches.
 
 ```text
-~/.mudmcp/v9.0.0/
+~/.muddocs/v9.0.0/
   index.json
   mudblazor-repo/
   store/
@@ -80,21 +80,21 @@ letters, digits or underscores.
 
 | Command | Options | MCP tool equivalent |
 | --- | --- | --- |
-| `mudmcp search <query...>` | `--in name\|description\|parameters\|examples\|all` (all), `--limit 1..50` (10) | `search_components` |
-| `mudmcp list` | `--category <name>`, `--desc` | `list_components`, `get_components_by_category` |
-| `mudmcp categories` | none | `list_categories` |
-| `mudmcp component <name>` | `--no-inherited`, `--no-examples` (markdown only) | `get_component_detail` |
-| `mudmcp props <name>` | `--filter <globs>`, `--category <param-category>`, `--required-only`, `--no-inherited`, `--limit 1..1000`, `--desc` | `get_component_parameters` |
-| `mudmcp events <name>` | `--filter <globs>`, `--no-inherited`, `--limit 1..1000`, `--desc` | events in `get_component_detail`, `get_api_reference` |
-| `mudmcp methods <name>` | `--filter <globs>`, `--no-inherited`, `--limit 1..1000`, `--desc` | methods in `get_component_detail`, `get_api_reference` |
-| `mudmcp examples <name>` | `--names-only`, `--filter <text>`, `--limit 1..20` (3) | `get_component_examples`, `list_component_examples` |
-| `mudmcp example <name> <example-name...>` | none | `get_example_by_name` |
-| `mudmcp related <name>` | `--type all\|parent\|child\|sibling\|commonly_used_with` (all) | `get_related_components` |
-| `mudmcp api <type>` | `--members all\|properties\|methods\|events` (all), `--desc` | `get_api_reference` (including enum fallback) |
-| `mudmcp enum <name>` | `--desc` | `get_enum_values` |
-| `mudmcp index` | version required | none |
-| `mudmcp index-status` | version optional | none |
-| `mudmcp help [command]` | none | none |
+| `muddocs search <query...>` | `--in name\|description\|parameters\|examples\|all` (all), `--limit 1..50` (10) | `search_components` |
+| `muddocs list` | `--category <name>`, `--desc` | `list_components`, `get_components_by_category` |
+| `muddocs categories` | none | `list_categories` |
+| `muddocs component <name>` | `--no-inherited`, `--no-examples` (markdown only) | `get_component_detail` |
+| `muddocs props <name>` | `--filter <globs>`, `--category <param-category>`, `--required-only`, `--no-inherited`, `--limit 1..1000`, `--desc` | `get_component_parameters` |
+| `muddocs events <name>` | `--filter <globs>`, `--no-inherited`, `--limit 1..1000`, `--desc` | events in `get_component_detail`, `get_api_reference` |
+| `muddocs methods <name>` | `--filter <globs>`, `--no-inherited`, `--limit 1..1000`, `--desc` | methods in `get_component_detail`, `get_api_reference` |
+| `muddocs examples <name>` | `--names-only`, `--filter <text>`, `--limit 1..20` (3) | `get_component_examples`, `list_component_examples` |
+| `muddocs example <name> <example-name...>` | none | `get_example_by_name` |
+| `muddocs related <name>` | `--type all\|parent\|child\|sibling\|commonly_used_with` (all) | `get_related_components` |
+| `muddocs api <type>` | `--members all\|properties\|methods\|events` (all), `--desc` | `get_api_reference` (including enum fallback) |
+| `muddocs enum <name>` | `--desc` | `get_enum_values` |
+| `muddocs index` | version required | none |
+| `muddocs index-status` | version optional | none |
+| `muddocs help [command]` | none | none |
 
 Member filters are comma-separated case-insensitive globs, ORed together:
 `--filter Color,Variant,Size` matches those exact names; `--filter "*Color*"`
@@ -146,7 +146,7 @@ Example source itself is preserved as code and may contain such characters.
   `props N`, `events N`, `methods N` sections selected by `--members`.
 
 ```text
-mudmcp props MudButton --filter Color,Variant,Size --version 9.0.0
+muddocs props MudButton --filter Color,Variant,Size --version 9.0.0
 ```
 
 ```text
@@ -156,7 +156,7 @@ Size: Size = Size.Medium
 Variant: Variant = Variant.Text
 ```
 
-`mudmcp component MudButton --version 9.0.0`:
+`muddocs component MudButton --version 9.0.0`:
 
 ```text
 MudButton v9.0.0 component
@@ -214,13 +214,13 @@ For a missing/stale store:
 
 ```text
 error: MudBlazor v9.0.0 is not indexed in <full-data-path>
-hint: mudmcp index --version 9.0.0
+hint: muddocs index --version 9.0.0
 ```
 
 Missing component/type hints suggest up to five names, ignoring the Mud prefix,
 ranked by length difference then name. An enum name hints
-`mudmcp enum Color --version 9.0.0`; without candidates the hint is
-`mudmcp search <input> --version 9.0.0`.
+`muddocs enum Color --version 9.0.0`; without candidates the hint is
+`muddocs search <input> --version 9.0.0`.
 
 ## Performance
 
@@ -232,7 +232,7 @@ read the manifest and one component file (v9.0.0 median 4,525 bytes, p95 34,826,
 max 111,853); enums read 42,130 bytes; catalog queries read 695,438 bytes rather
 than the 2,360,116-byte minified index.
 
-`MUDMCP_TIMING=1` adds `elapsed-ms=` (one decimal) and `process-ms=` (integer)
+`MUDDOCS_TIMING=1` adds `elapsed-ms=` (one decimal) and `process-ms=` (integer)
 to stderr after stdout flush. Elapsed measures CLI entry through that flush;
 process includes runtime startup and is reported, not gated.
 
@@ -294,7 +294,7 @@ not necessarily startup latency.
 
 ## Agent Skill
 
-Copy the [mudblazor-cli folder](../skills/mudblazor-cli/SKILL.md) into your
+Copy the [mudblazor-docs folder](../skills/mudblazor-docs/SKILL.md) into your
 repository's `.github/skills/`, `.claude/skills/` or `.agents/skills/`, or your
 user-level `~/.copilot/skills/`, `~/.claude/skills/` or `~/.agents/skills/`.
 The skill reads the consumer's package version, verifies exact members before
@@ -308,7 +308,7 @@ repository's `.github/copilot-instructions.md`:
 ```markdown
 ## MudBlazor component APIs
 
-- This repository uses MudBlazor 9.0.0 (use the Version of the MudBlazor PackageReference). Never guess Mud* parameter, event, or enum names: verify them with the mudmcp CLI first.
-- Always pass --version 9.0.0. Start narrow: mudmcp props MudButton --filter Color,Variant --version 9.0.0; then component, events, methods, or enum; fetch code only with examples --names-only followed by example.
-- Exit code 3: run mudmcp index --version 9.0.0 once. Exit code 4: use the suggested names or mudmcp search.
+- This repository uses MudBlazor 9.0.0 (use the Version of the MudBlazor PackageReference). Never guess Mud* parameter, event, or enum names: verify them with the muddocs CLI first.
+- Always pass --version 9.0.0. Start narrow: muddocs props MudButton --filter Color,Variant --version 9.0.0; then component, events, methods, or enum; fetch code only with examples --names-only followed by example.
+- Exit code 3: run muddocs index --version 9.0.0 once. Exit code 4: use the suggested names or muddocs search.
 ```

@@ -1,6 +1,6 @@
 name: Release to NuGet
 
-# Publishes the MudMCP .NET tool to nuget.org when a GitHub Release is
+# Publishes the MudDocs .NET tool to nuget.org when a GitHub Release is
 # published (tag drives the package version), or on manual dispatch.
 on:
   release:
@@ -45,10 +45,10 @@ jobs:
         run: dotnet restore
 
       - name: Test
-        run: dotnet test tests/MudBlazor.Mcp.Tests/MudBlazor.Mcp.Tests.csproj -c Release
+        run: dotnet test tests/MudDocs.Tests/MudDocs.Tests.csproj -c Release
 
       - name: Pack
-        run: dotnet pack src/MudBlazor.Mcp/MudBlazor.Mcp.csproj -c Release -o artifacts -p:Version=${{ steps.ver.outputs.version }}
+        run: dotnet pack src/MudDocs/MudDocs.csproj -c Release -o artifacts -p:Version=${{ steps.ver.outputs.version }}
 
       # Trusted Publishing: exchange the GitHub OIDC token for a short-lived (1 hour)
       # NuGet API key. No long-lived secret is stored. `user` is your nuget.org

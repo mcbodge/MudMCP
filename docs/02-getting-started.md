@@ -52,10 +52,10 @@ git --version
 
 ```bash
 # Clone the repository
-git clone https://github.com/mcbodge/MudMCP.git
+git clone https://github.com/mcbodge/MudDocs.git
 
 # Navigate to the project
-cd MudMCP
+cd MudDocs
 
 # Restore dependencies
 dotnet restore
@@ -94,7 +94,7 @@ Build succeeded.
 The default transport mode starts an HTTP server:
 
 ```bash
-cd src/MudBlazor.Mcp
+cd src/MudDocs
 dotnet run
 ```
 
@@ -107,11 +107,11 @@ Local `dotnet run`, Aspire, and Docker examples use HTTP by default. IIS deploym
 
 **Console output:**
 ```
-info: MudBlazor.Mcp[0]
+info: MudDocs[0]
       Building MudBlazor component index...
-info: MudBlazor.Mcp.Services.GitRepositoryService[0]
+info: MudDocs.Services.GitRepositoryService[0]
       Cloning MudBlazor repository from https://github.com/MudBlazor/MudBlazor.git
-info: MudBlazor.Mcp.Services.ComponentIndexer[0]
+info: MudDocs.Services.ComponentIndexer[0]
       Index build completed in 15432ms. Indexed 85 components
 info: Microsoft.Hosting.Lifetime[0]
       Now listening on: http://localhost:8000
@@ -122,7 +122,7 @@ info: Microsoft.Hosting.Lifetime[0]
 For CLI-based MCP clients (like Claude Desktop):
 
 ```bash
-cd src/MudBlazor.Mcp
+cd src/MudDocs
 dotnet run -- --stdio
 ```
 
@@ -136,7 +136,7 @@ In stdio mode:
 For development with observability:
 
 ```bash
-cd src/MudBlazor.Mcp.AppHost
+cd src/MudDocs.AppHost
 dotnet run
 ```
 
@@ -148,26 +148,26 @@ This starts:
 
 ## Running via dnx (one-off, no install)
 
-`dnx` ships with the .NET 10 SDK and runs a tool package on demand — no global install, no manually cloned repo. This project is published to nuget.org as the .NET tool **[`MudMCP`](https://www.nuget.org/packages/MudMCP)** (command `mudmcp`).
+`dnx` ships with the .NET 10 SDK and runs a tool package on demand — no global install, no manually cloned repo. This project is published to nuget.org as the .NET tool **[`MudDocs`](https://www.nuget.org/packages/MudDocs)** (command `muddocs`).
 
 The docs version is supplied through the `MUDBLAZOR_VERSION` environment variable, because `dnx` reserves `--version` for the *package* version. Anything after `--` is forwarded to the server.
 
 ```bash
 # PowerShell
-$env:MUDBLAZOR_VERSION = "9.0.0"; dnx MudMCP@1.0.2 --yes -- --stdio
+$env:MUDBLAZOR_VERSION = "9.0.0"; dnx MudDocs@1.0.2 --yes -- --stdio
 
 # bash
-MUDBLAZOR_VERSION=9.0.0 dnx MudMCP@1.0.2 --yes -- --stdio
+MUDBLAZOR_VERSION=9.0.0 dnx MudDocs@1.0.2 --yes -- --stdio
 ```
 
 > **Building from source?** Pack it locally and add `--source`:
 >
 > ```bash
-> dotnet pack src/MudBlazor.Mcp/MudBlazor.Mcp.csproj -c Release -o ./nupkg   # produces ./nupkg/MudMCP.1.0.2.nupkg
-> MUDBLAZOR_VERSION=9.0.0 dnx MudMCP --source ./nupkg --yes -- --stdio
+> dotnet pack src/MudDocs/MudDocs.csproj -c Release -o ./nupkg   # produces ./nupkg/MudDocs.1.0.2.nupkg
+> MUDBLAZOR_VERSION=9.0.0 dnx MudDocs --source ./nupkg --yes -- --stdio
 > ```
 
-> **Shared cache (recommended):** each `dnx` run clones MudBlazor (~500 MB) into `./data` in the working directory. Point `MudBlazor__Repository__DataPath` at one fixed folder so every project reuses a single cache — e.g. `$env:MudBlazor__Repository__DataPath = "$HOME/.mudmcp"` (PowerShell) or `export MudBlazor__Repository__DataPath="$HOME/.mudmcp"` (bash). In MCP client configs, add it under `env`.
+> **Shared cache (recommended):** each `dnx` run clones MudBlazor (~500 MB) into `./data` in the working directory. Point `MudBlazor__Repository__DataPath` at one fixed folder so every project reuses a single cache — e.g. `$env:MudBlazor__Repository__DataPath = "$HOME/.muddocs"` (PowerShell) or `export MudBlazor__Repository__DataPath="$HOME/.muddocs"` (bash). In MCP client configs, add it under `env`.
 
 ---
 
@@ -279,7 +279,7 @@ export Logging__LogLevel__Default=Debug
 
 ### appsettings.json
 
-Modify `src/MudBlazor.Mcp/appsettings.json`:
+Modify `src/MudDocs/appsettings.json`:
 
 ```json
 {
@@ -397,13 +397,13 @@ Use this when you want Claude Desktop to launch the server process itself using 
      "mcpServers": {
        "mud-mcp": {
          "command": "dotnet",
-         "args": ["run", "--project", "C:\\path\\to\\MudBlazor.Mcp\\src\\MudBlazor.Mcp", "--", "--stdio", "--version", "9.0.0"]
+         "args": ["run", "--project", "C:\\path\\to\\MudDocs\\src\\MudDocs", "--", "--stdio", "--version", "9.0.0"]
        }
      }
    }
    ```
 
-   Replace `C:\\path\\to\\MudBlazor.Mcp` with the actual path to your cloned repository, and replace `9.0.0` with your project's MudBlazor package version.
+   Replace `C:\\path\\to\\MudDocs` with the actual path to your cloned repository, and replace `9.0.0` with your project's MudBlazor package version.
 
 2. **Restart Claude Desktop**
 
@@ -472,13 +472,13 @@ For active development:
 
 ```bash
 # Run with hot reload
-dotnet watch run --project src/MudBlazor.Mcp
+dotnet watch run --project src/MudDocs
 
 # Run tests continuously
-dotnet watch test --project tests/MudBlazor.Mcp.Tests
+dotnet watch test --project tests/MudDocs.Tests
 
 # Run with Aspire for full observability
-cd src/MudBlazor.Mcp.AppHost && dotnet run
+cd src/MudDocs.AppHost && dotnet run
 ```
 
 ### Useful Development Endpoints

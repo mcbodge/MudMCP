@@ -81,9 +81,9 @@ This document provides a deep technical dive into the Mud MCP architecture, incl
 ### Entry Point Routing
 
 ```text
-mudmcp args -> Program.cs: CliApp.IsCliInvocation(args)
+muddocs args -> Program.cs: CliApp.IsCliInvocation(args)
   +-- true -> CliApp.RunAsync -> CliArgs -> CliCommands
-  |             -> IndexStore (~/.mudmcp/v9.0.0/store/*.json)
+  |             -> IndexStore (~/.muddocs/v9.0.0/store/*.json)
   |             -> CompactFormatter | Tools.Render* | CliJsonContext -> stdout
   |             index -> McpServerHost.RegisterCoreServices
   |                   -> ComponentIndexer.BuildIndexAsync -> index.json + store/
@@ -521,7 +521,7 @@ Alongside the unchanged schema-6 `index.json`, each version has a `store/`:
 API references are derived rather than duplicated. Every full index build
 writes the store; a cached load writes it if the manifest is absent, its schema
 differs from `IndexStore.SchemaVersion`, or its version differs from the request.
-Existing caches therefore migrate on MCP startup or explicit `mudmcp index`.
+Existing caches therefore migrate on MCP startup or explicit `muddocs index`.
 
 Writes serialize into a unique temporary sibling directory, then rename the
 old store aside and the new directory into place. A reader sees a complete old
@@ -556,7 +556,7 @@ private readonly ConcurrentDictionary<string, ComponentInfo> _components;
 
 ### ServiceDefaults
 
-The `MudBlazor.Mcp.ServiceDefaults` project provides:
+The `MudDocs.ServiceDefaults` project provides:
 
 ```csharp
 public static IHostApplicationBuilder AddServiceDefaults(this IHostApplicationBuilder builder)

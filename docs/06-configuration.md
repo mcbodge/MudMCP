@@ -165,7 +165,7 @@ Standard .NET logging configuration.
   "Logging": {
     "LogLevel": {
       "Default": "Information",
-      "MudBlazor.Mcp": "Debug",
+      "MudDocs": "Debug",
       "Microsoft.AspNetCore": "Warning",
       "System.Net.Http.HttpClient": "Warning"
     }
@@ -193,7 +193,7 @@ Standard .NET logging configuration.
   "Logging": {
     "LogLevel": {
       "Default": "Debug",
-      "MudBlazor.Mcp": "Trace",
+      "MudDocs": "Trace",
       "Microsoft.AspNetCore": "Debug"
     }
   }
@@ -208,7 +208,7 @@ Standard .NET logging configuration.
   "Logging": {
     "LogLevel": {
       "Default": "Warning",
-      "MudBlazor.Mcp": "Information",
+      "MudDocs": "Information",
       "Microsoft.AspNetCore": "Warning"
     }
   }
@@ -347,7 +347,7 @@ ENV Logging__LogLevel__Default=Warning
   "Logging": {
     "LogLevel": {
       "Default": "Debug",
-      "MudBlazor.Mcp": "Trace"
+      "MudDocs": "Trace"
     }
   }
 }
@@ -371,7 +371,7 @@ ENV Logging__LogLevel__Default=Warning
   "Logging": {
     "LogLevel": {
       "Default": "Warning",
-      "MudBlazor.Mcp": "Information"
+      "MudDocs": "Information"
     }
   }
 }

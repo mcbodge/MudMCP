@@ -45,20 +45,20 @@ function Invoke-CapturedProcess {
     if ($ArgumentList[1] -eq 'index-status') {
         return [pscustomobject]@{ ExitCode = $script:StatusExit; Stdout = ''; Stderr = '' }
     }
-    Assert-True ($env:MUDMCP_TIMING -eq '1') 'Timing must be enabled for measured children.'
+    Assert-True ($env:MUDDOCS_TIMING -eq '1') 'Timing must be enabled for measured children.'
     # Stdout deliberately contains misleading timing; only stderr may be parsed.
     $stderr = if ($script:Malformed) { 'elapsed-ms=1,5' } else { "elapsed-ms=$script:Elapsed`nprocess-ms=999" }
     return [pscustomobject]@{ ExitCode = $script:CommandExit; Stdout = 'elapsed-ms=9999'; Stderr = $stderr }
 }
 
-$previousTiming = $env:MUDMCP_TIMING
+$previousTiming = $env:MUDDOCS_TIMING
 $previousCulture = [System.Globalization.CultureInfo]::CurrentCulture
 try {
-    $env:MUDMCP_TIMING = 'previous'
+    $env:MUDDOCS_TIMING = 'previous'
     [System.Globalization.CultureInfo]::CurrentCulture = [System.Globalization.CultureInfo]::GetCultureInfo('de-DE')
     $output = @(Invoke-CliLatency -NoBuild -DataPath 'a path with spaces' -Iterations 20)
     Assert-True ($output[-1] -eq 0) 'Elapsed targets should pass regardless of process time.'
-    Assert-True ($env:MUDMCP_TIMING -eq 'previous') 'The previous timing value must be restored.'
+    Assert-True ($env:MUDDOCS_TIMING -eq 'previous') 'The previous timing value must be restored.'
     Assert-True ($script:Calls.Count -eq 261) 'Run status once and exactly 13 commands 20 times.'
     $expected = @(
         'component MudButton', 'props MudButton --filter Color,Variant,Size', 'props MudDataGrid',
@@ -84,9 +84,9 @@ try {
         Assert-True ($output[-1] -eq 0) 'Above-target measurements must succeed by default.'
         Assert-True ($output.Count -eq 16) 'Above-target measurements must retain the complete table.'
         Assert-True ($warning.ToString() -match 'warning:.*13 commands.*above.*target') 'Stderr must explicitly warn with the above-target command count.'
-        Assert-True ($env:MUDMCP_TIMING -eq 'previous') 'Restore timing after default warnings.'
+        Assert-True ($env:MUDDOCS_TIMING -eq 'previous') 'Restore timing after default warnings.'
         Assert-True (@(Invoke-CliLatency -NoBuild -Iterations 1 -StrictBudget)[-1] -eq 1) 'StrictBudget must fail above target.'
-        Assert-True ($env:MUDMCP_TIMING -eq 'previous') 'Restore timing after strict budget failure.'
+        Assert-True ($env:MUDDOCS_TIMING -eq 'previous') 'Restore timing after strict budget failure.'
         $script:Elapsed = '50.0'
         Assert-True (@(Invoke-CliLatency -NoBuild -Iterations 1 -StrictBudget)[-1] -eq 0) 'The strict budget boundary is inclusive.'
     }
@@ -104,24 +104,24 @@ try {
     $script:CommandExit = 0
     $script:Malformed = $true
     Assert-True (@(Invoke-CliLatency -NoBuild -Iterations 1)[-1] -eq 1) 'Malformed or missing timing must fail.'
-    Assert-True ($env:MUDMCP_TIMING -eq 'previous') 'Restore timing even after failures.'
+    Assert-True ($env:MUDDOCS_TIMING -eq 'previous') 'Restore timing even after failures.'
     $script:Malformed = $false
     $script:Elapsed = '1.5'
     $script:Calls.Clear()
     Assert-True (@(Invoke-CliLatency -Iterations 1)[-1] -eq 0) 'The default build path must succeed.'
     Assert-True (($script:Calls[0][0] -eq 'build') -and ($script:Calls[0][-1] -eq 'Release')) 'Build the main project in Release by default.'
-    Assert-True ($script:Calls[0][1].EndsWith((Join-Path 'src' 'MudBlazor.Mcp' 'MudBlazor.Mcp.csproj'))) 'Build only the main project.'
+    Assert-True ($script:Calls[0][1].EndsWith((Join-Path 'src' 'MudDocs' 'MudDocs.csproj'))) 'Build only the main project.'
     $script:BuildExit = 1
     $script:Calls.Clear()
     Assert-True (@(Invoke-CliLatency -Iterations 1)[-1] -eq 1) 'A build failure must stop the benchmark.'
     Assert-True ($script:Calls.Count -eq 1) 'Do not run commands after a failed build.'
     $script:BuildExit = 0
-    $env:MUDMCP_TIMING = $null
+    $env:MUDDOCS_TIMING = $null
     Assert-True (@(Invoke-CliLatency -NoBuild -Iterations 1)[-1] -eq 0) 'An initially absent timing variable must work.'
-    Assert-True ($null -eq [Environment]::GetEnvironmentVariable('MUDMCP_TIMING')) 'Restore an absent timing variable.'
+    Assert-True ($null -eq [Environment]::GetEnvironmentVariable('MUDDOCS_TIMING')) 'Restore an absent timing variable.'
     Write-Output 'PASS: CLI latency self-checks.'
 }
 finally {
     [System.Globalization.CultureInfo]::CurrentCulture = $previousCulture
-    $env:MUDMCP_TIMING = $previousTiming
+    $env:MUDDOCS_TIMING = $previousTiming
 }

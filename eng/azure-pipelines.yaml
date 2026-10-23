@@ -41,9 +41,9 @@ variables:
   - name: dotnetVersion
     value: '10.x'
   - name: projectPath
-    value: 'src/MudBlazor.Mcp/MudBlazor.Mcp.csproj'
+    value: 'src/MudDocs/MudDocs.csproj'
   - name: testProjectPath
-    value: 'tests/MudBlazor.Mcp.Tests/MudBlazor.Mcp.Tests.csproj'
+    value: 'tests/MudDocs.Tests/MudDocs.Tests.csproj'
   - name: publishPath
     value: '$(Build.ArtifactStagingDirectory)/publish'
   - name: artifactName
@@ -145,7 +145,7 @@ stages:
             inputs:
               testResultsFormat: 'VSTest'
               testResultsFiles: '$(Agent.TempDirectory)/TestResults/test-results.trx'
-              testRunTitle: 'MudBlazor.Mcp Unit Tests'
+              testRunTitle: 'MudDocs Unit Tests'
               failTaskOnFailedTests: true
 
           - task: PublishCodeCoverageResults@2

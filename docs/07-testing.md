@@ -54,8 +54,8 @@ Mud MCP follows these testing principles:
 
 ```
 tests/
-└── MudBlazor.Mcp.Tests/
-    ├── MudBlazor.Mcp.Tests.csproj
+└── MudDocs.Tests/
+    ├── MudDocs.Tests.csproj
     ├── Tools/
     │   ├── ComponentListToolsTests.cs
     │   ├── ComponentDetailToolsTests.cs
@@ -85,7 +85,7 @@ dotnet test
 dotnet test --verbosity normal
 
 # Run specific test project
-dotnet test tests/MudBlazor.Mcp.Tests
+dotnet test tests/MudDocs.Tests
 
 # Run specific test class
 dotnet test --filter-class "*ComponentListToolsTests"
@@ -106,7 +106,7 @@ dotnet test --coverage --coverage-output-format cobertura
 ### Watch Mode
 
 ```bash
-dotnet watch test --project tests/MudBlazor.Mcp.Tests
+dotnet watch test --project tests/MudDocs.Tests
 ```
 
 ---
@@ -120,9 +120,9 @@ Tools use static methods with injected dependencies, making them easy to test.
 ```csharp
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
-using MudBlazor.Mcp.Models;
-using MudBlazor.Mcp.Services;
-using MudBlazor.Mcp.Tools;
+using MudDocs.Models;
+using MudDocs.Services;
+using MudDocs.Tools;
 using Moq;
 using Xunit;
 

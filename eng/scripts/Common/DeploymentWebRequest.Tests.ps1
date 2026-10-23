@@ -49,7 +49,7 @@ Describe 'Invoke-DeploymentHealthRequest' {
         $response.StatusCode | Should -Be 200
         $script:validationResultForTarget | Should -BeTrue
         $script:validationResultForRemote | Should -BeFalse
-        $script:callbackDuringRequest.Method.DeclaringType.FullName | Should -Be 'MudMcp.DeploymentHealthCertificateValidator'
+        $script:callbackDuringRequest.Method.DeclaringType.FullName | Should -Be 'MudDocs.DeploymentHealthCertificateValidator'
         [System.Net.ServicePointManager]::ServerCertificateValidationCallback | Should -Be $null
         [System.Net.ServicePointManager]::SecurityProtocol | Should -Be ([System.Net.SecurityProtocolType]::Tls)
         Should -Invoke Invoke-WebRequest -Times 1 -Exactly -Scope It -ParameterFilter {
@@ -97,7 +97,7 @@ Describe 'Invoke-DeploymentHealthRequest' {
             Should -Throw '*Network failure*'
 
         $script:callbackDuringRequest | Should -Not -Be $null
-        $script:callbackDuringRequest.Method.DeclaringType.FullName | Should -Be 'MudMcp.DeploymentHealthCertificateValidator'
+        $script:callbackDuringRequest.Method.DeclaringType.FullName | Should -Be 'MudDocs.DeploymentHealthCertificateValidator'
         [System.Net.ServicePointManager]::ServerCertificateValidationCallback | Should -Be $null
         ($script:securityProtocolDuringRequest -band [System.Net.SecurityProtocolType]::Tls12) |
             Should -Be ([System.Net.SecurityProtocolType]::Tls12)

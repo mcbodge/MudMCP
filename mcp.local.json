@@ -7,7 +7,7 @@
       "args": [
         "run",
         "--project",
-        "<REPO_ROOT>\\src\\MudBlazor.Mcp\\MudBlazor.Mcp.csproj",
+        "<REPO_ROOT>\\src\\MudDocs\\MudDocs.csproj",
         "--",
         "--stdio",
         "--version",
